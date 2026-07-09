@@ -156,9 +156,6 @@ declare
 begin
   -- Get user balance
   select balance into v_balance from profiles where id = p_user_id for update;
-  if v_balance < p_final_amount then
-    raise exception 'Số dư ví không đủ';
-  end if;
 
   -- Check cart
   if not exists (select 1 from carts where user_id = p_user_id) then
