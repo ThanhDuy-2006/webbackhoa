@@ -21,11 +21,10 @@ export function ProductDetailClient({ product, variants, initialFavorited = fals
   const images = product.images && product.images.length > 0 ? product.images : (product.image_url ? [product.image_url] : [])
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   
-  // Variants handling (assuming basic color/size grouped logic if available, or just single selection)
   const [selectedVariant, setSelectedVariant] = useState<any>(variants.length > 0 ? variants[0] : null)
   const [quantity, setQuantity] = useState(1)
   const [isWishlisting, setIsWishlisting] = useState(false)
-  const [isFavorited, setIsFavorited] = useState(initialFavorited) // You could pass initial state from server
+  const [isFavorited, setIsFavorited] = useState(initialFavorited)
 
   const finalPrice = selectedVariant 
     ? selectedVariant.price || product.sale_price || product.price
@@ -73,10 +72,11 @@ export function ProductDetailClient({ product, variants, initialFavorited = fals
   }
 
   return (
-    <div className="grid md:grid-cols-2 gap-10">
+    <div className="grid md:grid-cols-2 gap-10 pb-20 md:pb-0">
       {/* Product Images */}
       <div className="space-y-4">
-        <div className="relative aspect-square bg-slate-100 rounded-2xl overflow-hidden group">
+        {/* Desktop Image View */}
+        <div className="hidden md:block relative aspect-square bg-slate-100 rounded-2xl overflow-hidden group">
           <Image
             src={images[currentImageIndex] || 'https://placehold.co/800x800?text=ĐANG+UPDATE'}
             alt={product.name}
@@ -107,18 +107,49 @@ export function ProductDetailClient({ product, variants, initialFavorited = fals
           )}
         </div>
 
+        {/* Mobile Swipe Gallery */}
+        <div className="md:hidden relative aspect-square bg-slate-50 rounded-2xl overflow-hidden">
+          <div 
+            className="flex overflow-x-auto snap-x snap-mandatory h-full w-full scrollbar-none"
+            onScroll={(e) => {
+              const width = e.currentTarget.clientWidth
+              if (width > 0) {
+                const index = Math.round(e.currentTarget.scrollLeft / width)
+                setCurrentImageIndex(index)
+              }
+            }}
+          >
+            {images.map((img: string, idx: number) => (
+              <div key={idx} className="flex-shrink-0 w-full h-full snap-start relative">
+                <Image src={img} alt={`${product.name} ${idx + 1}`} fill sizes="100vw" className="object-contain" />
+              </div>
+            ))}
+          </div>
+          {images.length > 1 && (
+            <div className="absolute bottom-4 right-4 bg-black/60 text-white text-xs font-semibold px-2.5 py-1 rounded-full z-10">
+              {currentImageIndex + 1}/{images.length}
+            </div>
+          )}
+          {hasDiscount && (
+            <div className="absolute top-4 left-4 bg-red-500 text-white px-3 py-1 rounded-full font-bold text-xs z-10">
+              -{Math.round((1 - finalPrice / basePrice) * 100)}%
+            </div>
+          )}
+        </div>
+
+        {/* Thumbnails (Desktop Only) */}
         {images.length > 1 && (
-          <div className="flex gap-4 overflow-x-auto pb-2">
+          <div className="hidden md:flex gap-4 overflow-x-auto pb-2">
             {images.map((img: string, idx: number) => (
               <button
                 key={idx}
                 onClick={() => setCurrentImageIndex(idx)}
                 className={cn(
-                  "relative w-20 h-20 shrink-0 rounded-xl overflow-hidden border-2 transition-all",
+                  "relative w-20 h-20 shrink-0 rounded-xl overflow-hidden border-2 transition-all cursor-pointer",
                   currentImageIndex === idx ? "border-emerald-600" : "border-transparent opacity-70 hover:opacity-100"
                 )}
               >
-                <Image src={img} alt={`Thumbnail ${idx + 1}`} fill className="object-cover" />
+                <Image src={img} alt={`Thumbnail ${idx + 1}`} fill className="object-cover animate-fade-in" />
               </button>
             ))}
           </div>
@@ -139,15 +170,15 @@ export function ProductDetailClient({ product, variants, initialFavorited = fals
               <span className="text-slate-500 ml-1">(0 đánh giá)</span>
             </div>
           </div>
-          <h1 className="text-3xl font-bold text-slate-900 mb-4">{product.name}</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-slate-900 mb-4">{product.name}</h1>
           
           <div className="flex items-end gap-3 mb-6">
-            <span className="text-3xl font-bold text-red-600">
-              {Number(finalPrice).toLocaleString('vi-VN')} VND
+            <span className="text-2xl md:text-3xl font-bold text-red-600">
+              {Number(finalPrice).toLocaleString('vi-VN')}đ
             </span>
             {hasDiscount && (
-              <span className="text-xl text-slate-400 line-through mb-1">
-                {Number(basePrice).toLocaleString('vi-VN')} VND
+              <span className="text-lg md:text-xl text-slate-400 line-through mb-1">
+                {Number(basePrice).toLocaleString('vi-VN')}đ
               </span>
             )}
           </div>
@@ -168,13 +199,14 @@ export function ProductDetailClient({ product, variants, initialFavorited = fals
                     setQuantity(1)
                   }}
                   className={cn(
-                    "px-4 py-2 border rounded-xl text-sm font-medium transition-all",
+                    "px-4 py-2 border rounded-xl text-sm font-medium transition-all cursor-pointer",
                     selectedVariant?.id === variant.id 
-                      ? "border-emerald-600 bg-emerald-50 text-emerald-700" 
+                      ? "border-emerald-600 bg-emerald-50 text-emerald-700 font-semibold" 
                       : "border-slate-200 text-slate-700 hover:border-slate-300",
                     variant.stock <= 0 && "opacity-50 cursor-not-allowed"
                   )}
                   disabled={variant.stock <= 0}
+                  style={{ minHeight: '44px' }}
                 >
                   {variant.name}
                 </button>
@@ -183,13 +215,13 @@ export function ProductDetailClient({ product, variants, initialFavorited = fals
           </div>
         )}
 
-        {/* Actions */}
-        <div className="mt-auto space-y-6 border-t pt-8">
+        {/* Actions (Desktop Only) */}
+        <div className="mt-auto space-y-6 border-t pt-8 hidden md:block">
           <div className="flex items-center gap-4">
             <div className="flex items-center border border-slate-200 rounded-xl overflow-hidden h-12">
               <button 
                 onClick={() => setQuantity(q => Math.max(1, q - 1))}
-                className="w-12 h-full flex items-center justify-center hover:bg-slate-50 text-slate-600 transition-colors"
+                className="w-12 h-full flex items-center justify-center hover:bg-slate-50 text-slate-600 transition-colors cursor-pointer"
                 disabled={quantity <= 1}
               >
                 -
@@ -199,7 +231,7 @@ export function ProductDetailClient({ product, variants, initialFavorited = fals
               </div>
               <button 
                 onClick={() => setQuantity(q => Math.min(maxStock, q + 1))}
-                className="w-12 h-full flex items-center justify-center hover:bg-slate-50 text-slate-600 transition-colors"
+                className="w-12 h-full flex items-center justify-center hover:bg-slate-50 text-slate-600 transition-colors cursor-pointer"
                 disabled={quantity >= maxStock}
               >
                 +
@@ -213,7 +245,7 @@ export function ProductDetailClient({ product, variants, initialFavorited = fals
           <div className="flex gap-4">
             <Button 
               size="lg" 
-              className="flex-1 bg-emerald-600 hover:bg-emerald-700 h-14 text-lg rounded-xl"
+              className="flex-1 bg-emerald-600 hover:bg-emerald-700 h-14 text-lg rounded-xl shadow-sm cursor-pointer"
               onClick={handleAddToCart}
               disabled={isOutOfStock}
             >
@@ -223,7 +255,7 @@ export function ProductDetailClient({ product, variants, initialFavorited = fals
             <Button 
               size="lg" 
               variant="outline" 
-              className={cn("h-14 w-14 shrink-0 rounded-xl transition-colors", isFavorited && "border-red-500 bg-red-50")}
+              className={cn("h-14 w-14 shrink-0 rounded-xl transition-colors cursor-pointer", isFavorited && "border-red-500 bg-red-50")}
               onClick={handleToggleWishlist}
               disabled={isWishlisting}
             >
@@ -242,6 +274,49 @@ export function ProductDetailClient({ product, variants, initialFavorited = fals
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Mobile Sticky Add To Cart / Buy Now Bar */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-100 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] flex items-center justify-between gap-3 md:hidden">
+        <Button 
+          variant="outline" 
+          className={cn("h-12 w-12 shrink-0 rounded-xl transition-colors cursor-pointer", isFavorited && "border-red-500 bg-red-50")}
+          onClick={handleToggleWishlist}
+          disabled={isWishlisting}
+          style={{ minWidth: '44px', minHeight: '44px' }}
+        >
+          <Heart className={cn("w-5 h-5", isFavorited ? "text-red-500 fill-red-500" : "text-slate-600")} />
+        </Button>
+        <Button 
+          variant="outline"
+          className="flex-1 border-emerald-600 text-emerald-700 hover:bg-emerald-50 h-12 text-sm font-semibold rounded-xl cursor-pointer"
+          onClick={handleAddToCart}
+          disabled={isOutOfStock}
+          style={{ minHeight: '44px' }}
+        >
+          Thêm vào giỏ
+        </Button>
+        <Button 
+          className="flex-1 bg-emerald-600 hover:bg-emerald-700 h-12 text-sm font-semibold rounded-xl text-white shadow-sm cursor-pointer"
+          onClick={() => {
+            if (isOutOfStock) return
+            addItem({
+              id: product.id,
+              name: product.name,
+              price: finalPrice,
+              image: images[0] || '',
+              quantity,
+              variantId: selectedVariant?.id,
+              variantName: selectedVariant?.name,
+              stock: maxStock
+            })
+            setIsOpen(true)
+          }}
+          disabled={isOutOfStock}
+          style={{ minHeight: '44px' }}
+        >
+          Mua ngay
+        </Button>
       </div>
     </div>
   )

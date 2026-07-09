@@ -1,6 +1,8 @@
 'use client'
 
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import { motion } from 'framer-motion'
 import { ShoppingCart, User as UserIcon, LogOut, Menu, Package, Settings, Wallet, ShoppingBag, Home, Tag } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -16,6 +18,8 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { logout } from '@/app/login/actions'
 import { useCartStore } from '@/store/useCartStore'
 import { CartSheet } from './CartSheet'
+import { cn } from '@/lib/utils'
+import { StorefrontSearch } from './StorefrontSearch'
 
 import { useState, useEffect } from 'react'
 import { User } from '@supabase/supabase-js'
@@ -27,7 +31,10 @@ interface NavbarClientProps {
 
 export function NavbarClient({ user, profile }: NavbarClientProps) {
   const { setIsOpen } = useCartStore()
+  const cartItems = useCartStore((state) => state.items)
+  const cartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0)
   const [isScrolled, setIsScrolled] = useState(false)
+  const pathname = usePathname()
 
   useEffect(() => {
     const handleScroll = () => {
@@ -36,6 +43,13 @@ export function NavbarClient({ user, profile }: NavbarClientProps) {
     window.addEventListener('scroll', handleScroll)
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
+
+  const navItems = [
+    { name: 'Trang chủ', href: '/', icon: Home },
+    { name: 'Sản phẩm', href: '/san-pham', icon: Package },
+    { name: 'Giỏ hàng', href: '#cart', icon: ShoppingCart, isCart: true },
+    { name: 'Cá nhân', href: user ? '/tai-khoan' : '/login', icon: UserIcon },
+  ]
 
   return (
     <header 
@@ -47,31 +61,53 @@ export function NavbarClient({ user, profile }: NavbarClientProps) {
     >
       <div className="max-w-[1440px] mx-auto flex h-[72px] items-center justify-between px-4 sm:px-6 lg:px-8">
         
-        {/* Left: Logo & Menu */}
-        <div className="flex items-center gap-8">
-          <Link href="/" className="flex items-center gap-2">
+        {/* Left: Logo & Menu & Search */}
+        <div className="flex items-center gap-4 sm:gap-8 flex-1 max-w-2xl">
+          <Link href="/" className="flex items-center gap-2 shrink-0" style={{ minWidth: '44px', minHeight: '44px' }}>
             <Package className="h-7 w-7 text-emerald-600" />
             <span className="font-bold text-2xl text-slate-900 tracking-tight hidden sm:inline-block">Bách Hóa</span>
           </Link>
-          <nav className="hidden lg:flex gap-6 text-sm font-medium text-slate-600">
+          <nav className="hidden lg:flex gap-6 text-sm font-medium text-slate-600 shrink-0">
             <Link href="/" className="hover:text-emerald-600 transition-colors">Trang chủ</Link>
             <Link href="/san-pham" className="hover:text-emerald-600 transition-colors">Sản phẩm</Link>
             <Link href="/khuyen-mai" className="hover:text-emerald-600 transition-colors">Khuyến mãi</Link>
           </nav>
+          
+          <StorefrontSearch />
         </div>
-
-
 
         {/* Right actions */}
         <div className="flex items-center gap-2 sm:gap-4 shrink-0">
-          <Button variant="ghost" size="icon" onClick={() => setIsOpen(true)} className="relative hover:bg-slate-100 rounded-full h-10 w-10 transition-colors">
+          {user && (
+            <Link 
+              href="/tai-khoan/nap-tien" 
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-100 text-emerald-700 rounded-full text-xs font-bold transition-all shadow-sm"
+              style={{ minHeight: '44px' }}
+            >
+              <Wallet className="w-4 h-4" />
+              <span>{Number(profile?.balance || 0).toLocaleString('vi-VN')}đ</span>
+            </Link>
+          )}
+
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => setIsOpen(true)} 
+            className="relative hover:bg-slate-100 rounded-full h-11 w-11 transition-colors hidden lg:flex"
+            style={{ minWidth: '44px', minHeight: '44px' }}
+          >
             <ShoppingCart className="h-5 w-5 text-slate-700" />
+            {cartCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+                {cartCount}
+              </span>
+            )}
             <span className="sr-only">Giỏ hàng</span>
           </Button>
 
           {user ? (
             <DropdownMenu>
-              <DropdownMenuTrigger className="flex items-center gap-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 p-1 pr-4 rounded-full transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 text-left">
+              <DropdownMenuTrigger className="flex items-center gap-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 p-1.5 pr-4 rounded-full transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 text-left cursor-pointer" style={{ minHeight: '44px' }}>
                 <div className="w-8 h-8 flex items-center justify-center bg-emerald-100 text-emerald-700 rounded-full shrink-0">
                   <UserIcon className="w-4 h-4" />
                 </div>
@@ -130,22 +166,22 @@ export function NavbarClient({ user, profile }: NavbarClientProps) {
           ) : (
             <div className="hidden sm:flex gap-3">
               <Link href="/login" passHref legacyBehavior>
-                <Button variant="ghost" className="rounded-full hover:bg-slate-100 font-medium">
+                <Button variant="ghost" className="rounded-full hover:bg-slate-100 font-medium" style={{ minHeight: '44px' }}>
                   Đăng nhập
                 </Button>
               </Link>
               <Link href="/register" passHref legacyBehavior>
-                <Button className="bg-emerald-600 hover:bg-emerald-700 rounded-full font-medium shadow-sm hover:shadow transition-all">
+                <Button className="bg-emerald-600 hover:bg-emerald-700 rounded-full font-medium shadow-sm hover:shadow transition-all" style={{ minHeight: '44px' }}>
                   Đăng ký
                 </Button>
               </Link>
             </div>
           )}
 
-          {/* Mobile menu toggle */}
+          {/* Desktop/Tablet side menu fallback */}
           <div className="lg:hidden">
             <Sheet>
-              <SheetTrigger className="rounded-full h-10 w-10 hover:bg-slate-100 flex items-center justify-center">
+              <SheetTrigger className="rounded-full h-11 w-11 hover:bg-slate-100 flex items-center justify-center" style={{ minWidth: '44px', minHeight: '44px' }}>
                 <Menu className="h-5 w-5 text-slate-700" />
               </SheetTrigger>
               <SheetContent side="right" className="w-[300px] sm:w-[400px] p-0 bg-white">
@@ -193,6 +229,68 @@ export function NavbarClient({ user, profile }: NavbarClientProps) {
         </div>
       </div>
       <CartSheet user={user} profile={profile} />
+
+      {/* Mobile Bottom Navigation Bar */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 lg:hidden bg-white/90 backdrop-blur-lg border-t border-slate-100 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] pb-[env(safe-area-inset-bottom)]">
+        <div className="flex items-center justify-around h-16 px-2">
+          {navItems.map((item) => {
+            const Icon = item.icon
+            const isCart = item.isCart
+            const isActive = isCart ? false : pathname === item.href
+
+            const content = (
+              <span className="relative flex flex-col items-center justify-center w-full h-full text-xs font-medium gap-1 text-slate-500">
+                {isActive && (
+                  <motion.span
+                    layoutId="activeTab"
+                    className="absolute inset-x-2 inset-y-1 bg-emerald-50 rounded-2xl -z-10"
+                    transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                  />
+                )}
+                <div className={cn("relative p-1 rounded-xl transition-colors", isActive ? 'text-emerald-600' : 'text-slate-500')}>
+                  <Icon className="w-5 h-5" />
+                  {isCart && cartCount > 0 && (
+                    <motion.span
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-bold min-w-[16px] h-4 px-1 rounded-full flex items-center justify-center"
+                    >
+                      {cartCount}
+                    </motion.span>
+                  )}
+                </div>
+                <span className={cn("text-[9px] sm:text-[10px] tracking-tight", isActive ? 'text-emerald-700 font-semibold' : 'text-slate-500')}>
+                  {item.name}
+                </span>
+              </span>
+            )
+
+            if (isCart) {
+              return (
+                <button
+                  key={item.name}
+                  onClick={() => setIsOpen(true)}
+                  className="flex-1 flex items-center justify-center h-full focus:outline-none cursor-pointer"
+                  style={{ minWidth: '44px', minHeight: '44px' }}
+                >
+                  {content}
+                </button>
+              )
+            }
+
+            return (
+              <Link
+                key={item.name}
+                href={item.href}
+                className="flex-1 flex items-center justify-center h-full"
+                style={{ minWidth: '44px', minHeight: '44px' }}
+              >
+                {content}
+              </Link>
+            )
+          })}
+        </div>
+      </div>
     </header>
   )
 }

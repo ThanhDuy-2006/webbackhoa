@@ -31,24 +31,49 @@ export default async function HomePage() {
 
   return (
     <div className="bg-[#fcfcfc] min-h-screen pb-24">
-      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 space-y-16 lg:space-y-24 py-8">
+      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 space-y-10 lg:space-y-16 py-8">
         
+        {/* 1. Swipe Banner (Shopee/Lazada style) */}
+        <section className="relative overflow-hidden rounded-[24px] bg-slate-100 aspect-[21/9] md:aspect-[3/1] max-w-full shadow-sm">
+          <div className="flex overflow-x-auto snap-x snap-mandatory scrollbar-none h-full w-full">
+            {/* Slide 1 */}
+            <div className="flex-shrink-0 w-full h-full snap-start relative bg-emerald-950 text-white flex items-center p-6 sm:p-12 md:p-16">
+              <div className="space-y-2 md:space-y-4 max-w-md sm:max-w-lg z-10">
+                <span className="bg-emerald-500 text-[10px] sm:text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full">Khuyến mãi cực hot</span>
+                <h3 className="text-lg sm:text-2xl md:text-4xl font-extrabold tracking-tight">Rau củ hữu cơ tươi ngon giảm tới 30%</h3>
+                <p className="text-[10px] sm:text-xs md:text-sm text-emerald-100/90">Được thu hoạch từ nông trại organic Đà Lạt, an toàn cho cả gia đình.</p>
+                <Link href="/san-pham?category=rau-cu-qua" className="inline-block bg-white text-emerald-900 text-[10px] sm:text-xs md:text-sm font-bold px-5 py-2.5 rounded-full hover:bg-emerald-50 transition-colors shadow-sm cursor-pointer" style={{ minHeight: '44px', display: 'inline-flex', alignItems: 'center' }}>Mua ngay</Link>
+              </div>
+              <div className="absolute right-0 top-0 bottom-0 w-1/2 bg-[url('https://images.unsplash.com/photo-1542838132-92c53300491e')] bg-cover bg-center hidden md:block opacity-80" />
+            </div>
+            {/* Slide 2 */}
+            <div className="flex-shrink-0 w-full h-full snap-start relative bg-orange-950 text-white flex items-center p-6 sm:p-12 md:p-16">
+              <div className="space-y-2 md:space-y-4 max-w-md sm:max-w-lg z-10">
+                <span className="bg-orange-500 text-[10px] sm:text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full">Tươi sống mỗi ngày</span>
+                <h3 className="text-lg sm:text-2xl md:text-4xl font-extrabold tracking-tight">Thịt cá chuẩn sạch tiêu chuẩn VietGAP</h3>
+                <p className="text-[10px] sm:text-xs md:text-sm text-orange-100/90">Bảo quản lạnh khép kín, giao nhanh trong 2h.</p>
+                <Link href="/san-pham?category=thit-ca" className="inline-block bg-white text-orange-800 text-[10px] sm:text-xs md:text-sm font-bold px-5 py-2.5 rounded-full hover:bg-orange-50 transition-colors shadow-sm cursor-pointer" style={{ minHeight: '44px', display: 'inline-flex', alignItems: 'center' }}>Mua ngay</Link>
+              </div>
+              <div className="absolute right-0 top-0 bottom-0 w-1/2 bg-[url('https://images.unsplash.com/photo-1534422298391-e4f8c172dddb')] bg-cover bg-center hidden md:block opacity-80" />
+            </div>
+          </div>
+        </section>
 
         {/* 2. Categories Grid */}
         <section>
           {categories && categories.length > 0 ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 lg:gap-6">
+            <div className="flex overflow-x-auto md:grid md:grid-cols-5 gap-4 lg:gap-6 pb-4 md:pb-0 scrollbar-none snap-x">
               {categories.map((cat) => (
-                <Link href={`/san-pham?category=${cat.slug}`} key={cat.id} className="group outline-none">
-                  <div className="bg-white rounded-[24px] p-6 flex flex-col items-center justify-center text-center gap-4 transition-all duration-300 shadow-[0_2px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] hover:-translate-y-1">
-                    <div className="w-20 h-20 rounded-full bg-slate-50 flex items-center justify-center overflow-hidden shrink-0 relative">
+                <Link href={`/san-pham?category=${cat.slug}`} key={cat.id} className="group outline-none shrink-0 w-[130px] md:w-auto snap-start" style={{ minHeight: '44px' }}>
+                  <div className="bg-white rounded-[24px] p-5 flex flex-col items-center justify-center text-center gap-3 transition-all duration-300 shadow-[0_2px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] hover:-translate-y-1 h-full">
+                    <div className="w-16 h-16 rounded-full bg-slate-50 flex items-center justify-center overflow-hidden shrink-0 relative">
                       {cat.image_url ? (
-                        <Image src={cat.image_url} alt={cat.name} width={80} height={80} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                        <Image src={cat.image_url} alt={cat.name} width={64} height={64} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                       ) : (
-                        <div className="w-10 h-10 bg-slate-200 rounded-full" />
+                        <div className="w-8 h-8 bg-slate-200 rounded-full" />
                       )}
                     </div>
-                    <span className="font-semibold text-slate-800 group-hover:text-emerald-600 transition-colors">
+                    <span className="font-semibold text-xs sm:text-sm text-slate-800 group-hover:text-emerald-600 transition-colors line-clamp-1">
                       {cat.name}
                     </span>
                   </div>
