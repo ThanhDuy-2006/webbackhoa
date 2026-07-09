@@ -61,19 +61,17 @@ export function NavbarClient({ user, profile }: NavbarClientProps) {
     >
       <div className="max-w-[1440px] mx-auto flex h-[72px] items-center justify-between px-4 sm:px-6 lg:px-8">
         
-        {/* Left: Logo & Menu & Search */}
-        <div className="flex items-center gap-4 sm:gap-8 flex-1 max-w-2xl">
-          <Link href="/" className="flex items-center gap-2 shrink-0" style={{ minWidth: '44px', minHeight: '44px' }}>
+        {/* Left: Logo & Menu */}
+        <div className="flex items-center gap-8">
+          <Link href="/" className="flex items-center gap-2" style={{ minWidth: '44px', minHeight: '44px' }}>
             <Package className="h-7 w-7 text-emerald-600" />
             <span className="font-bold text-2xl text-slate-900 tracking-tight hidden sm:inline-block">Bách Hóa</span>
           </Link>
-          <nav className="hidden lg:flex gap-6 text-sm font-medium text-slate-600 shrink-0">
+          <nav className="hidden lg:flex gap-6 text-sm font-medium text-slate-600">
             <Link href="/" className="hover:text-emerald-600 transition-colors">Trang chủ</Link>
             <Link href="/san-pham" className="hover:text-emerald-600 transition-colors">Sản phẩm</Link>
             <Link href="/khuyen-mai" className="hover:text-emerald-600 transition-colors">Khuyến mãi</Link>
           </nav>
-          
-          <StorefrontSearch />
         </div>
 
         {/* Right actions */}
