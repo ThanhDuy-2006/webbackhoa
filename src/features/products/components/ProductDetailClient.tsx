@@ -81,6 +81,7 @@ export function ProductDetailClient({ product, variants, initialFavorited = fals
             src={images[currentImageIndex] || 'https://placehold.co/800x800?text=ĐANG+UPDATE'}
             alt={product.name}
             fill
+            sizes="(max-width: 768px) 100vw, 50vw"
             className="object-contain"
           />
           {images.length > 1 && (

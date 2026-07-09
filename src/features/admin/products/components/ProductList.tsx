@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
 import { Product } from '@/types/product.type'
 import {
   Table,
@@ -23,6 +24,22 @@ interface Props {
   totalCount: number
   currentPage: number
   searchTerm: string
+}
+
+function AdminProductRowImage({ src, alt }: { src: string; alt: string }) {
+  const [imgSrc, setImgSrc] = useState(src)
+  return (
+    <Image
+      src={imgSrc}
+      alt={alt}
+      width={40}
+      height={40}
+      className="w-10 h-10 object-cover rounded border bg-slate-50"
+      onError={() => {
+        setImgSrc('https://dummyimage.com/100x100/e2e8f0/64748b.png&text=Loi+Anh')
+      }}
+    />
+  )
 }
 
 export function ProductList({ initialProducts, totalCount, currentPage, searchTerm }: Props) {
@@ -108,7 +125,7 @@ export function ProductList({ initialProducts, totalCount, currentPage, searchTe
                 <TableRow key={product.id}>
                   <TableCell>
                     {product.image_url ? (
-                      <img src={product.image_url} alt={product.name} className="w-10 h-10 object-cover rounded border bg-slate-50" />
+                      <AdminProductRowImage src={product.image_url} alt={product.name} />
                     ) : (
                       <div className="w-10 h-10 rounded border bg-slate-100 flex items-center justify-center text-xs text-slate-400">Trống</div>
                     )}

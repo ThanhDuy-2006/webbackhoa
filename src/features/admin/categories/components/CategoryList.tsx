@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
 import { Category } from '@/types/category.type'
 import {
   Table,
@@ -23,6 +24,22 @@ interface Props {
   totalCount: number
   currentPage: number
   searchTerm: string
+}
+
+function AdminCategoryRowImage({ src, alt }: { src: string; alt: string }) {
+  const [imgSrc, setImgSrc] = useState(src)
+  return (
+    <Image
+      src={imgSrc}
+      alt={alt}
+      width={48}
+      height={48}
+      className="w-10 h-10 object-contain rounded border bg-slate-50"
+      onError={() => {
+        setImgSrc('https://dummyimage.com/100x100/e2e8f0/64748b.png&text=Loi+Anh')
+      }}
+    />
+  )
 }
 
 export function CategoryList({ initialCategories, totalCount, currentPage, searchTerm }: Props) {
@@ -110,15 +127,7 @@ export function CategoryList({ initialCategories, totalCount, currentPage, searc
                 <TableRow key={category.id}>
                   <TableCell>
                     {category.image_url ? (
-                      <img 
-                        src={category.image_url} 
-                        alt={category.name} 
-                        className="w-10 h-10 object-contain rounded border bg-slate-50"
-                        onError={(e) => {
-                          e.currentTarget.onerror = null;
-                          e.currentTarget.src = 'https://dummyimage.com/100x100/e2e8f0/64748b.png&text=Loi+Anh'
-                        }}
-                      />
+                      <AdminCategoryRowImage src={category.image_url} alt={category.name} />
                     ) : (
                       <div className="w-10 h-10 rounded border bg-slate-100 flex items-center justify-center text-xs text-slate-400">Trống</div>
                     )}

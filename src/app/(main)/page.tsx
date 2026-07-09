@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { Button } from '@/components/ui/button'
 import { ProductCard } from '@/features/products/components/ProductCard'
@@ -40,9 +41,9 @@ export default async function HomePage() {
               {categories.map((cat) => (
                 <Link href={`/san-pham?category=${cat.slug}`} key={cat.id} className="group outline-none">
                   <div className="bg-white rounded-[24px] p-6 flex flex-col items-center justify-center text-center gap-4 transition-all duration-300 shadow-[0_2px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] hover:-translate-y-1">
-                    <div className="w-20 h-20 rounded-full bg-slate-50 flex items-center justify-center overflow-hidden shrink-0">
+                    <div className="w-20 h-20 rounded-full bg-slate-50 flex items-center justify-center overflow-hidden shrink-0 relative">
                       {cat.image_url ? (
-                        <img src={cat.image_url} alt={cat.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                        <Image src={cat.image_url} alt={cat.name} width={80} height={80} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                       ) : (
                         <div className="w-10 h-10 bg-slate-200 rounded-full" />
                       )}
