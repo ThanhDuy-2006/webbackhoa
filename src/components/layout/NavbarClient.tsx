@@ -145,7 +145,7 @@ export function NavbarClient({ user, profile }: NavbarClientProps) {
           {/* Mobile menu toggle */}
           <div className="lg:hidden">
             <Sheet>
-              <SheetTrigger render={<Button variant="ghost" size="icon" className="rounded-full h-10 w-10 hover:bg-slate-100" />}>
+              <SheetTrigger className="rounded-full h-10 w-10 hover:bg-slate-100 flex items-center justify-center">
                 <Menu className="h-5 w-5 text-slate-700" />
               </SheetTrigger>
               <SheetContent side="right" className="w-[300px] sm:w-[400px] pt-12">

@@ -91,7 +91,7 @@ export default async function AdminLayout({
           {/* Mobile Menu Toggle */}
           <div className="md:hidden">
             <Sheet>
-              <SheetTrigger render={<Button variant="ghost" size="icon" className="rounded-full h-10 w-10 hover:bg-white hover:shadow-sm transition-all" />}>
+              <SheetTrigger className="rounded-full h-10 w-10 hover:bg-white hover:shadow-sm transition-all flex items-center justify-center">
                 <Menu className="h-5 w-5 text-slate-700" />
               </SheetTrigger>
               <SheetContent side="left" className="w-[280px] p-0 bg-[#F5F7FB]">
