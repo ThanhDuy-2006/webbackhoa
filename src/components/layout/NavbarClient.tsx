@@ -12,6 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { logout } from '@/app/login/actions'
 import { useCartStore } from '@/store/useCartStore'
 import { CartSheet } from './CartSheet'
@@ -142,9 +143,31 @@ export function NavbarClient({ user, profile }: NavbarClientProps) {
           )}
 
           {/* Mobile menu toggle */}
-          <Button variant="ghost" size="icon" className="lg:hidden rounded-full h-10 w-10 hover:bg-slate-100">
-            <Menu className="h-5 w-5 text-slate-700" />
-          </Button>
+          <div className="lg:hidden">
+            <Sheet>
+              <SheetTrigger render={<Button variant="ghost" size="icon" className="rounded-full h-10 w-10 hover:bg-slate-100" />}>
+                <Menu className="h-5 w-5 text-slate-700" />
+              </SheetTrigger>
+              <SheetContent side="right" className="w-[300px] sm:w-[400px] pt-12">
+                <nav className="flex flex-col gap-4 mt-8">
+                  <Link href="/" className="text-lg font-medium text-slate-800 hover:text-emerald-600 transition-colors">Trang chủ</Link>
+                  <Link href="/san-pham" className="text-lg font-medium text-slate-800 hover:text-emerald-600 transition-colors">Sản phẩm</Link>
+                  <Link href="/khuyen-mai" className="text-lg font-medium text-slate-800 hover:text-emerald-600 transition-colors">Khuyến mãi</Link>
+                  
+                  {!user && (
+                    <div className="mt-8 flex flex-col gap-3">
+                      <Link href="/login" className="w-full">
+                        <Button variant="outline" className="w-full justify-center">Đăng nhập</Button>
+                      </Link>
+                      <Link href="/register" className="w-full">
+                        <Button className="w-full justify-center bg-emerald-600 hover:bg-emerald-700">Đăng ký</Button>
+                      </Link>
+                    </div>
+                  )}
+                </nav>
+              </SheetContent>
+            </Sheet>
+          </div>
         </div>
       </div>
       <CartSheet user={user} profile={profile} />
