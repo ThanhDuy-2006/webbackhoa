@@ -176,54 +176,7 @@ export function NavbarClient({ user, profile }: NavbarClientProps) {
             </div>
           )}
 
-          {/* Desktop/Tablet side menu fallback */}
-          <div className="lg:hidden">
-            <Sheet>
-              <SheetTrigger className="rounded-full h-11 w-11 hover:bg-slate-100 flex items-center justify-center" style={{ minWidth: '44px', minHeight: '44px' }}>
-                <Menu className="h-5 w-5 text-slate-700" />
-              </SheetTrigger>
-              <SheetContent side="right" className="w-[300px] sm:w-[400px] p-0 bg-white">
-                <div className="flex flex-col h-full">
-                  <div className="h-20 border-b border-slate-100 flex items-center px-6 bg-slate-50/50">
-                    <Package className="h-7 w-7 text-emerald-600 mr-2" />
-                    <span className="font-bold text-2xl text-slate-900 tracking-tight">Bách Hóa</span>
-                  </div>
-                  
-                  <nav className="flex-1 overflow-y-auto py-6 px-4 flex flex-col gap-2">
-                    <Link href="/" className="flex items-center gap-4 px-4 py-3.5 rounded-2xl text-slate-700 hover:text-emerald-700 hover:bg-emerald-50 transition-all font-medium text-lg group">
-                      <div className="bg-slate-100 group-hover:bg-emerald-100 p-2 rounded-xl transition-colors">
-                        <Home className="h-5 w-5" />
-                      </div>
-                      Trang chủ
-                    </Link>
-                    <Link href="/san-pham" className="flex items-center gap-4 px-4 py-3.5 rounded-2xl text-slate-700 hover:text-emerald-700 hover:bg-emerald-50 transition-all font-medium text-lg group">
-                      <div className="bg-slate-100 group-hover:bg-emerald-100 p-2 rounded-xl transition-colors">
-                        <Package className="h-5 w-5" />
-                      </div>
-                      Sản phẩm
-                    </Link>
-                    <Link href="/khuyen-mai" className="flex items-center gap-4 px-4 py-3.5 rounded-2xl text-slate-700 hover:text-emerald-700 hover:bg-emerald-50 transition-all font-medium text-lg group">
-                      <div className="bg-slate-100 group-hover:bg-emerald-100 p-2 rounded-xl transition-colors">
-                        <Tag className="h-5 w-5" />
-                      </div>
-                      Khuyến mãi
-                    </Link>
-                  </nav>
 
-                  {!user && (
-                    <div className="p-6 border-t border-slate-100 bg-slate-50 flex flex-col gap-3 shrink-0">
-                      <Link href="/login" className="w-full">
-                        <Button variant="outline" className="w-full h-12 text-base font-semibold rounded-xl">Đăng nhập</Button>
-                      </Link>
-                      <Link href="/register" className="w-full">
-                        <Button className="w-full h-12 text-base font-semibold bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-sm">Đăng ký</Button>
-                      </Link>
-                    </div>
-                  )}
-                </div>
-              </SheetContent>
-            </Sheet>
-          </div>
         </div>
       </div>
       <CartSheet user={user} profile={profile} />
