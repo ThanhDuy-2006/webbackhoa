@@ -97,6 +97,13 @@ ALTER TABLE public.product_revenue_shares ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.revenue_share_activities ENABLE ROW LEVEL SECURITY;
 
 -- 9. Tạo các chính sách bảo mật RLS
+DROP POLICY IF EXISTS "Admins full access to rules" ON public.product_revenue_rules;
+DROP POLICY IF EXISTS "Admins full access to recipients" ON public.product_revenue_recipients;
+DROP POLICY IF EXISTS "Admins full access to shares" ON public.product_revenue_shares;
+DROP POLICY IF EXISTS "Users can view own shares" ON public.product_revenue_shares;
+DROP POLICY IF EXISTS "Anyone can view activities" ON public.revenue_share_activities;
+DROP POLICY IF EXISTS "Admins full access to activities" ON public.revenue_share_activities;
+
 CREATE POLICY "Admins full access to rules" ON public.product_revenue_rules FOR ALL USING (public.is_admin());
 CREATE POLICY "Admins full access to recipients" ON public.product_revenue_recipients FOR ALL USING (public.is_admin());
 CREATE POLICY "Admins full access to shares" ON public.product_revenue_shares FOR ALL USING (public.is_admin());
