@@ -1027,8 +1027,9 @@ export function RevenueShareClient({ products, variants, users }: Props) {
                     <tbody className="divide-y divide-slate-50">
                       {history.map((item) => {
                         const date = new Date(item.created_at).toLocaleString('vi-VN')
-                        const isRefund = item.status === 'reversed' && item.amount > 0
-                        const isRevokedOriginal = item.status === 'reversed' && item.amount < 0
+                        const isReversal = item.status === 'reversed'
+                        const isRefund = isReversal && item.amount > 0
+                        const isRevokedOriginal = isReversal && item.amount < 0
                         const isSuccess = item.status === 'completed'
 
                         return (
