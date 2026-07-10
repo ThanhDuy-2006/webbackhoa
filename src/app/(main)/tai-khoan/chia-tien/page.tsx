@@ -60,20 +60,20 @@ export default function UserRevenueSharePage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight">Doanh thu chia sẻ</h1>
-        <p className="text-slate-500 mt-2">Theo dõi các khoản tiền hoa hồng chia sẻ từ các sản phẩm được phân bổ của bạn.</p>
+        <h1 className="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight">Khấu trừ chi phí</h1>
+        <p className="text-slate-500 mt-2">Theo dõi các khoản tiền chi phí sản phẩm đã được phân bổ và khấu trừ từ số dư của bạn.</p>
       </div>
 
       {/* Overview Stat Card */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-gradient-to-br from-emerald-500 to-teal-600 p-6 rounded-[24px] text-white shadow-md flex items-center justify-between col-span-1 md:col-span-2">
           <div className="space-y-2">
-            <span className="text-emerald-100 text-xs font-bold uppercase tracking-wider">Tổng số dư tích lũy nhận được</span>
+            <span className="text-emerald-100 text-xs font-bold uppercase tracking-wider">Tổng chi phí sản phẩm đã khấu trừ</span>
             <h2 className="text-3xl md:text-4xl font-black">
               {stats.totalReceived.toLocaleString('vi-VN')} VND
             </h2>
             <p className="text-[11px] text-emerald-100/90 leading-relaxed font-medium">
-              Tiền được tự động cộng dồn trực tiếp vào số dư ví của bạn mỗi khi có đơn hàng chứa sản phẩm cấu hình hoàn thành.
+              Tiền chi phí sản phẩm được tự động trừ trực tiếp vào số dư ví của bạn mỗi khi có đơn hàng chứa sản phẩm cấu hình hoàn thành.
             </p>
           </div>
           <div className="h-16 w-16 bg-white/10 rounded-full flex items-center justify-center shrink-0">
@@ -84,10 +84,10 @@ export default function UserRevenueSharePage() {
         <div className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm flex flex-col justify-between">
           <div>
             <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-              <HelpCircle className="h-4 w-4 text-slate-400" /> Hướng dẫn rút tiền
+              <HelpCircle className="h-4 w-4 text-slate-400" /> Thông tin khấu trừ
             </h4>
             <p className="text-xs text-slate-500 leading-relaxed mt-2.5">
-              Số dư chia sẻ được tích hợp trực tiếp vào Ví mua hàng. Bạn có thể sử dụng số tiền này để thanh toán các đơn hàng mới hoặc liên hệ ban quản trị để thực hiện rút tiền mặt về tài khoản ngân hàng.
+              Chi phí sản phẩm được tự động trừ vào số dư ví của bạn. Vui lòng nạp đủ số dư để không bị gián đoạn hoặc âm quỹ tài khoản.
             </p>
           </div>
         </div>
@@ -96,7 +96,7 @@ export default function UserRevenueSharePage() {
       {/* History table */}
       <div className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <h3 className="font-extrabold text-slate-800 text-sm">Lịch sử nhận tiền chi tiết</h3>
+          <h3 className="font-extrabold text-slate-800 text-sm">Lịch sử trừ tiền chi tiết</h3>
           
           <div className="relative w-full sm:w-64">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
@@ -145,13 +145,13 @@ export default function UserRevenueSharePage() {
                       <td className="py-3.5 text-slate-500">{item.admin_name_snapshot}</td>
                       <td className="py-3.5">
                         <span className="flex items-center gap-1">
-                          {isReversal ? (
+                          {item.amount < 0 ? (
                             <ArrowDownRight className="h-3.5 w-3.5 text-red-500 shrink-0" />
                           ) : (
                             <ArrowUpRight className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
                           )}
-                          <strong className={`font-mono font-bold ${isReversal ? 'text-red-500' : 'text-emerald-600'}`}>
-                            {isReversal ? '' : '+'}{item.amount.toLocaleString('vi-VN')}đ
+                          <strong className={`font-mono font-bold ${item.amount < 0 ? 'text-red-500' : 'text-emerald-600'}`}>
+                            {item.amount > 0 ? '+' : ''}{item.amount.toLocaleString('vi-VN')}đ
                           </strong>
                         </span>
                       </td>
@@ -178,7 +178,7 @@ export default function UserRevenueSharePage() {
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-[24px] max-w-md w-full p-6 space-y-5 shadow-2xl border">
             <div className="flex items-center justify-between border-b pb-3">
-              <h3 className="font-extrabold text-slate-800 text-sm">Chi tiết phân phối chia tiền</h3>
+              <h3 className="font-extrabold text-slate-800 text-sm">Chi tiết khấu trừ chi phí</h3>
               <button onClick={() => setSelectedShare(null)} className="p-1 hover:bg-slate-100 rounded-full cursor-pointer">
                 <X className="h-5 w-5 text-slate-500" />
               </button>
@@ -194,9 +194,9 @@ export default function UserRevenueSharePage() {
                 <strong className="text-slate-800 text-right max-w-[200px] truncate">{selectedShare.product_name_snapshot}</strong>
               </div>
               <div className="flex justify-between border-b pb-2 border-slate-50">
-                <span className="text-slate-400">Số tiền bạn nhận:</span>
-                <strong className={`font-mono font-black ${selectedShare.status === 'reversed' ? 'text-red-500' : 'text-emerald-600'}`}>
-                  {selectedShare.amount.toLocaleString('vi-VN')} VND
+                <span className="text-slate-400">Số tiền bị trừ:</span>
+                <strong className={`font-mono font-black ${selectedShare.amount < 0 ? 'text-red-500' : 'text-emerald-600'}`}>
+                  {selectedShare.amount > 0 ? '+' : ''}{selectedShare.amount.toLocaleString('vi-VN')} VND
                 </strong>
               </div>
               <div className="flex justify-between border-b pb-2 border-slate-50">
