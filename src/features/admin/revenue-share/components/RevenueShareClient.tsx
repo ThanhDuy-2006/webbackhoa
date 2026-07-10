@@ -843,43 +843,6 @@ export function RevenueShareClient({ products, variants, users }: Props) {
       {/* RENDER TAB 2: HISTORY */}
       {activeTab === 'history' && (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm flex flex-col justify-between">
-              <div>
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Chi phí chia sẻ trong ngày</span>
-                <h3 className="text-2xl font-black text-slate-800 mt-2">
-                  {Math.abs(stats.todayAmount).toLocaleString('vi-VN')}đ
-                </h3>
-              </div>
-              <div className="flex items-center gap-1.5 text-emerald-600 text-xs font-extrabold mt-4">
-                <TrendingUp className="h-4 w-4" /> Hoạt động chia sẻ 24h
-              </div>
-            </div>
-
-            <div className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm flex flex-col justify-between">
-              <div>
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Chi phí chia sẻ trong tháng</span>
-                <h3 className="text-2xl font-black text-slate-800 mt-2">
-                  {Math.abs(stats.thisMonthAmount).toLocaleString('vi-VN')}đ
-                </h3>
-              </div>
-              <div className="flex items-center gap-1.5 text-blue-600 text-xs font-extrabold mt-4">
-                <Calendar className="h-4 w-4" /> Tổng tháng này
-              </div>
-            </div>
-
-            <div className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm flex flex-col justify-between">
-              <div>
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Tổng chi phí chia sẻ lũy kế</span>
-                <h3 className="text-2xl font-black text-slate-800 mt-2">
-                  {Math.abs(stats.totalAmount).toLocaleString('vi-VN')}đ
-                </h3>
-              </div>
-              <div className="flex items-center gap-1.5 text-indigo-600 text-xs font-extrabold mt-4">
-                <Coins className="h-4 w-4" /> Tổng chi phí sau hoàn/hủy
-              </div>
-            </div>
-          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
             <div className="bg-white p-5 rounded-[20px] border border-slate-100 shadow-sm md:col-span-2 space-y-4">
