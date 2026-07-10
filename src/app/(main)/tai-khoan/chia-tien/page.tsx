@@ -189,9 +189,9 @@ export default function UserRevenueSharePage() {
                 <span className="text-slate-400">Mã Đơn Hàng:</span>
                 <strong className="text-slate-800 font-mono">{selectedShare.order_code_snapshot}</strong>
               </div>
-              <div className="flex justify-between border-b pb-2 border-slate-50">
-                <span className="text-slate-400">Sản phẩm:</span>
-                <strong className="text-slate-800 text-right max-w-[200px] truncate">{selectedShare.product_name_snapshot}</strong>
+              <div className="flex justify-between border-b pb-2 border-slate-50 gap-4">
+                <span className="text-slate-400 whitespace-nowrap">Sản phẩm:</span>
+                <strong className="text-slate-800 text-right">{selectedShare.product_name_snapshot}</strong>
               </div>
               <div className="flex justify-between border-b pb-2 border-slate-50">
                 <span className="text-slate-400">Số tiền bị trừ:</span>
