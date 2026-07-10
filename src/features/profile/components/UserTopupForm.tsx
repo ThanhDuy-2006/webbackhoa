@@ -24,7 +24,6 @@ export function UserTopupForm({ userId }: { userId: string }) {
     
     if (amount <= 0) return toast.error('Số tiền không hợp lệ')
     if (!content.trim()) return toast.error('Vui lòng nhập nội dung CK')
-    if (!proofImage.trim()) return toast.error('Vui lòng cung cấp link ảnh minh chứng (URL)')
 
     setLoading(true)
     try {
@@ -108,13 +107,12 @@ export function UserTopupForm({ userId }: { userId: string }) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="proofImage" className="text-slate-700 dark:text-slate-300">Ảnh minh chứng (URL) *</Label>
+            <Label htmlFor="proofImage" className="text-slate-700 dark:text-slate-300">Ảnh minh chứng (URL)</Label>
             <Input 
               id="proofImage"
               placeholder="https://imgur.com/..."
               value={proofImage}
               onChange={(e) => setProofImage(e.target.value)}
-              required
               className="bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800"
             />
           </div>

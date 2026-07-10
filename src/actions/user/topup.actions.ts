@@ -6,7 +6,7 @@ import { revalidatePath } from 'next/cache'
 export async function submitTopupRequestAction(data: {
   amount: number
   transfer_content: string
-  proof_image_url: string
+  proof_image_url?: string | null
 }) {
   try {
     const supabase = await createClient()
@@ -19,9 +19,6 @@ export async function submitTopupRequestAction(data: {
     if (!data.transfer_content) {
       return { success: false, error: 'Vui lòng nhập nội dung chuyển khoản' }
     }
-    if (!data.proof_image_url) {
-      return { success: false, error: 'Vui lòng upload ảnh minh chứng' }
-    }
 
     const { error } = await supabase
       .from('topup_requests')
@@ -29,7 +26,7 @@ export async function submitTopupRequestAction(data: {
         user_id: user.id,
         amount: data.amount,
         transfer_content: data.transfer_content,
-        proof_image_url: data.proof_image_url,
+        proof_image_url: data.proof_image_url || null,
         status: 'pending'
       })
 
