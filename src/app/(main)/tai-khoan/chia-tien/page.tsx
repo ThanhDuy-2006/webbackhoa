@@ -1,21 +1,61 @@
-import { getUserRevenueSharesAction } from '@/actions/user/revenue-share.actions'
-import { Coins, HelpCircle, ArrowUpRight, ArrowDownRight, Landmark } from 'lucide-react'
+'use client'
 
-export const revalidate = 0
+import { useState, useEffect } from 'react'
+import { getUserRevenueSharesAction, getRevenueShareDetailAction } from '@/actions/user/revenue-share.actions'
+import { Coins, HelpCircle, ArrowUpRight, ArrowDownRight, Search, X, Loader2 } from 'lucide-react'
 
-export default async function UserRevenueSharePage() {
-  const result = await getUserRevenueSharesAction()
-  
-  if (!result.success) {
+export default function UserRevenueSharePage() {
+  const [shares, setShares] = useState<any[]>([])
+  const [searchQuery, setSearchQuery] = useState('')
+  const [stats, setStats] = useState({ totalReceived: 0 })
+  const [loading, setLoading] = useState(true)
+
+  // Detail Modal states
+  const [selectedShare, setSelectedShare] = useState<any | null>(null)
+  const [coShares, setCoShares] = useState<any[]>([])
+  const [detailLoading, setDetailLoading] = useState(false)
+
+  const loadShares = async () => {
+    setLoading(true)
+    const res = await getUserRevenueSharesAction()
+    if (res.success && res.data) {
+      setShares(res.data)
+      setStats(res.stats || { totalReceived: 0 })
+    }
+    setLoading(false)
+  }
+
+  useEffect(() => {
+    loadShares()
+  }, [])
+
+  const handleRowClick = async (share: any) => {
+    setSelectedShare(share)
+    setCoShares([])
+    setDetailLoading(true)
+
+    const res = await getRevenueShareDetailAction(share.order_item_id)
+    if (res.success && res.data) {
+      setCoShares(res.data)
+    }
+    setDetailLoading(false)
+  }
+
+  // Filtered list
+  const filteredShares = shares.filter(s => 
+    !searchQuery ||
+    s.order_code_snapshot.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    s.product_name_snapshot.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
+  if (loading) {
     return (
-      <div className="p-8 text-center text-slate-500 bg-white rounded-2xl border border-slate-100 shadow-sm">
-        {result.error || 'Vui lòng đăng nhập để xem lịch sử chia sẻ doanh thu.'}
+      <div className="py-24 flex flex-col items-center justify-center text-slate-400 text-sm bg-white rounded-2xl border">
+        <Loader2 className="h-8 w-8 animate-spin text-emerald-600 mb-2" />
+        Đang tải thông tin chia sẻ doanh thu...
       </div>
     )
   }
-
-  const shares = result.data || []
-  const stats = result.stats || { totalReceived: 0 }
 
   return (
     <div className="space-y-6">
@@ -32,7 +72,7 @@ export default async function UserRevenueSharePage() {
             <h2 className="text-3xl md:text-4xl font-black">
               {stats.totalReceived.toLocaleString('vi-VN')} VND
             </h2>
-            <p className="text-[11px] text-emerald-100/90 leading-relaxed">
+            <p className="text-[11px] text-emerald-100/90 leading-relaxed font-medium">
               Tiền được tự động cộng dồn trực tiếp vào số dư ví của bạn mỗi khi có đơn hàng chứa sản phẩm cấu hình hoàn thành.
             </p>
           </div>
@@ -55,12 +95,25 @@ export default async function UserRevenueSharePage() {
 
       {/* History table */}
       <div className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm space-y-4">
-        <h3 className="font-extrabold text-slate-800 text-sm">Lịch sử nhận tiền chi tiết</h3>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <h3 className="font-extrabold text-slate-800 text-sm">Lịch sử nhận tiền chi tiết</h3>
+          
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Tìm kiếm sản phẩm/đơn hàng..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-slate-50 border pl-9 pr-4 py-2 rounded-xl text-xs"
+            />
+          </div>
+        </div>
 
         <div className="overflow-x-auto">
-          {shares.length === 0 ? (
+          {filteredShares.length === 0 ? (
             <div className="py-12 text-center text-slate-400 text-xs">
-              Bạn chưa nhận được khoản tiền chia sẻ doanh thu sản phẩm nào.
+              Không tìm thấy giao dịch nào.
             </div>
           ) : (
             <table className="w-full text-left text-xs border-collapse">
@@ -76,12 +129,17 @@ export default async function UserRevenueSharePage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                {shares.map((item: any) => {
+                {filteredShares.map((item: any) => {
                   const date = new Date(item.created_at).toLocaleString('vi-VN')
                   const isReversal = item.status === 'reversed'
 
                   return (
-                    <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
+                    <tr 
+                      key={item.id} 
+                      onClick={() => handleRowClick(item)}
+                      className="hover:bg-slate-50/50 transition-colors cursor-pointer"
+                      title="Nhấn để xem chi tiết cách phân bổ"
+                    >
                       <td className="py-3.5 font-mono font-bold text-slate-700">{item.order_code_snapshot}</td>
                       <td className="py-3.5 font-semibold text-slate-800">{item.product_name_snapshot}</td>
                       <td className="py-3.5 text-slate-500">{item.admin_name_snapshot}</td>
@@ -114,6 +172,74 @@ export default async function UserRevenueSharePage() {
           )}
         </div>
       </div>
+
+      {/* DETAIL DRILL-DOWN REPORT MODAL */}
+      {selectedShare && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-[24px] max-w-md w-full p-6 space-y-5 shadow-2xl border">
+            <div className="flex items-center justify-between border-b pb-3">
+              <h3 className="font-extrabold text-slate-800 text-sm">Chi tiết phân phối chia tiền</h3>
+              <button onClick={() => setSelectedShare(null)} className="p-1 hover:bg-slate-100 rounded-full cursor-pointer">
+                <X className="h-5 w-5 text-slate-500" />
+              </button>
+            </div>
+
+            <div className="space-y-3.5 text-xs">
+              <div className="flex justify-between border-b pb-2 border-slate-50">
+                <span className="text-slate-400">Mã Đơn Hàng:</span>
+                <strong className="text-slate-800 font-mono">{selectedShare.order_code_snapshot}</strong>
+              </div>
+              <div className="flex justify-between border-b pb-2 border-slate-50">
+                <span className="text-slate-400">Sản phẩm:</span>
+                <strong className="text-slate-800 text-right max-w-[200px] truncate">{selectedShare.product_name_snapshot}</strong>
+              </div>
+              <div className="flex justify-between border-b pb-2 border-slate-50">
+                <span className="text-slate-400">Số tiền bạn nhận:</span>
+                <strong className={`font-mono font-black ${selectedShare.status === 'reversed' ? 'text-red-500' : 'text-emerald-600'}`}>
+                  {selectedShare.amount.toLocaleString('vi-VN')} VND
+                </strong>
+              </div>
+              <div className="flex justify-between border-b pb-2 border-slate-50">
+                <span className="text-slate-400">Thời gian duyệt:</span>
+                <span className="text-slate-600">{new Date(selectedShare.created_at).toLocaleString('vi-VN')}</span>
+              </div>
+
+              {/* Drill-down of all co-recipients splits */}
+              <div className="pt-2">
+                <h4 className="font-bold text-slate-800 mb-2">Phân chia toàn đơn (Chi tiết co-recipients)</h4>
+                <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 space-y-2">
+                  {detailLoading ? (
+                    <div className="flex items-center justify-center gap-1.5 py-4 text-slate-400 text-[10px]">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin text-emerald-600" />
+                      Đang tải danh sách phân bổ...
+                    </div>
+                  ) : coShares.length === 0 ? (
+                    <p className="text-[10px] text-slate-400 text-center py-2">Không có thêm thông tin phân bổ</p>
+                  ) : (
+                    coShares.map((co: any) => (
+                      <div key={co.id} className="flex justify-between items-center text-[11px]">
+                        <span className="text-slate-500 font-semibold">{co.recipient_name_snapshot}</span>
+                        <strong className="text-slate-700 font-mono">
+                          {co.amount >= 0 ? '+' : ''}{co.amount.toLocaleString('vi-VN')}đ {co.percentage ? `(${co.percentage}%)` : ''}
+                        </strong>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-2 border-t">
+              <button 
+                onClick={() => setSelectedShare(null)}
+                className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer"
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

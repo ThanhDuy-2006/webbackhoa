@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { TopupRepository } from '@/repositories/topup.repository'
 import { UserTopupForm } from '@/features/profile/components/UserTopupForm'
 import { UserTopupList } from '@/features/profile/components/UserTopupList'
+import { UserWalletHistoryList } from '@/features/profile/components/UserWalletHistoryList'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 export const metadata: Metadata = {
@@ -33,7 +34,8 @@ export default async function UserTopupsPage() {
       <Tabs defaultValue="nap-tien" className="w-full">
         <TabsList className="mb-4">
           <TabsTrigger value="nap-tien">Nạp tiền</TabsTrigger>
-          <TabsTrigger value="lich-su">Lịch sử giao dịch</TabsTrigger>
+          <TabsTrigger value="lich-su">Yêu cầu nạp tiền</TabsTrigger>
+          <TabsTrigger value="bien-dong">Biến động số dư</TabsTrigger>
         </TabsList>
         
         <TabsContent value="nap-tien">
@@ -42,6 +44,10 @@ export default async function UserTopupsPage() {
         
         <TabsContent value="lich-su">
           <UserTopupList data={topups} />
+        </TabsContent>
+
+        <TabsContent value="bien-dong">
+          <UserWalletHistoryList />
         </TabsContent>
       </Tabs>
     </div>

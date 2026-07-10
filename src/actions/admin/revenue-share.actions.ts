@@ -4,31 +4,52 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 
-// Helper to verify admin session
-async function verifyAdmin() {
+// Helper to verify user permissions and return role level
+async function verifyUserRole() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Chưa đăng nhập')
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('role, full_name')
+    .select('role, full_name, revenue_role')
     .eq('id', user.id)
     .single()
 
-  if (profile?.role !== 'admin') {
+  if (!profile || (profile.role !== 'admin' && profile.revenue_role === 'none')) {
     throw new Error('Không có quyền truy cập')
   }
 
-  return { user, profile }
+  // Fallback existing admin users to super_admin
+  const resolvedRole = profile.revenue_role && profile.revenue_role !== 'none'
+    ? profile.revenue_role
+    : (profile.role === 'admin' ? 'super_admin' : 'none')
+
+  if (resolvedRole === 'none') {
+    throw new Error('Không có quyền truy cập module chia sẻ doanh thu')
+  }
+
+  return { user, profile: { ...profile, revenue_role: resolvedRole } }
+}
+
+function checkSuperAdmin(role: string) {
+  if (role !== 'super_admin') {
+    throw new Error('Chỉ Super Admin mới có quyền thực hiện thao tác này')
+  }
+}
+
+function checkRevenueManager(role: string) {
+  if (role !== 'super_admin' && role !== 'revenue_manager') {
+    throw new Error('Chỉ Super Admin hoặc Revenue Manager mới có quyền thực hiện thao tác này')
+  }
 }
 
 export async function getRevenueRulesAction() {
   try {
-    await verifyAdmin()
+    const { profile } = await verifyUserRole() // Viewer role is enough to view rules
     const supabase = createAdminClient()
 
-    // Fetch rules with product and variant details
+    // Fetch active/archived rules with product/variant details (deleted_at is handled inside client filtering)
     const { data: rules, error } = await supabase
       .from('product_revenue_rules')
       .select(`
@@ -60,7 +81,7 @@ export async function getRevenueRulesAction() {
       })
     )
 
-    return { success: true, data: rulesWithRecipients }
+    return { success: true, data: rulesWithRecipients, userRevenueRole: profile.revenue_role }
   } catch (error: any) {
     console.error('Lỗi khi lấy danh sách luật chia tiền:', error)
     return { success: false, error: error.message || 'Có lỗi xảy ra' }
@@ -72,7 +93,7 @@ export async function saveRevenueRuleAction(data: {
   product_id?: string | null
   variant_id?: string | null
   sharing_method: 'equal' | 'percentage' | 'fixed'
-  status: 'draft' | 'active' | 'paused' | 'expired'
+  status: 'draft' | 'pending_approval' | 'approved' | 'active' | 'paused' | 'expired' | 'archived'
   start_date?: string | null
   end_date?: string | null
   recipients: {
@@ -82,10 +103,11 @@ export async function saveRevenueRuleAction(data: {
   }[]
 }) {
   try {
-    const { user: admin, profile: adminProfile } = await verifyAdmin()
+    const { user: admin, profile: adminProfile } = await verifyUserRole()
+    checkRevenueManager(adminProfile.revenue_role)
     const supabase = createAdminClient()
 
-    // 1. Basic validation
+    // Basic validation
     if (!data.product_id && !data.variant_id) {
       return { success: false, error: 'Vui lòng chọn sản phẩm hoặc phân loại' }
     }
@@ -93,17 +115,16 @@ export async function saveRevenueRuleAction(data: {
       return { success: false, error: 'Vui lòng chọn ít nhất một người nhận' }
     }
 
-    // 2. Validate recipients uniqueness
+    // Validate unique recipients
     const userIds = data.recipients.map(r => r.user_id)
-    const uniqueUserIds = new Set(userIds)
-    if (uniqueUserIds.size !== userIds.length) {
+    if (new Set(userIds).size !== userIds.length) {
       return { success: false, error: 'Một người nhận không thể xuất hiện nhiều lần trong cùng một luật' }
     }
 
-    // 3. Method-specific validations
+    // Method validations
     if (data.sharing_method === 'percentage') {
-      const totalPercentage = data.recipients.reduce((sum, r) => sum + (r.percentage || 0), 0)
-      if (Math.round(totalPercentage) !== 100) {
+      const totalPct = data.recipients.reduce((sum, r) => sum + (r.percentage || 0), 0)
+      if (Math.round(totalPct) !== 100) {
         return { success: false, error: 'Tổng tỷ lệ phần trăm của người nhận phải bằng đúng 100%' }
       }
     } else if (data.sharing_method === 'fixed') {
@@ -114,9 +135,33 @@ export async function saveRevenueRuleAction(data: {
       }
     }
 
-    // 4. Save/Update Rule
     let ruleId = data.id
+    let version = 1
+    let oldValue: any = null
+
     if (ruleId) {
+      // Load old value
+      const { data: existingRule } = await supabase
+        .from('product_revenue_rules')
+        .select('*')
+        .eq('id', ruleId)
+        .single()
+
+      if (existingRule) {
+        const { data: existingRecipients } = await supabase
+          .from('product_revenue_recipients')
+          .select('*')
+          .eq('rule_id', ruleId)
+        
+        oldValue = { ...existingRule, recipients: existingRecipients || [] }
+        version = (existingRule.version || 1) + 1
+      }
+
+      // If status is changed to Approved/Active by non-super_admin, block it
+      if ((data.status === 'approved' || data.status === 'active') && adminProfile.revenue_role !== 'super_admin') {
+        return { success: false, error: 'Chỉ Super Admin mới có quyền phê duyệt luật chia tiền' }
+      }
+
       const { error: uError } = await supabase
         .from('product_revenue_rules')
         .update({
@@ -124,6 +169,7 @@ export async function saveRevenueRuleAction(data: {
           variant_id: data.variant_id || null,
           sharing_method: data.sharing_method,
           status: data.status,
+          version: version,
           start_date: data.start_date || null,
           end_date: data.end_date || null,
           updated_at: new Date().toISOString()
@@ -132,22 +178,29 @@ export async function saveRevenueRuleAction(data: {
 
       if (uError) throw uError
     } else {
-      // Check if product/variant rule already exists
+      // Validate unique target for new rules (ignoring archived rules)
       if (data.variant_id) {
         const { data: existing } = await supabase
           .from('product_revenue_rules')
           .select('id')
           .eq('variant_id', data.variant_id)
+          .is('deleted_at', null)
           .maybeSingle()
-        if (existing) return { success: false, error: 'Đã có cấu hình chia tiền cho phân loại này' }
+        if (existing) return { success: false, error: 'Đã có cấu hình hoạt động cho phân loại này' }
       } else if (data.product_id) {
         const { data: existing } = await supabase
           .from('product_revenue_rules')
           .select('id')
           .eq('product_id', data.product_id)
+          .is('deleted_at', null)
           .maybeSingle()
-        if (existing) return { success: false, error: 'Đã có cấu hình chia tiền cho sản phẩm này' }
+        if (existing) return { success: false, error: 'Đã có cấu hình hoạt động cho sản phẩm này' }
       }
+
+      // If status is set to Approved/Active by non-super_admin, fallback to Pending Approval
+      const resolvedStatus = (data.status === 'approved' || data.status === 'active') && adminProfile.revenue_role !== 'super_admin'
+        ? 'pending_approval'
+        : data.status
 
       const { data: newRule, error: iError } = await supabase
         .from('product_revenue_rules')
@@ -155,7 +208,10 @@ export async function saveRevenueRuleAction(data: {
           product_id: data.product_id || null,
           variant_id: data.variant_id || null,
           sharing_method: data.sharing_method,
-          status: data.status,
+          status: resolvedStatus,
+          version: 1,
+          approved_by: (resolvedStatus === 'approved' || resolvedStatus === 'active') ? admin.id : null,
+          approved_at: (resolvedStatus === 'approved' || resolvedStatus === 'active') ? new Date().toISOString() : null,
           start_date: data.start_date || null,
           end_date: data.end_date || null
         })
@@ -166,7 +222,7 @@ export async function saveRevenueRuleAction(data: {
       ruleId = newRule.id
     }
 
-    // 5. Recreate recipients list (Delete existing and insert new ones)
+    // Recreate recipients
     const { error: dError } = await supabase
       .from('product_revenue_recipients')
       .delete()
@@ -187,7 +243,15 @@ export async function saveRevenueRuleAction(data: {
 
     if (insError) throw insError
 
-    // 6. Write Audit Log
+    // Write audit log with old_value and new_value
+    const { data: updatedRule } = await supabase
+      .from('product_revenue_rules')
+      .select('*')
+      .eq('id', ruleId)
+      .single()
+
+    const newValue = { ...updatedRule, recipients: recipientsToInsert }
+
     await supabase.from('admin_logs').insert({
       admin_id: admin.id,
       action: data.id ? 'update_revenue_rule' : 'create_revenue_rule',
@@ -195,9 +259,9 @@ export async function saveRevenueRuleAction(data: {
       target_id: ruleId,
       metadata: {
         admin_name: adminProfile?.full_name || admin.email,
-        sharing_method: data.sharing_method,
-        status: data.status,
-        recipients_count: data.recipients.length
+        version: version,
+        old_value: oldValue,
+        new_value: newValue
       }
     })
 
@@ -209,60 +273,133 @@ export async function saveRevenueRuleAction(data: {
   }
 }
 
+export async function submitRuleForApprovalAction(id: string) {
+  try {
+    const { user: admin, profile: adminProfile } = await verifyUserRole()
+    checkRevenueManager(adminProfile.revenue_role)
+    const supabase = createAdminClient()
+
+    const { error } = await supabase
+      .from('product_revenue_rules')
+      .update({ status: 'pending_approval', updated_at: new Date().toISOString() })
+      .eq('id', id)
+
+    if (error) throw error
+
+    await supabase.from('admin_logs').insert({
+      admin_id: admin.id,
+      action: 'submit_revenue_rule_for_approval',
+      target_table: 'product_revenue_rules',
+      target_id: id,
+      metadata: {
+        admin_name: adminProfile.full_name || admin.email
+      }
+    })
+
+    revalidatePath('/admin/revenue-share')
+    return { success: true }
+  } catch (error: any) {
+    console.error('Lỗi gửi duyệt:', error)
+    return { success: false, error: error.message }
+  }
+}
+
+export async function approveRevenueRuleAction(id: string) {
+  try {
+    const { user: admin, profile: adminProfile } = await verifyUserRole()
+    checkSuperAdmin(adminProfile.revenue_role)
+    const supabase = createAdminClient()
+
+    const { error } = await supabase
+      .from('product_revenue_rules')
+      .update({
+        status: 'active',
+        approved_by: admin.id,
+        approved_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+
+    if (error) throw error
+
+    await supabase.from('admin_logs').insert({
+      admin_id: admin.id,
+      action: 'approve_revenue_rule',
+      target_table: 'product_revenue_rules',
+      target_id: id,
+      metadata: {
+        admin_name: adminProfile.full_name || admin.email
+      }
+    })
+
+    revalidatePath('/admin/revenue-share')
+    return { success: true }
+  } catch (error: any) {
+    console.error('Lỗi phê duyệt luật:', error)
+    return { success: false, error: error.message }
+  }
+}
+
 export async function copyRevenueRuleAction(sourceRuleId: string, data: {
   product_id?: string | null
   variant_id?: string | null
 }) {
   try {
-    const { user: admin, profile: adminProfile } = await verifyAdmin()
+    const { user: admin, profile: adminProfile } = await verifyUserRole()
+    checkRevenueManager(adminProfile.revenue_role)
     const supabase = createAdminClient()
 
     if (!data.product_id && !data.variant_id) {
-      return { success: false, error: 'Vui lòng chọn đích sao chép (Sản phẩm hoặc phân loại)' }
+      return { success: false, error: 'Vui lòng chọn đích sao chép' }
     }
 
-    // Load source rule
-    const { data: sourceRule, error: srError } = await supabase
+    // Load source
+    const { data: sourceRule } = await supabase
       .from('product_revenue_rules')
       .select('*')
       .eq('id', sourceRuleId)
       .single()
 
-    if (srError) throw srError
+    if (!sourceRule) throw new Error('Không tìm thấy luật nguồn')
 
-    // Load source recipients
-    const { data: sourceRecipients, error: srecError } = await supabase
+    const { data: sourceRecipients } = await supabase
       .from('product_revenue_recipients')
       .select('*')
       .eq('rule_id', sourceRuleId)
 
-    if (srecError) throw srecError
-
-    // Verify existing target rule
+    // Verify existing targets
     if (data.variant_id) {
       const { data: existing } = await supabase
         .from('product_revenue_rules')
         .select('id')
         .eq('variant_id', data.variant_id)
+        .is('deleted_at', null)
         .maybeSingle()
-      if (existing) return { success: false, error: 'Đã có cấu hình chia tiền cho phân loại này' }
+      if (existing) return { success: false, error: 'Đã có cấu hình hoạt động cho phân loại này' }
     } else if (data.product_id) {
       const { data: existing } = await supabase
         .from('product_revenue_rules')
         .select('id')
         .eq('product_id', data.product_id)
+        .is('deleted_at', null)
         .maybeSingle()
-      if (existing) return { success: false, error: 'Đã có cấu hình chia tiền cho sản phẩm này' }
+      if (existing) return { success: false, error: 'Đã có cấu hình hoạt động cho sản phẩm này' }
     }
 
-    // Insert target rule
+    // Copy to new rule
+    const isSuper = adminProfile.revenue_role === 'super_admin'
+    const status = isSuper ? 'active' : 'draft'
+
     const { data: newRule, error: insError } = await supabase
       .from('product_revenue_rules')
       .insert({
         product_id: data.product_id || null,
         variant_id: data.variant_id || null,
         sharing_method: sourceRule.sharing_method,
-        status: sourceRule.status,
+        status: status,
+        version: 1,
+        approved_by: isSuper ? admin.id : null,
+        approved_at: isSuper ? new Date().toISOString() : null,
         start_date: sourceRule.start_date,
         end_date: sourceRule.end_date
       })
@@ -271,8 +408,7 @@ export async function copyRevenueRuleAction(sourceRuleId: string, data: {
 
     if (insError) throw insError
 
-    // Insert target recipients
-    const newRecipients = sourceRecipients.map(r => ({
+    const newRecipients = (sourceRecipients || []).map(r => ({
       rule_id: newRule.id,
       user_id: r.user_id,
       percentage: r.percentage,
@@ -285,54 +421,58 @@ export async function copyRevenueRuleAction(sourceRuleId: string, data: {
 
     if (insRecError) throw insRecError
 
-    // Write Audit Log
     await supabase.from('admin_logs').insert({
       admin_id: admin.id,
       action: 'copy_revenue_rule',
       target_table: 'product_revenue_rules',
       target_id: newRule.id,
       metadata: {
-        admin_name: adminProfile?.full_name || admin.email,
+        admin_name: adminProfile.full_name || admin.email,
         source_rule_id: sourceRuleId,
-        sharing_method: sourceRule.sharing_method
+        new_value: { ...newRule, recipients: newRecipients }
       }
     })
 
     revalidatePath('/admin/revenue-share')
     return { success: true, ruleId: newRule.id }
   } catch (error: any) {
-    console.error('Lỗi khi sao chép cấu hình:', error)
+    console.error('Lỗi khi sao chép:', error)
     return { success: false, error: error.message || 'Có lỗi xảy ra' }
   }
 }
 
+// Archive instead of permanently deleting rules
 export async function deleteRevenueRuleAction(id: string) {
   try {
-    const { user: admin, profile: adminProfile } = await verifyAdmin()
+    const { user: admin, profile: adminProfile } = await verifyUserRole()
+    checkRevenueManager(adminProfile.revenue_role)
     const supabase = createAdminClient()
 
     const { error } = await supabase
       .from('product_revenue_rules')
-      .delete()
+      .update({
+        status: 'archived',
+        deleted_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
       .eq('id', id)
 
     if (error) throw error
 
-    // Write Audit Log
     await supabase.from('admin_logs').insert({
       admin_id: admin.id,
-      action: 'delete_revenue_rule',
+      action: 'archive_revenue_rule',
       target_table: 'product_revenue_rules',
       target_id: id,
       metadata: {
-        admin_name: adminProfile?.full_name || admin.email
+        admin_name: adminProfile.full_name || admin.email
       }
     })
 
     revalidatePath('/admin/revenue-share')
     return { success: true }
   } catch (error: any) {
-    console.error('Lỗi khi xóa cấu hình chia tiền:', error)
+    console.error('Lỗi khi lưu trữ cấu hình:', error)
     return { success: false, error: error.message || 'Có lỗi xảy ra' }
   }
 }
@@ -345,7 +485,7 @@ export async function getRevenueSharesHistoryAction(filters?: {
   endDate?: string
 }) {
   try {
-    await verifyAdmin()
+    await verifyUserRole()
     const supabase = createAdminClient()
 
     let query = supabase
@@ -357,7 +497,6 @@ export async function getRevenueSharesHistoryAction(filters?: {
       .order('created_at', { ascending: false })
 
     if (filters?.productId) {
-      // Find rules for that product
       const { data: rules } = await supabase
         .from('product_revenue_rules')
         .select('id')
@@ -392,17 +531,16 @@ export async function getRevenueSharesHistoryAction(filters?: {
 
     return { success: true, data }
   } catch (error: any) {
-    console.error('Lỗi khi lấy lịch sử chia tiền:', error)
+    console.error('Lỗi lấy lịch sử chia tiền:', error)
     return { success: false, error: error.message || 'Có lỗi xảy ra' }
   }
 }
 
 export async function getRevenueShareStatsAction() {
   try {
-    await verifyAdmin()
+    await verifyUserRole()
     const supabase = createAdminClient()
 
-    // 1. Fetch all completed shares
     const { data: shares, error } = await supabase
       .from('product_revenue_shares')
       .select('*')
@@ -418,13 +556,11 @@ export async function getRevenueShareStatsAction() {
     const currentMonth = now.getMonth()
     const currentYear = now.getFullYear()
 
-    // Products breakdown map
     const productStatsMap: Record<string, number> = {}
-    // Recipients breakdown map
-    const recipientStatsMap: Record<string, { name: string; amount: number; email?: string }> = {}
+    const recipientStatsMap: Record<string, { name: string; amount: number }> = {}
 
     shares?.forEach(s => {
-      const amt = Number(s.amount) // amount is positive for credit, negative for reversal/refund
+      const amt = Number(s.amount)
       totalAmount += amt
 
       const createdAtDate = new Date(s.created_at)
@@ -438,10 +574,8 @@ export async function getRevenueShareStatsAction() {
         thisMonthAmount += amt
       }
 
-      // Group by Product Name
       productStatsMap[s.product_name_snapshot] = (productStatsMap[s.product_name_snapshot] || 0) + amt
 
-      // Group by Recipient
       if (!recipientStatsMap[s.recipient_id]) {
         recipientStatsMap[s.recipient_id] = {
           name: s.recipient_name_snapshot,
@@ -451,13 +585,11 @@ export async function getRevenueShareStatsAction() {
       recipientStatsMap[s.recipient_id].amount += amt
     })
 
-    // Sort top products
     const topProducts = Object.entries(productStatsMap)
       .map(([name, amount]) => ({ name, amount }))
       .sort((a, b) => b.amount - a.amount)
       .slice(0, 5)
 
-    // Sort top recipients
     const topRecipients = Object.entries(recipientStatsMap)
       .map(([id, data]) => ({ id, name: data.name, amount: data.amount }))
       .sort((a, b) => b.amount - a.amount)
@@ -474,7 +606,187 @@ export async function getRevenueShareStatsAction() {
       }
     }
   } catch (error: any) {
-    console.error('Lỗi khi lấy thống kê chia tiền:', error)
+    console.error('Lỗi lấy thống kê:', error)
     return { success: false, error: error.message || 'Có lỗi xảy ra' }
+  }
+}
+
+// Manual Compensating Rollback Action
+export async function rollbackRevenueShareAction(shareId: string) {
+  try {
+    const { profile: adminProfile } = await verifyUserRole()
+    checkSuperAdmin(adminProfile.revenue_role)
+    const supabase = createAdminClient()
+
+    const { data: res, error } = await supabase.rpc('manual_rollback_revenue_share', { p_share_id: shareId })
+    if (error) throw error
+    if (res && res.success === false) throw new Error(res.error || 'Lỗi đảo ngược giao dịch')
+
+    revalidatePath('/admin/revenue-share')
+    return { success: true }
+  } catch (error: any) {
+    console.error('Lỗi khi hoàn tiền chia sẻ doanh thu:', error)
+    return { success: false, error: error.message || 'Có lỗi xảy ra' }
+  }
+}
+
+// User role management permissions
+export async function updateUserRevenueRoleAction(targetUserId: string, newRole: 'super_admin' | 'revenue_manager' | 'revenue_viewer' | 'none') {
+  try {
+    const { user: admin, profile: adminProfile } = await verifyUserRole()
+    checkSuperAdmin(adminProfile.revenue_role)
+    const supabase = createAdminClient()
+
+    if (admin.id === targetUserId) {
+      return { success: false, error: 'Không thể tự thay đổi quyền hạn của chính mình' }
+    }
+
+    const { error } = await supabase
+      .from('profiles')
+      .update({ revenue_role: newRole, updated_at: new Date().toISOString() })
+      .eq('id', targetUserId)
+
+    if (error) throw error
+
+    await supabase.from('admin_logs').insert({
+      admin_id: admin.id,
+      action: 'update_user_revenue_role',
+      target_table: 'profiles',
+      target_id: targetUserId,
+      metadata: {
+        admin_name: adminProfile.full_name || admin.email,
+        assigned_role: newRole
+      }
+    })
+
+    return { success: true }
+  } catch (error: any) {
+    console.error('Lỗi phân quyền:', error)
+    return { success: false, error: error.message }
+  }
+}
+
+// Version History snapshot getter
+export async function getRuleVersionsAction(ruleId: string) {
+  try {
+    await verifyUserRole()
+    const supabase = createAdminClient()
+
+    const { data, error } = await supabase
+      .from('admin_logs')
+      .select('*')
+      .eq('target_id', ruleId)
+      .in('action', ['create_revenue_rule', 'update_revenue_rule', 'copy_revenue_rule'])
+      .order('created_at', { ascending: false })
+
+    if (error) throw error
+
+    return { success: true, data }
+  } catch (error: any) {
+    console.error('Lỗi lấy lịch sử phiên bản luật:', error)
+    return { success: false, error: error.message }
+  }
+}
+
+// Get completed orders with items having active rules but missing share calculations (Retry queue)
+export async function getFailedSharingOrdersAction() {
+  try {
+    await verifyUserRole()
+    const supabase = createAdminClient()
+
+    // 1. Fetch completed orders in last 30 days
+    const dateLimit = new Date()
+    dateLimit.setDate(dateLimit.getDate() - 30)
+
+    const { data: orders, error: oError } = await supabase
+      .from('orders')
+      .select('id, order_code, total_amount, created_at')
+      .eq('status', 'completed')
+      .gte('created_at', dateLimit.toISOString())
+
+    if (oError) throw oError
+
+    // 2. Fetch all active sharing rules
+    const { data: activeRules } = await supabase
+      .from('product_revenue_rules')
+      .select('id, product_id, variant_id')
+      .eq('status', 'active')
+      .is('deleted_at', null)
+
+    const activeRulesProductIds = new Set(activeRules?.map(r => r.product_id).filter(Boolean))
+    const activeRulesVariantIds = new Set(activeRules?.map(r => r.variant_id).filter(Boolean))
+
+    const failedOrders: any[] = []
+
+    for (const order of orders || []) {
+      // Fetch order items
+      const { data: items } = await supabase
+        .from('order_items')
+        .select('id, product_id, variant_id, product_name')
+        .eq('order_id', order.id)
+
+      let hasUnsharedEligibleItem = false
+      const unsharedItemsList: string[] = []
+
+      for (const item of items || []) {
+        // Check if eligible for any active rules
+        const isEligible = activeRulesVariantIds.has(item.variant_id) || activeRulesProductIds.has(item.product_id)
+        if (isEligible) {
+          // Check if shares exist
+          const { count } = await supabase
+            .from('product_revenue_shares')
+            .select('*', { count: 'exact', head: true })
+            .eq('order_item_id', item.id)
+            .eq('status', 'completed')
+
+          if (count === 0) {
+            hasUnsharedEligibleItem = true
+            unsharedItemsList.push(item.product_name)
+          }
+        }
+      }
+
+      if (hasUnsharedEligibleItem) {
+        failedOrders.push({
+          ...order,
+          unshared_items: unsharedItemsList
+        })
+      }
+    }
+
+    return { success: true, data: failedOrders }
+  } catch (error: any) {
+    console.error('Lỗi khi tìm đơn hàng lỗi chia tiền:', error)
+    return { success: false, error: error.message }
+  }
+}
+
+// Manual retry sharing execution
+export async function retryOrderRevenueSharingAction(orderId: string) {
+  try {
+    const { user: admin, profile: adminProfile } = await verifyUserRole()
+    checkRevenueManager(adminProfile.revenue_role)
+    const supabase = createAdminClient()
+
+    const { data: res, error } = await supabase.rpc('process_order_revenue_sharing', { p_order_id: orderId })
+    if (error) throw error
+    if (res && res.success === false) throw new Error(res.error || 'Lỗi xử lý chia tiền')
+
+    await supabase.from('admin_logs').insert({
+      admin_id: admin.id,
+      action: 'retry_revenue_sharing',
+      target_table: 'orders',
+      target_id: orderId,
+      metadata: {
+        admin_name: adminProfile.full_name || admin.email,
+        result: res
+      }
+    })
+
+    revalidatePath('/admin/revenue-share')
+    return { success: true, details: res }
+  } catch (error: any) {
+    console.error('Lỗi khi chạy lại chia tiền:', error)
+    return { success: false, error: error.message }
   }
 }

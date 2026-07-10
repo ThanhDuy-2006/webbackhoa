@@ -23,15 +23,23 @@ ALTER TABLE public.wallet_transactions ADD CONSTRAINT wallet_transactions_type_c
 -- 2. Thêm cột link vào bảng notifications nếu chưa tồn tại
 ALTER TABLE public.notifications ADD COLUMN IF NOT EXISTS link text;
 
--- 3. Tạo bảng Luật chia tiền sản phẩm/phân loại
+-- 3. Thêm cột phân quyền quản trị doanh nghiệp vào bảng profiles
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS revenue_role text check (revenue_role in ('super_admin', 'revenue_manager', 'revenue_viewer', 'none')) default 'none';
+UPDATE public.profiles SET revenue_role = 'super_admin' WHERE role = 'admin' AND (revenue_role = 'none' OR revenue_role IS NULL);
+
+-- 4. Tạo bảng Luật chia tiền sản phẩm/phân loại (Hỗ trợ phê duyệt, phiên bản và lưu trữ mềm)
 CREATE TABLE IF NOT EXISTS public.product_revenue_rules (
   id uuid default uuid_generate_v4() primary key,
   product_id uuid references public.products(id) on delete cascade,
   variant_id uuid references public.product_variants(id) on delete cascade,
   sharing_method text not null check (sharing_method in ('equal', 'percentage', 'fixed')),
-  status text not null check (status in ('draft', 'active', 'paused', 'expired')) default 'draft',
+  status text not null check (status in ('draft', 'pending_approval', 'approved', 'active', 'paused', 'expired', 'archived')) default 'draft',
+  version integer default 1 not null,
+  approved_by uuid references public.profiles(id) on delete set null,
+  approved_at timestamp with time zone,
   start_date timestamp with time zone,
   end_date timestamp with time zone,
+  deleted_at timestamp with time zone,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null,
   constraint check_only_one_target check (
@@ -42,7 +50,7 @@ CREATE TABLE IF NOT EXISTS public.product_revenue_rules (
   constraint unique_variant_rule unique (variant_id)
 );
 
--- 4. Tạo bảng Người nhận chia sẻ của Luật
+-- 5. Tạo bảng Người nhận chia sẻ của Luật (Bảo đảm tính duy nhất của recipient)
 CREATE TABLE IF NOT EXISTS public.product_revenue_recipients (
   id uuid default uuid_generate_v4() primary key,
   rule_id uuid references public.product_revenue_rules(id) on delete cascade not null,
@@ -53,7 +61,7 @@ CREATE TABLE IF NOT EXISTS public.product_revenue_recipients (
   constraint unique_rule_recipient unique (rule_id, user_id)
 );
 
--- 5. Tạo bảng Lịch sử chia sẻ doanh thu thực tế (bất biến sau khi ghi)
+-- 6. Tạo bảng Lịch sử chia sẻ doanh thu thực tế (bất biến sau khi ghi)
 CREATE TABLE IF NOT EXISTS public.product_revenue_shares (
   id uuid default uuid_generate_v4() primary key,
   order_item_id uuid references public.order_items(id) on delete cascade not null,
@@ -71,7 +79,7 @@ CREATE TABLE IF NOT EXISTS public.product_revenue_shares (
   constraint unique_order_item_recipient_status unique (order_item_id, recipient_id, status)
 );
 
--- 6. Tạo bảng Nhật ký hoạt động công khai để hiển thị trên Lịch sử chung
+-- 7. Tạo bảng Nhật ký hoạt động công khai để hiển thị trên Lịch sử chung
 CREATE TABLE IF NOT EXISTS public.revenue_share_activities (
   id uuid default uuid_generate_v4() primary key,
   admin_name text not null,
@@ -82,13 +90,13 @@ CREATE TABLE IF NOT EXISTS public.revenue_share_activities (
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
--- 7. Kích hoạt Row Level Security (RLS) cho tất cả các bảng mới
+-- 8. Kích hoạt Row Level Security (RLS) cho tất cả các bảng mới
 ALTER TABLE public.product_revenue_rules ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.product_revenue_recipients ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.product_revenue_shares ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.revenue_share_activities ENABLE ROW LEVEL SECURITY;
 
--- 8. Tạo các chính sách bảo mật RLS
+-- 9. Tạo các chính sách bảo mật RLS
 CREATE POLICY "Admins full access to rules" ON public.product_revenue_rules FOR ALL USING (public.is_admin());
 CREATE POLICY "Admins full access to recipients" ON public.product_revenue_recipients FOR ALL USING (public.is_admin());
 CREATE POLICY "Admins full access to shares" ON public.product_revenue_shares FOR ALL USING (public.is_admin());
@@ -96,7 +104,7 @@ CREATE POLICY "Users can view own shares" ON public.product_revenue_shares FOR S
 CREATE POLICY "Anyone can view activities" ON public.revenue_share_activities FOR SELECT USING (true);
 CREATE POLICY "Admins full access to activities" ON public.revenue_share_activities FOR ALL USING (public.is_admin());
 
--- 9. Hàm giao dịch RPC xử lý chia tiền khi Đơn hàng hoàn thành
+-- 10. Hàm giao dịch RPC xử lý chia tiền khi Đơn hàng hoàn thành (Idempotent & Lock bảo vệ)
 CREATE OR REPLACE FUNCTION public.process_order_revenue_sharing(p_order_id uuid)
 RETURNS json
 LANGUAGE plpgsql
@@ -117,7 +125,6 @@ DECLARE
   v_share_amount numeric(12,2);
   v_recipient_count integer;
   v_total_rule_fixed numeric(12,2);
-  v_recipient_balance numeric(12,2);
   v_tx_id uuid;
   v_shared_count integer := 0;
   v_total_shared_amount numeric(12,2) := 0;
@@ -126,7 +133,7 @@ DECLARE
   v_method_desc text;
   v_activity_desc text;
 BEGIN
-  -- 1. Khóa dòng đơn hàng để tránh xử lý đồng thời chéo
+  -- 1. Khóa dòng đơn hàng để tránh xử lý đồng thời chéo (Idempotency Protection)
   SELECT status, order_code, total_amount, discount_amount 
   INTO v_order_status, v_order_code, v_total_amount, v_discount_amount
   FROM public.orders 
@@ -169,7 +176,7 @@ BEGIN
   LOOP
     v_product_name := COALESCE(v_order_item.raw_product_name, v_order_item.product_name);
     
-    -- 5. Tìm luật chia tiền hoạt động (Luật phân loại có ưu tiên cao hơn luật sản phẩm)
+    -- 5. Tìm luật chia tiền hoạt động (Chỉ áp dụng luật ACTIVE + APPROVED + CHƯA XÓA/ARCHIVED + TRONG THỜI GIAN HIỆU LỰC)
     v_rule := NULL;
     
     -- Check variant-level rule first
@@ -178,6 +185,8 @@ BEGIN
       FROM public.product_revenue_rules 
       WHERE variant_id = v_order_item.variant_id 
         AND status = 'active'
+        AND approved_by IS NOT NULL
+        AND deleted_at IS NULL
         AND (start_date IS NULL OR start_date <= now())
         AND (end_date IS NULL OR end_date >= now());
     END IF;
@@ -188,25 +197,27 @@ BEGIN
       FROM public.product_revenue_rules 
       WHERE product_id = v_order_item.product_id 
         AND status = 'active'
+        AND approved_by IS NOT NULL
+        AND deleted_at IS NULL
         AND (start_date IS NULL OR start_date <= now())
         AND (end_date IS NULL OR end_date >= now());
     END IF;
 
-    -- Nếu không có luật nào, bỏ qua sản phẩm này
+    -- Nếu không có luật nào hoạt động hợp lệ, bỏ qua sản phẩm này
     IF v_rule IS NULL THEN
       CONTINUE;
     END IF;
 
-    -- 6. Đảm bảo chưa từng được chia cho dòng sản phẩm này để tránh trùng lặp
+    -- 6. Bảo vệ Idempotent: Đảm bảo chưa từng được chia cho dòng sản phẩm này để tránh trùng lặp
     PERFORM 1 
     FROM public.product_revenue_shares 
     WHERE order_item_id = v_order_item.id AND status = 'completed';
     
     IF FOUND THEN
-      CONTINUE;
+      CONTINUE; -- Tránh xử lý lại nhiều lần
     END IF;
 
-    -- 7. Tính số tiền được chia thực tế sau khi trừ giảm giá phân bổ (actual_unit_price * quantity - allocated_discount)
+    -- 7. Tính số tiền thực nhận sau giảm giá phân bổ (actual_unit_price * quantity - allocated_discount)
     IF v_total_amount > 0 THEN
       v_allocated_discount := COALESCE(v_discount_amount, 0) * (v_order_item.subtotal / v_total_amount);
     ELSE
@@ -227,7 +238,7 @@ BEGIN
       CONTINUE;
     END IF;
 
-    -- Kiểm tra nếu là chia tiền cố định, tổng số tiền chia không được vượt quá doanh thu thực nhận
+    -- Kiểm tra nếu là chia tiền cố định, tổng tiền chia không được vượt quá doanh thu thực nhận
     IF v_rule.sharing_method = 'fixed' THEN
       SELECT SUM(fixed_amount) INTO v_total_rule_fixed 
       FROM public.product_revenue_recipients 
@@ -264,7 +275,7 @@ BEGIN
         CONTINUE;
       END IF;
 
-      -- Cập nhật số dư ví người nhận
+      -- Cập nhật số dư ví người nhận (Sử dụng lệnh UPDATE đơn lẻ để bảo đảm cô lập giá trị ví)
       UPDATE public.profiles 
       SET wallet_balance = COALESCE(wallet_balance, 0) + v_share_amount
       WHERE id = v_recipient.user_id;
@@ -399,7 +410,7 @@ EXCEPTION WHEN OTHERS THEN
 END;
 $$;
 
--- 10. Hàm giao dịch RPC xử lý Đảo ngược (Reversal) thu hồi tiền khi Đơn hàng bị Hoàn tiền hoặc Hủy bỏ
+-- 11. Hàm giao dịch RPC xử lý Đảo ngược (Reversal) thu hồi tiền khi Đơn hàng bị Hoàn tiền hoặc Hủy bỏ
 CREATE OR REPLACE FUNCTION public.reverse_order_revenue_sharing(p_order_id uuid)
 RETURNS json
 LANGUAGE plpgsql
@@ -551,6 +562,146 @@ BEGIN
   );
 
   RETURN json_build_object('success', true, 'reversed_items', v_reversed_count);
+
+EXCEPTION WHEN OTHERS THEN
+  RETURN json_build_object('success', false, 'error', SQLERRM);
+END;
+$$;
+
+-- 12. Hàm giao dịch RPC xử lý THU HỒI THỦ CÔNG (Manual Rollback) bởi Super Admin
+CREATE OR REPLACE FUNCTION public.manual_rollback_revenue_share(p_share_id uuid)
+RETURNS json
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_admin_id uuid;
+  v_admin_name text;
+  v_admin_revenue_role text;
+  v_share RECORD;
+  v_tx_id uuid;
+BEGIN
+  -- 1. Kiểm tra quyền của người gọi (Chỉ Super Admin mới được thu hồi thủ công)
+  v_admin_id := auth.uid();
+  IF v_admin_id IS NULL THEN
+    RETURN json_build_object('success', false, 'error', 'Không xác định được danh tính người thực hiện');
+  END IF;
+
+  SELECT full_name, revenue_role INTO v_admin_name, v_admin_revenue_role
+  FROM public.profiles
+  WHERE id = v_admin_id;
+
+  IF v_admin_revenue_role != 'super_admin' THEN
+    RETURN json_build_object('success', false, 'error', 'Chỉ Super Admin mới được thực hiện thu hồi thủ công');
+  END IF;
+
+  -- 2. Khóa dòng chia sẻ để tránh xử lý đồng thời chéo
+  SELECT s.*, p.wallet_balance, p.full_name as recipient_name
+  INTO v_share
+  FROM public.product_revenue_shares s
+  JOIN public.profiles p ON p.id = s.recipient_id
+  WHERE s.id = p_share_id AND s.status = 'completed'
+  FOR UPDATE;
+
+  IF NOT FOUND THEN
+    RETURN json_build_object('success', false, 'error', 'Không tìm thấy giao dịch chia tiền hợp lệ hoặc giao dịch đã bị đảo ngược trước đó');
+  END IF;
+
+  -- 3. Cập nhật trạng thái giao dịch cũ thành reversed
+  UPDATE public.product_revenue_shares 
+  SET status = 'reversed' 
+  WHERE id = p_share_id;
+
+  -- 4. Khấu trừ tiền trong ví người nhận
+  UPDATE public.profiles 
+  SET wallet_balance = COALESCE(wallet_balance, 0) - v_share.amount
+  WHERE id = v_share.recipient_id;
+
+  -- 5. Tạo lịch sử ví giao dịch thu hồi (Giá trị tiền âm)
+  INSERT INTO public.wallet_transactions (
+    user_id,
+    type,
+    amount,
+    balance_before,
+    balance_after,
+    related_order_id,
+    note
+  ) VALUES (
+    v_share.recipient_id,
+    'revenue_share_reversal',
+    -v_share.amount,
+    COALESCE(v_share.wallet_balance, 0),
+    COALESCE(v_share.wallet_balance, 0) - v_share.amount,
+    null,
+    'Thu hồi thủ công tiền chia sản phẩm ' || v_share.product_name_snapshot || ' bởi Super Admin ' || v_admin_name || ': -' || to_char(v_share.amount, 'FM999,999,999') || 'đ (Đơn ' || v_share.order_code_snapshot || ')'
+  ) RETURNING id INTO v_tx_id;
+
+  -- 6. Ghi nhận lịch sử giao dịch đảo ngược (Giao dịch mới mang giá trị âm để đảm bảo tính bất biến)
+  INSERT INTO public.product_revenue_shares (
+    order_item_id,
+    rule_id,
+    recipient_id,
+    amount,
+    percentage,
+    status,
+    wallet_transaction_id,
+    order_code_snapshot,
+    product_name_snapshot,
+    admin_name_snapshot,
+    recipient_name_snapshot
+  ) VALUES (
+    v_share.order_item_id,
+    v_share.rule_id,
+    v_share.recipient_id,
+    -v_share.amount,
+    v_share.percentage,
+    'reversed',
+    v_tx_id,
+    v_share.order_code_snapshot,
+    v_share.product_name_snapshot,
+    v_admin_name,
+    v_share.recipient_name
+  );
+
+  -- 7. Gửi thông báo thu hồi in-app kèm Deep Link
+  INSERT INTO public.notifications (
+    user_id,
+    title,
+    message,
+    type,
+    is_read,
+    link
+  ) VALUES (
+    v_share.recipient_id,
+    'Thu hồi thủ công chia sẻ doanh thu',
+    'Đã thu hồi thủ công tiền chia sản phẩm ' || v_share.product_name_snapshot || ': -' || to_char(v_share.amount, 'FM999,999,999') || 'đ',
+    'revenue_share',
+    false,
+    '/tai-khoan/chia-tien'
+  );
+
+  -- 8. Ghi nhận lịch sử Admin Logs
+  INSERT INTO public.admin_logs (
+    admin_id,
+    action,
+    target_table,
+    target_id,
+    metadata
+  ) VALUES (
+    v_admin_id,
+    'manual_rollback_revenue',
+    'product_revenue_shares',
+    p_share_id,
+    json_build_object(
+      'order_code', v_share.order_code_snapshot,
+      'product_name', v_share.product_name_snapshot,
+      'recipient_name', v_share.recipient_name,
+      'amount', v_share.amount,
+      'admin_name', v_admin_name
+    )
+  );
+
+  RETURN json_build_object('success', true);
 
 EXCEPTION WHEN OTHERS THEN
   RETURN json_build_object('success', false, 'error', SQLERRM);
