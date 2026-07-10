@@ -157,10 +157,8 @@ export async function saveRevenueRuleAction(data: {
         version = (existingRule.version || 1) + 1
       }
 
-      // If status is changed to Approved/Active by non-super_admin, block it
-      if ((data.status === 'approved' || data.status === 'active') && adminProfile.revenue_role !== 'super_admin') {
-        return { success: false, error: 'Chỉ Super Admin mới có quyền phê duyệt luật chia tiền' }
-      }
+      // Auto-approve and activate rules saved by any admin
+      const resolvedStatus = data.status === 'active' ? 'active' : data.status
 
       const { error: uError } = await supabase
         .from('product_revenue_rules')
@@ -168,8 +166,10 @@ export async function saveRevenueRuleAction(data: {
           product_id: data.product_id || null,
           variant_id: data.variant_id || null,
           sharing_method: data.sharing_method,
-          status: data.status,
+          status: resolvedStatus,
           version: version,
+          approved_by: admin.id,
+          approved_at: new Date().toISOString(),
           start_date: data.start_date || null,
           end_date: data.end_date || null,
           updated_at: new Date().toISOString()
@@ -197,10 +197,8 @@ export async function saveRevenueRuleAction(data: {
         if (existing) return { success: false, error: 'Đã có cấu hình hoạt động cho sản phẩm này' }
       }
 
-      // If status is set to Approved/Active by non-super_admin, fallback to Pending Approval
-      const resolvedStatus = (data.status === 'approved' || data.status === 'active') && adminProfile.revenue_role !== 'super_admin'
-        ? 'pending_approval'
-        : data.status
+      // Auto-approve and activate rules saved by any admin
+      const resolvedStatus = data.status === 'active' ? 'active' : data.status
 
       const { data: newRule, error: iError } = await supabase
         .from('product_revenue_rules')
@@ -210,8 +208,8 @@ export async function saveRevenueRuleAction(data: {
           sharing_method: data.sharing_method,
           status: resolvedStatus,
           version: 1,
-          approved_by: (resolvedStatus === 'approved' || resolvedStatus === 'active') ? admin.id : null,
-          approved_at: (resolvedStatus === 'approved' || resolvedStatus === 'active') ? new Date().toISOString() : null,
+          approved_by: admin.id,
+          approved_at: new Date().toISOString(),
           start_date: data.start_date || null,
           end_date: data.end_date || null
         })

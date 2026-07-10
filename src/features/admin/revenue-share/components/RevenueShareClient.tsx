@@ -8,8 +8,6 @@ import {
   getRevenueSharesHistoryAction,
   getRevenueShareStatsAction,
   getRevenueRulesAction,
-  submitRuleForApprovalAction,
-  approveRevenueRuleAction,
   rollbackRevenueShareAction,
   updateUserRevenueRoleAction,
   getRuleVersionsAction,
@@ -20,7 +18,7 @@ import { toast } from 'sonner'
 import { 
   Coins, Percent, Landmark, Plus, Trash2, Edit2, Copy, Download, Search, 
   Filter, Calendar, DollarSign, Users, Award, TrendingUp, X, Check, CheckSquare, 
-  Square, Shield, Clock, RotateCcw, AlertTriangle, FileText, ArrowRight, Eye, ChevronDown
+  Square, Shield, Clock, RotateCcw, AlertTriangle, FileText, ArrowRight, Eye, ChevronDown, UserPlus
 } from 'lucide-react'
 
 interface Product {
@@ -40,6 +38,7 @@ interface User {
   id: string
   full_name: string | null
   email: string
+  role?: string | null
   revenue_role?: string | null
 }
 
@@ -89,7 +88,7 @@ export function RevenueShareClient({ products, variants, users, initialRules }: 
   const [permissionsLoading, setPermissionsLoading] = useState(false)
 
   // Current logged in admin role permissions
-  const [userRole, setUserRole] = useState<string>('revenue_viewer')
+  const [userRole, setUserRole] = useState<string>('super_admin')
 
   // Stats dashboard state
   const [stats, setStats] = useState({
@@ -111,15 +110,20 @@ export function RevenueShareClient({ products, variants, users, initialRules }: 
   // Form states
   const [showForm, setShowForm] = useState(false)
   const [editingRuleId, setEditingRuleId] = useState<string | null>(null)
-  const [selectedProductId, setSelectedProductId] = useState('')
-  const [selectedVariantId, setSelectedVariantId] = useState('')
+  
+  // Single selection helper for Product + Variant combo
+  const [selectedProductCombo, setSelectedProductCombo] = useState('')
   const [sharingMethod, setSharingMethod] = useState<'equal' | 'percentage' | 'fixed'>('equal')
-  const [ruleStatus, setRuleStatus] = useState<Rule['status']>('draft')
+  
+  // Simplified Status checkbox
+  const [isRuleActive, setIsRuleActive] = useState(true)
+  
+  // Scheduling toggler
+  const [useScheduling, setUseScheduling] = useState(false)
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   
-  // Recipient form selection
-  const [searchUserQuery, setSearchUserQuery] = useState('')
+  // Recipient tag selection
   const [selectedRecipients, setSelectedRecipients] = useState<{
     user_id: string
     percentage?: number
@@ -128,8 +132,7 @@ export function RevenueShareClient({ products, variants, users, initialRules }: 
 
   // Copy rule states
   const [copyingRule, setCopyingRule] = useState<Rule | null>(null)
-  const [copyTargetProductId, setCopyTargetProductId] = useState('')
-  const [copyTargetVariantId, setCopyTargetVariantId] = useState('')
+  const [copyTargetProductCombo, setCopyTargetProductCombo] = useState('')
 
   // Rule Version history states
   const [viewingVersionRule, setViewingVersionRule] = useState<Rule | null>(null)
@@ -140,50 +143,6 @@ export function RevenueShareClient({ products, variants, users, initialRules }: 
   const [previewPrice, setPreviewPrice] = useState(100000)
   const [previewQty, setPreviewQty] = useState(1)
   const [previewDiscount, setPreviewDiscount] = useState(0)
-
-  // Live preview calculation helper
-  const getPreviewCalculations = () => {
-    const netAmount = Math.max(0, (previewPrice * previewQty) - previewDiscount)
-    const results = selectedRecipients.map(r => {
-      const user = users.find(u => u.id === r.user_id)
-      const name = user ? (user.full_name || user.email) : 'Người dùng ẩn danh'
-      
-      let amount = 0
-      let displayPct = 0
-
-      if (sharingMethod === 'equal') {
-        displayPct = selectedRecipients.length > 0 ? (100 / selectedRecipients.length) : 0
-        amount = selectedRecipients.length > 0 ? (netAmount / selectedRecipients.length) : 0
-      } else if (sharingMethod === 'percentage') {
-        displayPct = r.percentage || 0
-        amount = netAmount * (displayPct / 100)
-      } else if (sharingMethod === 'fixed') {
-        amount = (r.fixed_amount || 0) * previewQty
-        displayPct = netAmount > 0 ? (amount / netAmount) * 100 : 0
-      }
-
-      return {
-        userId: r.user_id,
-        name,
-        percentage: displayPct.toFixed(1) + '%',
-        amount: Math.round(amount)
-      }
-    })
-
-    const totalShared = results.reduce((sum, res) => sum + res.amount, 0)
-    const totalPercentage = sharingMethod === 'percentage' 
-      ? selectedRecipients.reduce((sum, r) => sum + (r.percentage || 0), 0)
-      : parseFloat(results.reduce((sum, res) => sum + parseFloat(res.percentage), 0).toFixed(1))
-
-    return {
-      netAmount,
-      results,
-      totalShared,
-      totalPercentage
-    }
-  }
-
-  const preview = getPreviewCalculations()
 
   // Fetch initial configs, roles, stats
   const initializeClientData = async () => {
@@ -240,9 +199,7 @@ export function RevenueShareClient({ products, variants, users, initialRules }: 
     }
   }, [activeTab, filterProductId, filterUserId, filterOrderCode, filterStartDate, filterEndDate])
 
-  // Recipient updates
-  const availableVariants = variants.filter(v => v.product_id === selectedProductId)
-
+  // Recipient operations
   const handleToggleUser = (userId: string) => {
     const exists = selectedRecipients.some(r => r.user_id === userId)
     if (exists) {
@@ -275,9 +232,53 @@ export function RevenueShareClient({ products, variants, users, initialRules }: 
     })))
   }
 
+  // Live preview calculation helper
+  const getPreviewCalculations = () => {
+    const netAmount = Math.max(0, (previewPrice * previewQty) - previewDiscount)
+    const results = selectedRecipients.map(r => {
+      const user = users.find(u => u.id === r.user_id)
+      const name = user ? (user.full_name || user.email) : 'Người dùng ẩn danh'
+      
+      let amount = 0
+      let displayPct = 0
+
+      if (sharingMethod === 'equal') {
+        displayPct = selectedRecipients.length > 0 ? (100 / selectedRecipients.length) : 0
+        amount = selectedRecipients.length > 0 ? (netAmount / selectedRecipients.length) : 0
+      } else if (sharingMethod === 'percentage') {
+        displayPct = r.percentage || 0
+        amount = netAmount * (displayPct / 100)
+      } else if (sharingMethod === 'fixed') {
+        amount = (r.fixed_amount || 0) * previewQty
+        displayPct = netAmount > 0 ? (amount / netAmount) * 100 : 0
+      }
+
+      return {
+        userId: r.user_id,
+        name,
+        percentage: displayPct.toFixed(1) + '%',
+        amount: Math.round(amount)
+      }
+    })
+
+    const totalShared = results.reduce((sum, res) => sum + res.amount, 0)
+    const totalPercentage = sharingMethod === 'percentage' 
+      ? selectedRecipients.reduce((sum, r) => sum + (r.percentage || 0), 0)
+      : parseFloat(results.reduce((sum, res) => sum + parseFloat(res.percentage), 0).toFixed(1))
+
+    return {
+      netAmount,
+      results,
+      totalShared,
+      totalPercentage
+    }
+  }
+
+  const preview = getPreviewCalculations()
+
   // Save rule
   const handleSaveRule = async () => {
-    if (!selectedProductId && !selectedVariantId) {
+    if (!selectedProductCombo) {
       return toast.error('Vui lòng chọn sản phẩm hoặc phân loại')
     }
     if (selectedRecipients.length === 0) {
@@ -297,15 +298,19 @@ export function RevenueShareClient({ products, variants, users, initialRules }: 
       }
     }
 
+    const parts = selectedProductCombo.split('|')
+    const productId = parts[0]
+    const variantId = parts[1] || null
+
     setLoading(true)
     const res = await saveRevenueRuleAction({
       id: editingRuleId || undefined,
-      product_id: selectedVariantId ? null : selectedProductId,
-      variant_id: selectedVariantId || null,
+      product_id: variantId ? null : productId,
+      variant_id: variantId,
       sharing_method: sharingMethod,
-      status: ruleStatus,
-      start_date: startDate || null,
-      end_date: endDate || null,
+      status: isRuleActive ? 'active' : 'paused', // Automatically set status active/paused
+      start_date: useScheduling ? (startDate || null) : null,
+      end_date: useScheduling ? (endDate || null) : null,
       recipients: selectedRecipients.map(r => ({
         user_id: r.user_id,
         percentage: sharingMethod === 'percentage' ? r.percentage : null,
@@ -325,10 +330,14 @@ export function RevenueShareClient({ products, variants, users, initialRules }: 
 
   const handleEditRule = (rule: Rule) => {
     setEditingRuleId(rule.id)
-    setSelectedProductId(rule.product_id || '')
-    setSelectedVariantId(rule.variant_id || '')
+    if (rule.variant_id) {
+      setSelectedProductCombo(`${rule.product_id || ''}|${rule.variant_id}`)
+    } else {
+      setSelectedProductCombo(rule.product_id || '')
+    }
     setSharingMethod(rule.sharing_method)
-    setRuleStatus(rule.status)
+    setIsRuleActive(rule.status === 'active' || rule.status === 'approved')
+    setUseScheduling(!!rule.start_date || !!rule.end_date)
     setStartDate(rule.start_date ? rule.start_date.substring(0, 16) : '')
     setEndDate(rule.end_date ? rule.end_date.substring(0, 16) : '')
     setSelectedRecipients(rule.recipients.map(r => ({
@@ -342,55 +351,25 @@ export function RevenueShareClient({ products, variants, users, initialRules }: 
   const handleCloseForm = () => {
     setShowForm(false)
     setEditingRuleId(null)
-    setSelectedProductId('')
-    setSelectedVariantId('')
+    setSelectedProductCombo('')
     setSharingMethod('equal')
-    setRuleStatus('draft')
+    setIsRuleActive(true)
+    setUseScheduling(false)
     setStartDate('')
     setEndDate('')
     setSelectedRecipients([])
-    setSearchUserQuery('')
   }
 
   // Delete/Archive Rule
   const handleDeleteRule = async (id: string) => {
-    if (!confirm('Bạn có chắc chắn muốn lưu trữ (soft delete) luật chia sẻ doanh thu này?')) return
+    if (!confirm('Bạn có chắc chắn muốn xóa (lưu trữ) luật chia sẻ doanh thu này?')) return
 
     setLoading(true)
     const res = await deleteRevenueRuleAction(id)
     setLoading(false)
 
     if (res.success) {
-      toast.success('Lưu trữ luật chia tiền thành công')
-      initializeClientData()
-    } else {
-      toast.error(res.error)
-    }
-  }
-
-  // Submission / Approval
-  const handleSubmitForApproval = async (id: string) => {
-    setLoading(true)
-    const res = await submitRuleForApprovalAction(id)
-    setLoading(false)
-
-    if (res.success) {
-      toast.success('Đã gửi yêu cầu phê duyệt luật thành công!')
-      initializeClientData()
-    } else {
-      toast.error(res.error)
-    }
-  }
-
-  const handleApproveRule = async (id: string) => {
-    if (!confirm('Bạn có chắc chắn muốn phê duyệt hoạt động cho luật chia sẻ doanh thu này?')) return
-
-    setLoading(true)
-    const res = await approveRevenueRuleAction(id)
-    setLoading(false)
-
-    if (res.success) {
-      toast.success('Phê duyệt và kích hoạt luật thành công!')
+      toast.success('Xóa cấu hình thành công')
       initializeClientData()
     } else {
       toast.error(res.error)
@@ -400,14 +379,18 @@ export function RevenueShareClient({ products, variants, users, initialRules }: 
   // Copy rule
   const handleConfirmCopy = async () => {
     if (!copyingRule) return
-    if (!copyTargetProductId && !copyTargetVariantId) {
+    if (!copyTargetProductCombo) {
       return toast.error('Vui lòng chọn đích sao chép')
     }
 
+    const parts = copyTargetProductCombo.split('|')
+    const productId = parts[0]
+    const variantId = parts[1] || null
+
     setLoading(true)
     const res = await copyRevenueRuleAction(copyingRule.id, {
-      product_id: copyTargetVariantId ? null : copyTargetProductId,
-      variant_id: copyTargetVariantId || null
+      product_id: variantId ? null : productId,
+      variant_id: variantId
     })
     setLoading(false)
 
@@ -415,8 +398,7 @@ export function RevenueShareClient({ products, variants, users, initialRules }: 
       toast.success('Sao chép cấu hình chia tiền thành công!')
       initializeClientData()
       setCopyingRule(null)
-      setCopyTargetProductId('')
-      setCopyTargetVariantId('')
+      setCopyTargetProductCombo('')
     } else {
       toast.error(res.error)
     }
@@ -481,10 +463,9 @@ export function RevenueShareClient({ products, variants, users, initialRules }: 
     }
   }
 
-  // CSV, Excel and PDF Export
+  // Exports
   const handleExportCSV = () => {
     if (history.length === 0) return toast.info('Không có dữ liệu')
-    
     const headers = 'STT,Ma Don Hang,San Pham,Nguoi Nhan,So Tien Nhan,Ty Le,Trang Thai,Thoi Gian\n'
     const rows = history.map((h, i) => {
       const date = new Date(h.created_at).toLocaleString('vi-VN')
@@ -502,7 +483,6 @@ export function RevenueShareClient({ products, variants, users, initialRules }: 
   const handleExportExcel = () => {
     if (history.length === 0) return toast.info('Không có dữ liệu')
 
-    // Generate XML Spreadsheet format to open natively in Microsoft Excel
     let excelTemplate = `<?xml version="1.0" encoding="utf-8"?>
 <Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet" xmlns:html="http://www.w3.org/TR/REC-html40">
   <Styles>
@@ -636,7 +616,6 @@ export function RevenueShareClient({ products, variants, users, initialRules }: 
     printWindow.document.close()
   }
 
-  // Custom SVG Donut Chart for sharing methods proportion
   const getSharingMethodsProportions = () => {
     let equalCount = 0
     let percentageCount = 0
@@ -671,7 +650,6 @@ export function RevenueShareClient({ products, variants, users, initialRules }: 
 
     const changes: React.ReactNode[] = []
 
-    // Check basic rule modifications
     if (old_value) {
       if (old_value.sharing_method !== new_value.sharing_method) {
         changes.push(
@@ -693,21 +671,10 @@ export function RevenueShareClient({ products, variants, users, initialRules }: 
           </div>
         )
       }
-      if (old_value.start_date !== new_value.start_date || old_value.end_date !== new_value.end_date) {
-        changes.push(
-          <div key="dates" className="text-xs text-slate-700 bg-slate-50 p-2 rounded-lg border border-slate-100 space-y-1">
-            <strong>Thời hạn hiệu lực:</strong>
-            <div>Cũ: {old_value.start_date ? new Date(old_value.start_date).toLocaleDateString() : 'N/A'} - {old_value.end_date ? new Date(old_value.end_date).toLocaleDateString() : 'N/A'}</div>
-            <div>Mới: <span className="text-emerald-600">{new_value.start_date ? new Date(new_value.start_date).toLocaleDateString() : 'N/A'} - {new_value.end_date ? new Date(new_value.end_date).toLocaleDateString() : 'N/A'}</span></div>
-          </div>
-        )
-      }
 
-      // Check recipient updates
       const oldRecipients = old_value.recipients || []
       const newRecipients = new_value.recipients || []
 
-      // Added recipients
       newRecipients.forEach((nr: any) => {
         const matchingOld = oldRecipients.find((or: any) => or.user_id === nr.user_id)
         const user = users.find(u => u.id === nr.user_id)
@@ -721,7 +688,6 @@ export function RevenueShareClient({ products, variants, users, initialRules }: 
             </div>
           )
         } else {
-          // Changed values
           const valChanged = matchingOld.percentage !== nr.percentage || matchingOld.fixed_amount !== nr.fixed_amount
           if (valChanged) {
             changes.push(
@@ -735,7 +701,6 @@ export function RevenueShareClient({ products, variants, users, initialRules }: 
         }
       })
 
-      // Removed recipients
       oldRecipients.forEach((or: any) => {
         const existsInNew = newRecipients.some((nr: any) => nr.user_id === or.user_id)
         if (!existsInNew) {
@@ -779,7 +744,6 @@ export function RevenueShareClient({ products, variants, users, initialRules }: 
     )
   }
 
-  // Active / non-archived rules
   const activeRulesList = rules.filter(r => showArchivedRules ? true : r.status !== 'archived')
 
   return (
@@ -830,31 +794,24 @@ export function RevenueShareClient({ products, variants, users, initialRules }: 
       {/* RENDER TAB 1: RULES */}
       {activeTab === 'rules' && (
         <div className="space-y-6">
-          {/* Dashboard Summary charts */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm md:col-span-2 flex flex-col justify-between">
               <div>
                 <h3 className="font-extrabold text-slate-800 text-sm mb-1 flex items-center gap-1.5">
-                  <Shield className="h-4 w-4 text-emerald-600" /> Vai trò phân quyền của bạn
+                  <Shield className="h-4 w-4 text-emerald-600" /> Vai trò quản trị của bạn
                 </h3>
                 <p className="text-xs text-slate-500">Cấp phép hiện tại định danh các hành động khả dụng của bạn trên hệ thống.</p>
                 
                 <div className="mt-4 flex items-center gap-3 bg-slate-50 p-4 rounded-2xl border">
-                  <div className={`p-2.5 rounded-xl ${
-                    userRole === 'super_admin' ? 'bg-emerald-50 text-emerald-600' :
-                    userRole === 'revenue_manager' ? 'bg-blue-50 text-blue-600' : 'bg-slate-100 text-slate-600'
-                  }`}>
+                  <div className="p-2.5 rounded-xl bg-emerald-50 text-emerald-600">
                     <Shield className="h-6 w-6" />
                   </div>
                   <div>
                     <h4 className="text-xs font-black uppercase text-slate-700 font-mono">
-                      {userRole === 'super_admin' ? 'Super Admin (Tối cao)' :
-                       userRole === 'revenue_manager' ? 'Revenue Manager' : 'Revenue Viewer (Chỉ xem)'}
+                      QUẢN TRỊ VIÊN HỆ THỐNG (ADMIN)
                     </h4>
                     <p className="text-[10px] text-slate-400 mt-0.5 leading-relaxed">
-                      {userRole === 'super_admin' ? 'Có toàn quyền sửa đổi cấu hình, gửi duyệt, phê duyệt kích hoạt luật và rollback hoàn tiền thủ công.' :
-                       userRole === 'revenue_manager' ? 'Được tạo, sửa đổi và gửi duyệt luật chia sẻ doanh thu. Cần Super Admin duyệt để luật có hiệu lực.' :
-                       'Chỉ có quyền xem thông tin số liệu cấu hình và lịch sử giao dịch. Không thể thao tác.'}
+                      Bạn có toàn quyền thiết lập luật chia tiền, chỉnh sửa, xóa và rollback hoàn trả giao dịch trực tiếp mà không cần phê duyệt trung gian.
                     </p>
                   </div>
                 </div>
@@ -883,23 +840,18 @@ export function RevenueShareClient({ products, variants, users, initialRules }: 
               </div>
               
               <div className="relative w-24 h-24 shrink-0 flex items-center justify-center">
-                {/* SVG circular donut visualization */}
                 <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
                   <circle cx="18" cy="18" r="15.915" fill="none" stroke="#f1f5f9" strokeWidth="3" />
-                  
                   {chartData.total > 0 ? (
                     <>
-                      {/* Equal segment */}
                       <circle cx="18" cy="18" r="15.915" fill="none" stroke="#10b981" strokeWidth="3" 
                         strokeDasharray={`${chartData.equal} ${100 - chartData.equal}`} 
                         strokeDashoffset="0" 
                       />
-                      {/* Percentage segment */}
                       <circle cx="18" cy="18" r="15.915" fill="none" stroke="#3b82f6" strokeWidth="3" 
                         strokeDasharray={`${chartData.percentage} ${100 - chartData.percentage}`} 
                         strokeDashoffset={-chartData.equal} 
                       />
-                      {/* Fixed segment */}
                       <circle cx="18" cy="18" r="15.915" fill="none" stroke="#6366f1" strokeWidth="3" 
                         strokeDasharray={`${chartData.fixed} ${100 - chartData.fixed}`} 
                         strokeDashoffset={-(chartData.equal + chartData.percentage)} 
@@ -921,7 +873,7 @@ export function RevenueShareClient({ products, variants, users, initialRules }: 
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4">
               <div>
                 <h3 className="font-extrabold text-slate-800 text-sm">Danh sách Luật cấu hình chia sẻ doanh thu</h3>
-                <p className="text-xs text-slate-400 mt-0.5">Lưu ý: Chỉ những luật ở trạng thái APPROVED + ACTIVE mới được chạy chia tiền tự động.</p>
+                <p className="text-xs text-slate-400 mt-0.5">Các luật đang hoạt động sẽ tự động phân phối ví khi đơn hàng hoàn thành.</p>
               </div>
               
               <div className="flex items-center gap-3 self-start sm:self-auto">
@@ -935,17 +887,15 @@ export function RevenueShareClient({ products, variants, users, initialRules }: 
                   Hiển thị đã lưu trữ (Archived)
                 </label>
                 
-                {userRole !== 'revenue_viewer' && (
-                  <button 
-                    onClick={() => {
-                      setRuleStatus('draft')
-                      setShowForm(true)
-                    }} 
-                    className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
-                  >
-                    <Plus className="h-4 w-4" /> Thiết lập luật mới
-                  </button>
-                )}
+                <button 
+                  onClick={() => {
+                    handleCloseForm()
+                    setShowForm(true)
+                  }} 
+                  className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                >
+                  <Plus className="h-4 w-4" /> Thiết lập luật mới
+                </button>
               </div>
             </div>
 
@@ -958,8 +908,7 @@ export function RevenueShareClient({ products, variants, users, initialRules }: 
                     <tr className="text-slate-400 border-b border-slate-100">
                       <th className="py-3 font-bold">Đối tượng áp dụng</th>
                       <th className="py-3 font-bold">Phương thức</th>
-                      <th className="py-3 font-bold">Phê duyệt</th>
-                      <th className="py-3 font-bold">Trạng thái</th>
+                      <th className="py-3 font-bold">Trạng thái hoạt động</th>
                       <th className="py-3 font-bold">Phiên bản</th>
                       <th className="py-3 font-bold">Thời hạn hiệu lực</th>
                       <th className="py-3 font-bold">Người nhận</th>
@@ -977,30 +926,20 @@ export function RevenueShareClient({ products, variants, users, initialRules }: 
                         : rule.sharing_method === 'percentage' ? 'Tỷ lệ %' 
                         : 'Số tiền cố định'
 
-                      const isApproved = !!rule.approved_by
+                      const isCurrentlyActive = rule.status === 'active' || rule.status === 'approved'
 
                       return (
                         <tr key={rule.id} className="hover:bg-slate-50/50 transition-colors">
-                          <td className="py-4 font-semibold text-slate-800 truncate max-w-[160px]" title={name}>
+                          <td className="py-4 font-semibold text-slate-800 truncate max-w-[180px]" title={name}>
                             {name}
                           </td>
                           <td className="py-4 text-slate-600">{method}</td>
                           <td className="py-4">
-                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                              isApproved ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
-                            }`}>
-                              {isApproved ? <Check className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
-                              {isApproved ? 'ĐÃ DUYỆT' : 'CHƯA PHÊ DUYỆT'}
-                            </span>
-                          </td>
-                          <td className="py-4">
                             <span className={`px-2 py-0.5 rounded-full text-[10px] font-black font-mono ${
-                              rule.status === 'active' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
-                              rule.status === 'draft' ? 'bg-slate-100 text-slate-600' :
-                              rule.status === 'pending_approval' ? 'bg-blue-50 text-blue-700 border border-blue-100' :
-                              rule.status === 'paused' ? 'bg-amber-50 text-amber-700 border border-amber-100' : 'bg-red-50 text-red-700'
+                              isCurrentlyActive ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
+                              rule.status === 'archived' ? 'bg-red-50 text-red-700 border border-red-100' : 'bg-amber-50 text-amber-700 border border-amber-100'
                             }`}>
-                              {rule.status.toUpperCase()}
+                              {isCurrentlyActive ? 'ACTIVE' : rule.status.toUpperCase()}
                             </span>
                           </td>
                           <td className="py-4 font-bold text-slate-500">v{rule.version}</td>
@@ -1019,27 +958,7 @@ export function RevenueShareClient({ products, variants, users, initialRules }: 
                               <Clock className="h-4 w-4" />
                             </button>
                             
-                            {userRole === 'super_admin' && rule.status === 'pending_approval' && (
-                              <button
-                                onClick={() => handleApproveRule(rule.id)}
-                                className="px-2 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg text-[10px] font-black transition-all inline-block"
-                                title="Phê duyệt kích hoạt"
-                              >
-                                Phê duyệt
-                              </button>
-                            )}
-
-                            {userRole !== 'revenue_viewer' && rule.status === 'draft' && (
-                              <button
-                                onClick={() => handleSubmitForApproval(rule.id)}
-                                className="px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-[10px] font-black transition-all inline-block"
-                                title="Gửi yêu cầu duyệt"
-                              >
-                                Gửi duyệt
-                              </button>
-                            )}
-
-                            {userRole !== 'revenue_viewer' && rule.status !== 'archived' && (
+                            {rule.status !== 'archived' && (
                               <>
                                 <button 
                                   onClick={() => setCopyingRule(rule)} 
@@ -1058,7 +977,7 @@ export function RevenueShareClient({ products, variants, users, initialRules }: 
                                 <button 
                                   onClick={() => handleDeleteRule(rule.id)} 
                                   className="p-1 text-slate-400 hover:text-red-600 transition-colors inline-block" 
-                                  title="Lưu trữ (Soft Delete)"
+                                  title="Xóa luật chia tiền"
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </button>
@@ -1079,7 +998,6 @@ export function RevenueShareClient({ products, variants, users, initialRules }: 
       {/* RENDER TAB 2: HISTORY */}
       {activeTab === 'history' && (
         <div className="space-y-6">
-          {/* Summary statistical indicators */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm flex flex-col justify-between">
               <div>
@@ -1119,7 +1037,6 @@ export function RevenueShareClient({ products, variants, users, initialRules }: 
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-            {/* Top metrics list */}
             <div className="bg-white p-5 rounded-[20px] border border-slate-100 shadow-sm md:col-span-2 space-y-4">
               <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
                 <Award className="h-4 w-4 text-amber-500" /> Thành viên nhận tiền hàng đầu
@@ -1154,7 +1071,6 @@ export function RevenueShareClient({ products, variants, users, initialRules }: 
               )}
             </div>
 
-            {/* History Table component */}
             <div className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm md:col-span-3 space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b pb-4 border-slate-100 gap-4">
                 <div>
@@ -1270,24 +1186,24 @@ export function RevenueShareClient({ products, variants, users, initialRules }: 
 
                         return (
                           <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
-                            <td className="py-3 font-mono font-bold text-slate-700">{item.order_code_snapshot}</td>
-                            <td className="py-3 font-medium text-slate-800">{item.product_name_snapshot}</td>
-                            <td className="py-3 text-slate-700">{item.recipient_name_snapshot}</td>
-                            <td className="py-3">
+                            <td className="py-3.5 font-mono font-bold text-slate-700">{item.order_code_snapshot}</td>
+                            <td className="py-3.5 font-medium text-slate-800">{item.product_name_snapshot}</td>
+                            <td className="py-3.5 text-slate-700">{item.recipient_name_snapshot}</td>
+                            <td className="py-3.5">
                               <strong className={`font-mono font-black ${isReversal ? 'text-red-500' : 'text-emerald-600'}`}>
                                 {isReversal ? '' : '+'}{item.amount.toLocaleString('vi-VN')}đ
                               </strong>
                             </td>
-                            <td className="py-3 text-slate-500">{item.percentage ? `${item.percentage}%` : '-'}</td>
-                            <td className="py-3">
+                            <td className="py-3.5 text-slate-500">{item.percentage ? `${item.percentage}%` : '-'}</td>
+                            <td className="py-3.5">
                               <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                                 isReversal ? 'bg-red-50 text-red-700 border border-red-100' : 'bg-emerald-50 text-emerald-700 border border-emerald-100'
                               }`}>
                                 {isReversal ? 'THU HỒI' : 'THÀNH CÔNG'}
                               </span>
                             </td>
-                            <td className="py-3 text-right">
-                              {userRole === 'super_admin' && !isReversal && (
+                            <td className="py-3.5 text-right">
+                              {!isReversal && (
                                 <button 
                                   onClick={() => handleRollbackShare(item.id)}
                                   className="px-2 py-1 bg-red-50 hover:bg-red-100 text-red-700 rounded-lg text-[9px] font-bold transition-all inline-flex items-center gap-0.5 cursor-pointer"
@@ -1357,14 +1273,12 @@ export function RevenueShareClient({ products, variants, users, initialRules }: 
                         </div>
                       </td>
                       <td className="py-4 text-right">
-                        {userRole !== 'revenue_viewer' && (
-                          <button
-                            onClick={() => handleRetrySharing(order.id)}
-                            className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[10px] font-bold transition-all inline-flex items-center gap-1 shadow-sm cursor-pointer"
-                          >
-                            <RotateCcw className="h-3 w-3" /> Chạy lại chia tiền
-                          </button>
-                        )}
+                        <button
+                          onClick={() => handleRetrySharing(order.id)}
+                          className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[10px] font-bold transition-all inline-flex items-center gap-1 shadow-sm cursor-pointer"
+                        >
+                          <RotateCcw className="h-3 w-3" /> Chạy lại chia tiền
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -1376,7 +1290,7 @@ export function RevenueShareClient({ products, variants, users, initialRules }: 
       )}
 
       {/* RENDER TAB 4: PERMISSIONS */}
-      {activeTab === 'permissions' && userRole === 'super_admin' && (
+      {activeTab === 'permissions' && (
         <div className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm space-y-6">
           <div>
             <h3 className="font-extrabold text-slate-800 text-sm">Quản lý quyền hạn Module chia tiền</h3>
@@ -1408,7 +1322,7 @@ export function RevenueShareClient({ products, variants, users, initialRules }: 
                         <td className="py-4 text-slate-500 font-mono">{u.email}</td>
                         <td className="py-4">
                           <span className="px-2 py-0.5 bg-slate-100 rounded-md text-[10px] font-bold text-slate-600">
-                            {u.id === initialRules[0]?.approved_by ? 'ADMIN' : 'USER'}
+                            {u.role?.toUpperCase()}
                           </span>
                         </td>
                         <td className="py-4 text-right">
@@ -1433,12 +1347,12 @@ export function RevenueShareClient({ products, variants, users, initialRules }: 
         </div>
       )}
 
-      {/* RULE EDIT/CREATE MODAL FORM */}
+      {/* RULE EDIT/CREATE MODAL FORM - COMPACT AND SIMPLIFIED */}
       {showForm && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-[28px] max-w-4xl w-full p-6 md:p-8 space-y-6 shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto custom-scrollbar">
-            <div className="flex items-center justify-between border-b pb-4 border-slate-100">
-              <h3 className="text-lg font-black text-slate-800">
+          <div className="bg-white rounded-[24px] max-w-lg w-full p-6 md:p-7 space-y-5 shadow-2xl border max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <div className="flex items-center justify-between border-b pb-3">
+              <h3 className="text-base font-black text-slate-800">
                 {editingRuleId ? 'Cập nhật cấu hình chia tiền' : 'Thiết lập luật chia tiền sản phẩm'}
               </h3>
               <button onClick={handleCloseForm} className="p-1.5 hover:bg-slate-100 rounded-full transition-colors cursor-pointer">
@@ -1446,243 +1360,216 @@ export function RevenueShareClient({ products, variants, users, initialRules }: 
               </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Left Form fields */}
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-500">Chọn sản phẩm gốc *</label>
+            <div className="space-y-4">
+              {/* Simplified Single Combo Selector for Product or Variant */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-600">Chọn Sản phẩm hoặc Phân loại cần chia *</label>
+                <select
+                  value={selectedProductCombo}
+                  onChange={(e) => setSelectedProductCombo(e.target.value)}
+                  className="w-full bg-slate-50 border p-2.5 rounded-xl text-xs font-medium text-slate-700 outline-none"
+                >
+                  <option value="">-- Click để chọn --</option>
+                  {products.map(p => {
+                    const productVariants = variants.filter(v => v.product_id === p.id)
+                    return (
+                      <React.Fragment key={p.id}>
+                        {/* Product option */}
+                        <option value={p.id} className="font-bold text-slate-900">
+                          📦 {p.name} ({p.price.toLocaleString('vi-VN')}đ)
+                        </option>
+                        {/* Variant options */}
+                        {productVariants.map(v => (
+                          <option key={v.id} value={`${p.id}|${v.id}`} className="text-slate-600 italic">
+                            &nbsp;&nbsp;&nbsp;&nbsp;↳ Phân loại: {v.name} {v.price ? `(${v.price.toLocaleString('vi-VN')}đ)` : ''}
+                          </option>
+                        ))}
+                      </React.Fragment>
+                    )
+                  })}
+                </select>
+              </div>
+
+              {/* Method & Simplified status toggle */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-600">Phương thức chia tiền *</label>
                   <select 
-                    value={selectedProductId}
-                    onChange={(e) => {
-                      setSelectedProductId(e.target.value)
-                      setSelectedVariantId('')
-                    }}
-                    className="w-full bg-slate-50 border p-2.5 rounded-xl text-xs"
+                    value={sharingMethod}
+                    onChange={(e) => setSharingMethod(e.target.value as any)}
+                    className="w-full bg-slate-50 border p-2.5 rounded-xl text-xs font-medium text-slate-700"
                   >
-                    <option value="">-- Chọn sản phẩm --</option>
-                    {products.map(p => (
-                      <option key={p.id} value={p.id}>{p.name} ({p.price.toLocaleString('vi-VN')}đ)</option>
-                    ))}
+                    <option value="equal">Chia đều (Equal)</option>
+                    <option value="percentage">Chia theo tỷ lệ %</option>
+                    <option value="fixed">Số tiền cố định (Fixed)</option>
                   </select>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-500">Áp dụng cho Phân loại (Tùy chọn - Độ ưu tiên cao nhất)</label>
-                  <select 
-                    value={selectedVariantId}
-                    disabled={!selectedProductId || availableVariants.length === 0}
-                    onChange={(e) => setSelectedVariantId(e.target.value)}
-                    className="w-full bg-slate-50 border p-2.5 rounded-xl text-xs disabled:opacity-50"
-                  >
-                    <option value="">-- Áp dụng cho cả sản phẩm --</option>
-                    {availableVariants.map(v => (
-                      <option key={v.id} value={v.id}>{v.name} {v.price ? `(${v.price.toLocaleString('vi-VN')}đ)` : ''}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500">Phương thức chia tiền *</label>
-                    <select 
-                      value={sharingMethod}
-                      onChange={(e) => setSharingMethod(e.target.value as any)}
-                      className="w-full bg-slate-50 border p-2.5 rounded-xl text-xs"
-                    >
-                      <option value="equal">Chia đều (Equal)</option>
-                      <option value="percentage">Chia theo % (Percentage)</option>
-                      <option value="fixed">Số tiền cố định (Fixed)</option>
-                    </select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500">Trạng thái cấu hình *</label>
-                    <select 
-                      value={ruleStatus}
-                      onChange={(e) => setRuleStatus(e.target.value as any)}
-                      className="w-full bg-slate-50 border p-2.5 rounded-xl text-xs"
-                    >
-                      <option value="draft">Bản nháp (Draft)</option>
-                      <option value="pending_approval">Chờ phê duyệt (Pending)</option>
-                      {userRole === 'super_admin' && (
-                        <>
-                          <option value="approved">Đã phê duyệt (Approved)</option>
-                          <option value="active">Đang hoạt động (Active)</option>
-                          <option value="paused">Tạm dừng (Paused)</option>
-                        </>
-                      )}
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500">Ngày bắt đầu hiệu lực</label>
+                <div className="space-y-1.5 flex flex-col justify-end">
+                  <label className="flex items-center gap-2 text-xs font-bold text-slate-600 cursor-pointer pb-2.5">
                     <input 
-                      type="datetime-local" 
-                      value={startDate}
-                      onChange={(e) => setStartDate(e.target.value)}
-                      className="w-full bg-slate-50 border p-2.5 rounded-xl text-xs text-slate-800"
+                      type="checkbox" 
+                      checked={isRuleActive}
+                      onChange={(e) => setIsRuleActive(e.target.checked)}
+                      className="rounded text-emerald-600 h-4 w-4"
                     />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500">Ngày kết thúc hiệu lực</label>
-                    <input 
-                      type="datetime-local" 
-                      value={endDate}
-                      onChange={(e) => setEndDate(e.target.value)}
-                      className="w-full bg-slate-50 border p-2.5 rounded-xl text-xs text-slate-800"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2 border-t pt-4">
-                  <label className="text-xs font-bold text-slate-500">Chọn thành viên nhận tiền *</label>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                    <input 
-                      type="text" 
-                      placeholder="Tìm kiếm thành viên..."
-                      value={searchUserQuery}
-                      onChange={(e) => setSearchUserQuery(e.target.value)}
-                      className="w-full bg-slate-50 border pl-10 pr-4 py-2 rounded-xl text-xs"
-                    />
-                  </div>
-                  <div className="max-h-40 overflow-y-auto border rounded-xl p-2 bg-slate-50 space-y-1">
-                    {userList
-                      .filter(u => 
-                        !searchUserQuery || 
-                        (u.full_name && u.full_name.toLowerCase().includes(searchUserQuery.toLowerCase())) ||
-                        u.email.toLowerCase().includes(searchUserQuery.toLowerCase())
-                      )
-                      .map(u => {
-                        const isSelected = selectedRecipients.some(r => r.user_id === u.id)
-                        return (
-                          <button
-                            type="button"
-                            key={u.id}
-                            onClick={() => handleToggleUser(u.id)}
-                            className="w-full flex items-center justify-between p-1.5 rounded-lg hover:bg-white text-xs text-left"
-                          >
-                            <span className="font-semibold text-slate-700">
-                              {u.full_name || 'Chưa đặt tên'} <span className="text-[10px] text-slate-400">({u.email})</span>
-                            </span>
-                            {isSelected ? (
-                              <CheckSquare className="h-4 w-4 text-emerald-600" />
-                            ) : (
-                              <Square className="h-4 w-4 text-slate-300" />
-                            )}
-                          </button>
-                        )
-                      })}
-                  </div>
+                    Kích hoạt luật ngay lập tức
+                  </label>
                 </div>
               </div>
 
-              {/* Right Preview and Recipient Config */}
-              <div className="space-y-4 flex flex-col justify-between">
-                <div>
-                  <h4 className="text-xs font-bold text-slate-500 mb-3 border-b pb-1">Cấu hình chi tiết & Xem trước chia tiền</h4>
-                  
-                  {selectedRecipients.length === 0 ? (
-                    <div className="h-48 border border-dashed rounded-2xl flex items-center justify-center text-slate-400 text-xs text-center p-4">
-                      Vui lòng chọn thành viên để hiển thị xem trước cấu hình
+              {/* Collapsed Scheduling config */}
+              <div className="space-y-2">
+                <label className="flex items-center gap-2 text-xs font-bold text-slate-600 cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    checked={useScheduling}
+                    onChange={(e) => setUseScheduling(e.target.checked)}
+                    className="rounded text-emerald-600"
+                  />
+                  📅 Lên lịch thời gian hiệu lực (Tùy chọn)
+                </label>
+
+                {useScheduling && (
+                  <div className="grid grid-cols-2 gap-4 pt-1 bg-slate-50/50 p-3 rounded-xl border border-dashed">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-400">Ngày bắt đầu</label>
+                      <input 
+                        type="datetime-local" 
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                        className="w-full bg-white border p-2 rounded-lg text-xs"
+                      />
                     </div>
-                  ) : (
-                    <div className="space-y-4">
-                      <div className="max-h-[220px] overflow-y-auto space-y-2 pr-1 custom-scrollbar">
-                        {selectedRecipients.map(r => {
-                          const user = users.find(u => u.id === r.user_id)
-                          return (
-                            <div key={r.user_id} className="flex items-center justify-between gap-3 text-xs bg-slate-50 p-2.5 rounded-xl border">
-                              <span className="font-semibold text-slate-700 truncate max-w-[150px]">
-                                {user?.full_name || user?.email}
-                              </span>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-400">Ngày kết thúc</label>
+                      <input 
+                        type="datetime-local" 
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                        className="w-full bg-white border p-2 rounded-lg text-xs"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
 
-                              <div className="flex items-center gap-1.5 shrink-0">
-                                {sharingMethod === 'percentage' && (
-                                  <div className="flex items-center gap-1 bg-white border px-2 py-1 rounded-lg">
-                                    <input 
-                                      type="number" 
-                                      min="1"
-                                      max="100"
-                                      value={r.percentage || ''}
-                                      onChange={(e) => handleUpdateRecipientValue(r.user_id, 'percentage', Number(e.target.value))}
-                                      className="w-10 text-center font-bold text-slate-800 outline-none"
-                                    />
-                                    <span className="text-[10px] text-slate-400">%</span>
-                                  </div>
-                                )}
+              {/* TAG ADDER: Simplified Recipient Selector */}
+              <div className="space-y-2 border-t pt-3">
+                <label className="text-xs font-bold text-slate-600">Thêm thành viên nhận tiền *</label>
+                <div className="flex gap-2">
+                  <select
+                    value=""
+                    onChange={(e) => {
+                      const userId = e.target.value
+                      if (userId) {
+                        handleToggleUser(userId)
+                      }
+                    }}
+                    className="w-full bg-slate-50 border p-2.5 rounded-xl text-xs outline-none"
+                  >
+                    <option value="">-- Chọn thành viên từ danh sách --</option>
+                    {users
+                      .filter(u => !selectedRecipients.some(r => r.user_id === u.id))
+                      .map(u => (
+                        <option key={u.id} value={u.id}>
+                          👤 {u.full_name || 'Không tên'} ({u.email})
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              </div>
 
-                                {sharingMethod === 'fixed' && (
-                                  <div className="flex items-center gap-1 bg-white border px-2 py-1 rounded-lg">
-                                    <input 
-                                      type="number" 
-                                      min="1000"
-                                      step="1000"
-                                      value={r.fixed_amount || ''}
-                                      onChange={(e) => handleUpdateRecipientValue(r.user_id, 'fixed_amount', Number(e.target.value))}
-                                      className="w-16 text-center font-bold text-slate-800 outline-none"
-                                    />
-                                    <span className="text-[10px] text-slate-400">đ</span>
-                                  </div>
-                                )}
+              {/* Selected Recipients list with quick inputs */}
+              {selectedRecipients.length > 0 && (
+                <div className="space-y-3 pt-2">
+                  <label className="text-xs font-bold text-slate-600">Danh sách người nhận đang cấu hình:</label>
+                  
+                  <div className="max-h-[180px] overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+                    {selectedRecipients.map(r => {
+                      const user = users.find(u => u.id === r.user_id)
+                      return (
+                        <div key={r.user_id} className="flex items-center justify-between gap-3 text-xs bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                          <span className="font-semibold text-slate-700 truncate max-w-[180px]">
+                            {user?.full_name || user?.email}
+                          </span>
 
-                                <button 
-                                  type="button" 
-                                  onClick={() => handleToggleUser(r.user_id)} 
-                                  className="p-1 text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                                >
-                                  <X className="h-4 w-4" />
-                                </button>
+                          <div className="flex items-center gap-2 shrink-0">
+                            {sharingMethod === 'percentage' && (
+                              <div className="flex items-center gap-1 bg-white border px-2 py-1 rounded-lg">
+                                <input 
+                                  type="number" 
+                                  min="1"
+                                  max="100"
+                                  value={r.percentage || ''}
+                                  onChange={(e) => handleUpdateRecipientValue(r.user_id, 'percentage', Number(e.target.value))}
+                                  className="w-10 text-center font-bold text-slate-800 outline-none"
+                                />
+                                <span className="text-[10px] text-slate-400">%</span>
                               </div>
-                            </div>
-                          )
-                        })}
-                      </div>
+                            )}
 
-                      <div className="bg-emerald-50/40 p-4 rounded-2xl border border-emerald-100 space-y-3">
-                        <div className="flex items-center justify-between text-[11px] border-b pb-2 border-emerald-200">
-                          <span className="font-extrabold text-emerald-800">XEM TRƯỚC PHÂN BỔ</span>
-                          <span className="font-bold text-slate-500">Giả định: 100k/sản phẩm</span>
-                        </div>
-                        
-                        <div className="space-y-1 text-xs">
-                          {preview.results.map(res => (
-                            <div key={res.userId} className="flex justify-between">
-                              <span className="text-slate-500">{res.name} ({res.percentage}):</span>
-                              <strong className="text-slate-800">+{res.amount.toLocaleString('vi-VN')}đ</strong>
-                            </div>
-                          ))}
-                          <div className="border-t border-dashed my-2 pt-1 flex justify-between font-bold text-slate-800">
-                            <span>Tổng chia ({preview.totalPercentage}%):</span>
-                            <span>{preview.totalShared.toLocaleString('vi-VN')}đ</span>
+                            {sharingMethod === 'fixed' && (
+                              <div className="flex items-center gap-1 bg-white border px-2 py-1 rounded-lg">
+                                <input 
+                                  type="number" 
+                                  min="1000"
+                                  step="1000"
+                                  value={r.fixed_amount || ''}
+                                  onChange={(e) => handleUpdateRecipientValue(r.user_id, 'fixed_amount', Number(e.target.value))}
+                                  className="w-14 text-center font-bold text-slate-800 outline-none"
+                                />
+                                <span className="text-[10px] text-slate-400">đ</span>
+                              </div>
+                            )}
+
+                            <button 
+                              type="button" 
+                              onClick={() => handleToggleUser(r.user_id)} 
+                              className="p-1 text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
                           </div>
                         </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                      )
+                    })}
+                  </div>
 
-                <div className="flex gap-3 mt-6 border-t pt-4">
-                  <button 
-                    type="button" 
-                    onClick={handleCloseForm}
-                    className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer text-center"
-                  >
-                    Hủy bỏ
-                  </button>
-                  <button 
-                    type="button" 
-                    onClick={handleSaveRule}
-                    disabled={loading}
-                    className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
-                  >
-                    {loading ? <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
-                    Lưu cấu hình
-                  </button>
+                  {/* Inline quick preview summary */}
+                  <div className="bg-emerald-50/50 p-3.5 rounded-xl border border-emerald-100 text-xs text-emerald-800 space-y-1">
+                    <div className="flex justify-between font-bold">
+                      <span>Xem trước phân bổ (giả định 100k/sp):</span>
+                      <span>{preview.totalShared.toLocaleString('vi-VN')}đ ({preview.totalPercentage}%)</span>
+                    </div>
+                    <div className="text-[10px] text-slate-400 leading-normal pt-1">
+                      {preview.results.map((res, i) => (
+                        <span key={res.userId}>
+                          {i > 0 && ', '}{res.name}: +{res.amount.toLocaleString()}đ ({res.percentage})
+                        </span>
+                      ))}
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
+            </div>
+
+            <div className="flex gap-3 pt-3 border-t">
+              <button 
+                type="button" 
+                onClick={handleCloseForm}
+                className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer text-center"
+              >
+                Hủy bỏ
+              </button>
+              <button 
+                type="button" 
+                onClick={handleSaveRule}
+                disabled={loading}
+                className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
+              >
+                Lưu cấu hình
+              </button>
             </div>
           </div>
         </div>
@@ -1705,34 +1592,24 @@ export function RevenueShareClient({ products, variants, users, initialRules }: 
 
             <div className="space-y-4">
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-400">Sản phẩm đích *</label>
+                <label className="text-xs font-bold text-slate-400">Sản phẩm hoặc Phân loại đích *</label>
                 <select
-                  value={copyTargetProductId}
-                  onChange={(e) => {
-                    setCopyTargetProductId(e.target.value)
-                    setCopyTargetVariantId('')
-                  }}
-                  className="w-full bg-slate-50 border p-2.5 rounded-xl text-xs"
+                  value={copyTargetProductCombo}
+                  onChange={(e) => setCopyTargetProductCombo(e.target.value)}
+                  className="w-full bg-slate-50 border p-2.5 rounded-xl text-xs outline-none"
                 >
-                  <option value="">-- Chọn sản phẩm --</option>
-                  {products.map(p => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-400">Phân loại đích (Tùy chọn)</label>
-                <select
-                  value={copyTargetVariantId}
-                  disabled={!copyTargetProductId}
-                  onChange={(e) => setCopyTargetVariantId(e.target.value)}
-                  className="w-full bg-slate-50 border p-2.5 rounded-xl text-xs disabled:opacity-50"
-                >
-                  <option value="">-- Áp dụng cả sản phẩm --</option>
-                  {variants.filter(v => v.product_id === copyTargetProductId).map(v => (
-                    <option key={v.id} value={v.id}>{v.name}</option>
-                  ))}
+                  <option value="">-- Click để chọn --</option>
+                  {products.map(p => {
+                    const productVariants = variants.filter(v => v.product_id === p.id)
+                    return (
+                      <React.Fragment key={p.id}>
+                        <option value={p.id}>📦 {p.name}</option>
+                        {productVariants.map(v => (
+                          <option key={v.id} value={`${p.id}|${v.id}`}>&nbsp;&nbsp;&nbsp;&nbsp;↳ Phân loại: {v.name}</option>
+                        ))}
+                      </React.Fragment>
+                    )
+                  })}
                 </select>
               </div>
             </div>
@@ -1770,7 +1647,6 @@ export function RevenueShareClient({ products, variants, users, initialRules }: 
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {/* Left Column: Revision selector */}
               <div className="sm:col-span-1 border-r pr-2 space-y-1.5">
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Phiên bản sửa đổi</label>
                 {ruleVersions.length === 0 ? (
@@ -1790,7 +1666,6 @@ export function RevenueShareClient({ products, variants, users, initialRules }: 
                 )}
               </div>
 
-              {/* Right Column: Diff viewer */}
               <div className="sm:col-span-2 space-y-3">
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Các thay đổi chi tiết</label>
                 <div className="p-3 bg-slate-50 rounded-2xl border min-h-[160px] overflow-y-auto max-h-[300px] custom-scrollbar">
