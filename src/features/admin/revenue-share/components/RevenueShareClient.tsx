@@ -1022,9 +1022,9 @@ export function RevenueShareClient({ products, variants, users, initialRules }: 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm flex flex-col justify-between">
               <div>
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Doanh thu chia trong ngày</span>
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Chi phí chia sẻ trong ngày</span>
                 <h3 className="text-2xl font-black text-slate-800 mt-2">
-                  {stats.todayAmount.toLocaleString('vi-VN')}đ
+                  {Math.abs(stats.todayAmount).toLocaleString('vi-VN')}đ
                 </h3>
               </div>
               <div className="flex items-center gap-1.5 text-emerald-600 text-xs font-extrabold mt-4">
@@ -1034,9 +1034,9 @@ export function RevenueShareClient({ products, variants, users, initialRules }: 
 
             <div className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm flex flex-col justify-between">
               <div>
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Doanh thu chia trong tháng</span>
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Chi phí chia sẻ trong tháng</span>
                 <h3 className="text-2xl font-black text-slate-800 mt-2">
-                  {stats.thisMonthAmount.toLocaleString('vi-VN')}đ
+                  {Math.abs(stats.thisMonthAmount).toLocaleString('vi-VN')}đ
                 </h3>
               </div>
               <div className="flex items-center gap-1.5 text-blue-600 text-xs font-extrabold mt-4">
@@ -1046,13 +1046,13 @@ export function RevenueShareClient({ products, variants, users, initialRules }: 
 
             <div className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm flex flex-col justify-between">
               <div>
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Tổng tiền tích lũy lũy kế</span>
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Tổng chi phí chia sẻ lũy kế</span>
                 <h3 className="text-2xl font-black text-slate-800 mt-2">
-                  {stats.totalAmount.toLocaleString('vi-VN')}đ
+                  {Math.abs(stats.totalAmount).toLocaleString('vi-VN')}đ
                 </h3>
               </div>
               <div className="flex items-center gap-1.5 text-indigo-600 text-xs font-extrabold mt-4">
-                <Coins className="h-4 w-4" /> Thực nhận sau hoàn/hủy
+                <Coins className="h-4 w-4" /> Tổng chi phí sau hoàn/hủy
               </div>
             </div>
           </div>
@@ -1060,7 +1060,7 @@ export function RevenueShareClient({ products, variants, users, initialRules }: 
           <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
             <div className="bg-white p-5 rounded-[20px] border border-slate-100 shadow-sm md:col-span-2 space-y-4">
               <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                <Award className="h-4 w-4 text-amber-500" /> Thành viên nhận tiền hàng đầu
+                <Award className="h-4 w-4 text-amber-500" /> Thành viên gánh chi phí hàng đầu
               </h4>
               <div className="space-y-2">
                 {stats.topRecipients.length === 0 ? (
@@ -1075,8 +1075,8 @@ export function RevenueShareClient({ products, variants, users, initialRules }: 
                       <span className="text-xs font-semibold text-slate-700 group-hover:text-emerald-600 truncate max-w-[150px]">
                         {tr.name}
                       </span>
-                      <strong className="text-xs text-slate-900 font-bold font-mono">
-                        +{tr.amount.toLocaleString('vi-VN')}đ
+                      <strong className="text-xs text-red-500 font-bold font-mono">
+                        -{Math.abs(tr.amount).toLocaleString('vi-VN')}đ
                       </strong>
                     </button>
                   ))

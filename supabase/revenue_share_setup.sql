@@ -293,12 +293,12 @@ BEGIN
         CONTINUE;
       END IF;
 
-      -- Cập nhật số dư ví người nhận (Sử dụng lệnh UPDATE đơn lẻ để bảo đảm cô lập giá trị ví)
+      -- Cập nhật số dư ví người nhận (Khấu trừ ví thành viên chia sẻ chi phí sản phẩm)
       UPDATE public.profiles 
-      SET wallet_balance = COALESCE(wallet_balance, 0) + v_share_amount
+      SET wallet_balance = COALESCE(wallet_balance, 0) - v_share_amount
       WHERE id = v_recipient.user_id;
 
-      -- Tạo lịch sử ví (wallet_transactions)
+      -- Tạo lịch sử ví (wallet_transactions - Khấu trừ số dư nên ghi âm)
       INSERT INTO public.wallet_transactions (
         user_id,
         type,
@@ -310,13 +310,13 @@ BEGIN
       ) VALUES (
         v_recipient.user_id,
         'revenue_share',
-        v_share_amount,
+        -v_share_amount,
         COALESCE(v_recipient.wallet_balance, 0),
-        COALESCE(v_recipient.wallet_balance, 0) + v_share_amount,
+        COALESCE(v_recipient.wallet_balance, 0) - v_share_amount,
         p_order_id,
         CASE 
-          WHEN v_rule.sharing_method = 'percentage' THEN 'Bạn được chia ' || v_recipient.percentage || '% tiền sản phẩm ' || v_product_name || ': +' || to_char(v_share_amount, 'FM999,999,999') || 'đ (Đơn ' || v_order_code || ')'
-          ELSE 'Bạn được chia tiền sản phẩm ' || v_product_name || ': +' || to_char(v_share_amount, 'FM999,999,999') || 'đ (Đơn ' || v_order_code || ')'
+          WHEN v_rule.sharing_method = 'percentage' THEN 'Trừ tiền chia sẻ ' || v_recipient.percentage || '% chi phí sản phẩm ' || v_product_name || ': -' || to_char(v_share_amount, 'FM999,999,999') || 'đ (Đơn ' || v_order_code || ')'
+          ELSE 'Trừ tiền chia sẻ chi phí sản phẩm ' || v_product_name || ': -' || to_char(v_share_amount, 'FM999,999,999') || 'đ (Đơn ' || v_order_code || ')'
         END
       ) RETURNING id INTO v_tx_id;
 
@@ -330,17 +330,17 @@ BEGIN
         link
       ) VALUES (
         v_recipient.user_id,
-        'Chia sẻ doanh thu sản phẩm',
+        'Chia sẻ chi phí sản phẩm',
         CASE 
-          WHEN v_rule.sharing_method = 'percentage' THEN 'Bạn được chia ' || v_recipient.percentage || '% tiền sản phẩm ' || v_product_name || ': +' || to_char(v_share_amount, 'FM999,999,999') || 'đ'
-          ELSE 'Bạn được chia tiền sản phẩm ' || v_product_name || ': +' || to_char(v_share_amount, 'FM999,999,999') || 'đ'
+          WHEN v_rule.sharing_method = 'percentage' THEN 'Tài khoản bị khấu trừ ' || v_recipient.percentage || '% chi phí sản phẩm ' || v_product_name || ': -' || to_char(v_share_amount, 'FM999,999,999') || 'đ'
+          ELSE 'Tài khoản bị khấu trừ chi phí sản phẩm ' || v_product_name || ': -' || to_char(v_share_amount, 'FM999,999,999') || 'đ'
         END,
         'revenue_share',
         false,
         '/tai-khoan/chia-tien'
       );
 
-      -- Lưu lịch sử chia chi tiết (Bất biến)
+      -- Lưu lịch sử chia chi tiết (Bất biến - lưu giá trị âm để biểu thị khấu trừ)
       INSERT INTO public.product_revenue_shares (
         order_item_id,
         rule_id,
@@ -357,7 +357,7 @@ BEGIN
         v_order_item.id,
         v_rule.id,
         v_recipient.user_id,
-        v_share_amount,
+        -v_share_amount,
         CASE 
           WHEN v_rule.sharing_method = 'percentage' THEN v_recipient.percentage
           WHEN v_rule.sharing_method = 'equal' THEN ROUND(100.0 / v_recipient_count, 2)
@@ -383,7 +383,7 @@ BEGIN
       WHEN v_rule.sharing_method = 'fixed' THEN 'chia tiền cố định'
     END;
 
-    v_activity_desc := 'Admin ' || v_admin_name || ' đã chia tiền sản phẩm ' || v_product_name || ' cho ' || v_recipient_count || ' người (' || v_method_desc || '). Tổng tiền đã chia: ' || to_char(v_total_shared_amount, 'FM999,999,999') || 'đ.';
+    v_activity_desc := 'Admin ' || v_admin_name || ' đã khấu trừ chia sẻ chi phí sản phẩm ' || v_product_name || ' cho ' || v_recipient_count || ' người (' || v_method_desc || '). Tổng tiền khấu trừ: -' || to_char(v_total_shared_amount, 'FM999,999,999') || 'đ.';
     
     INSERT INTO public.revenue_share_activities (
       admin_name,
@@ -495,7 +495,7 @@ BEGIN
     SET wallet_balance = COALESCE(wallet_balance, 0) - v_share.amount
     WHERE id = v_share.recipient_id;
 
-    -- Tạo lịch sử ví giao dịch thu hồi (Giá trị tiền âm)
+    -- Tạo lịch sử ví giao dịch thu hồi (Hoàn trả lại tiền đã trừ trước đó nên ghi dương)
     INSERT INTO public.wallet_transactions (
       user_id,
       type,
@@ -511,10 +511,10 @@ BEGIN
       COALESCE(v_share.wallet_balance, 0),
       COALESCE(v_share.wallet_balance, 0) - v_share.amount,
       p_order_id,
-      'Thu hồi tiền chia sản phẩm ' || v_share.product_name_snapshot || ' do đơn hàng bị hoàn/hủy: -' || to_char(v_share.amount, 'FM999,999,999') || 'đ (Đơn ' || v_order_code || ')'
+      'Hoàn tiền chia sẻ chi phí sản phẩm ' || v_share.product_name_snapshot || ' do đơn hàng bị hoàn/hủy: +' || to_char(ABS(v_share.amount), 'FM999,999,999') || 'đ (Đơn ' || v_order_code || ')'
     ) RETURNING id INTO v_tx_id;
 
-    -- Ghi nhận lịch sử giao dịch đảo ngược (Giao dịch mới mang giá trị âm để đảm bảo tính bất biến)
+    -- Ghi nhận lịch sử giao dịch đảo ngược (Giao dịch mới mang giá trị dương để đảo ngược giá trị âm)
     INSERT INTO public.product_revenue_shares (
       order_item_id,
       rule_id,
@@ -551,8 +551,8 @@ BEGIN
       link
     ) VALUES (
       v_share.recipient_id,
-      'Thu hồi chia sẻ doanh thu',
-      'Đã thu hồi tiền chia sản phẩm ' || v_share.product_name_snapshot || ' do đơn hàng bị hoàn tiền/hủy: -' || to_char(v_share.amount, 'FM999,999,999') || 'đ',
+      'Hoàn trả chi phí sản phẩm',
+      'Đã hoàn lại tiền chia sẻ chi phí sản phẩm ' || v_share.product_name_snapshot || ' do đơn hàng bị hoàn tiền/hủy: +' || to_char(ABS(v_share.amount), 'FM999,999,999') || 'đ',
       'revenue_share',
       false,
       '/tai-khoan/chia-tien'
@@ -635,7 +635,7 @@ BEGIN
   SET wallet_balance = COALESCE(wallet_balance, 0) - v_share.amount
   WHERE id = v_share.recipient_id;
 
-  -- 5. Tạo lịch sử ví giao dịch thu hồi (Giá trị tiền âm)
+  -- 5. Tạo lịch sử ví giao dịch thu hồi (Hoàn trả lại tiền đã trừ trước đó nên ghi dương)
   INSERT INTO public.wallet_transactions (
     user_id,
     type,
@@ -651,10 +651,10 @@ BEGIN
     COALESCE(v_share.wallet_balance, 0),
     COALESCE(v_share.wallet_balance, 0) - v_share.amount,
     null,
-    'Thu hồi thủ công tiền chia sản phẩm ' || v_share.product_name_snapshot || ' bởi Super Admin ' || v_admin_name || ': -' || to_char(v_share.amount, 'FM999,999,999') || 'đ (Đơn ' || v_share.order_code_snapshot || ')'
+    'Hoàn tiền chia sẻ chi phí sản phẩm thủ công ' || v_share.product_name_snapshot || ' bởi Super Admin ' || v_admin_name || ': +' || to_char(ABS(v_share.amount), 'FM999,999,999') || 'đ (Đơn ' || v_share.order_code_snapshot || ')'
   ) RETURNING id INTO v_tx_id;
 
-  -- 6. Ghi nhận lịch sử giao dịch đảo ngược (Giao dịch mới mang giá trị âm để đảm bảo tính bất biến)
+  -- 6. Ghi nhận lịch sử giao dịch đảo ngược (Giao dịch mới mang giá trị dương để đảo ngược giá trị âm)
   INSERT INTO public.product_revenue_shares (
     order_item_id,
     rule_id,
@@ -691,8 +691,8 @@ BEGIN
     link
   ) VALUES (
     v_share.recipient_id,
-    'Thu hồi thủ công chia sẻ doanh thu',
-    'Đã thu hồi thủ công tiền chia sản phẩm ' || v_share.product_name_snapshot || ': -' || to_char(v_share.amount, 'FM999,999,999') || 'đ',
+    'Hoàn trả chi phí sản phẩm',
+    'Đã hoàn lại tiền chia sẻ chi phí sản phẩm ' || v_share.product_name_snapshot || ' thủ công bởi Super Admin: +' || to_char(ABS(v_share.amount), 'FM999,999,999') || 'đ',
     'revenue_share',
     false,
     '/tai-khoan/chia-tien'
