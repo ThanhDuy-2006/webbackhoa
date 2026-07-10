@@ -1027,7 +1027,9 @@ export function RevenueShareClient({ products, variants, users }: Props) {
                     <tbody className="divide-y divide-slate-50">
                       {history.map((item) => {
                         const date = new Date(item.created_at).toLocaleString('vi-VN')
-                        const isReversal = item.status === 'reversed'
+                        const isRefund = item.status === 'reversed' && item.amount > 0
+                        const isRevokedOriginal = item.status === 'reversed' && item.amount < 0
+                        const isSuccess = item.status === 'completed'
 
                         return (
                           <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
@@ -1035,16 +1037,18 @@ export function RevenueShareClient({ products, variants, users }: Props) {
                             <td className="py-3.5 font-medium text-slate-800">{item.product_name_snapshot}</td>
                             <td className="py-3.5 text-slate-700">{item.recipient_name_snapshot}</td>
                             <td className="py-3.5">
-                              <strong className={`font-mono font-black ${isReversal ? 'text-emerald-600' : 'text-red-500'}`}>
-                                {isReversal ? '+' : ''}{item.amount.toLocaleString('vi-VN')}đ
+                              <strong className={`font-mono font-black ${isRefund ? 'text-emerald-600' : isRevokedOriginal ? 'text-slate-400 line-through' : 'text-red-500'}`}>
+                                {isRefund ? '+' : ''}{item.amount.toLocaleString('vi-VN')}đ
                               </strong>
                             </td>
                             <td className="py-3.5 text-slate-500">{item.percentage ? `${item.percentage}%` : '-'}</td>
                             <td className="py-3.5">
                               <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                                isReversal ? 'bg-red-50 text-red-700 border border-red-100' : 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+                                isRefund ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
+                                isRevokedOriginal ? 'bg-slate-100 text-slate-500 border border-slate-200' :
+                                'bg-emerald-50 text-emerald-700 border border-emerald-100'
                               }`}>
-                                {isReversal ? 'THU HỒI' : 'THÀNH CÔNG'}
+                                {isRefund ? 'HOÀN TIỀN' : isRevokedOriginal ? 'BỊ THU HỒI' : 'THÀNH CÔNG'}
                               </span>
                             </td>
                             <td className="py-3.5 text-right">
