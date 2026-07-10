@@ -27,11 +27,43 @@ export function ProductImportClient({ categories }: Props) {
     const parsedProducts: ProductFormData[] = []
 
     jsonData.forEach((row: any) => {
-      // Find category by name (case-insensitive)
+      // Find category by name (fuzzy search)
       let category_id = null
       if (row['Danh mục']) {
-        const cat = categories.find(c => c.name.toLowerCase() === String(row['Danh mục']).toLowerCase().trim())
-        if (cat) category_id = cat.id
+        const cleanName = String(row['Danh mục']).toLowerCase().trim()
+        
+        // 1. Strict match
+        let cat = categories.find(c => c.name.toLowerCase() === cleanName || c.slug === cleanName)
+        
+        // 2. Fuzzy match checks
+        if (!cat) {
+          if (cleanName.includes('rau') || cleanName.includes('củ') || cleanName.includes('quả') || cleanName.includes('thực vật')) {
+            cat = categories.find(c => c.slug === 'rau-cu-qua')
+          } else if (cleanName.includes('thịt') || cleanName.includes('cá') || cleanName.includes('hải sản') || cleanName.includes('tươi sống') || cleanName.includes('bò') || cleanName.includes('gà') || cleanName.includes('hồi')) {
+            cat = categories.find(c => c.slug === 'thit-ca')
+          } else if (cleanName.includes('trái') || cleanName.includes('cây') || cleanName.includes('hoa quả') || cleanName.includes('fuji') || cleanName.includes('chuối') || cleanName.includes('táo') || cleanName.includes('cam')) {
+            // CAM CAN BE ORANGE FRUIT (TRAI CAY) OR ORANGE JUICE (DO UONG).
+            // Let's check for juice:
+            if (cleanName.includes('nước') || cleanName.includes('ép')) {
+              cat = categories.find(c => c.slug === 'do-uong')
+            } else {
+              cat = categories.find(c => c.slug === 'trai-cay')
+            }
+          } else if (cleanName.includes('nước') || cleanName.includes('uống') || cleanName.includes('sữa') || cleanName.includes('bia') || cleanName.includes('rượu') || cleanName.includes('giải khát') || cleanName.includes('trà')) {
+            cat = categories.find(c => c.slug === 'do-uong')
+          } else if (cleanName.includes('khô') || cleanName.includes('gạo') || cleanName.includes('mì') || cleanName.includes('đậu') || cleanName.includes('hạt') || cleanName.includes('ngũ cốc')) {
+            cat = categories.find(c => c.slug === 'thuc-pham-kho')
+          }
+        }
+        
+        // 3. Fallback: try contains matching
+        if (!cat) {
+          cat = categories.find(c => c.name.toLowerCase().includes(cleanName) || cleanName.includes(c.name.toLowerCase()))
+        }
+        
+        if (cat) {
+          category_id = cat.id
+        }
       }
 
       // Helper to parse price/stock that might contain formatting (e.g., "185,000 đ")
