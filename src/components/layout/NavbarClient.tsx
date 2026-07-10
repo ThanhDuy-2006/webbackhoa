@@ -54,7 +54,8 @@ export function NavbarClient({ user, profile }: NavbarClientProps) {
   ]
 
   return (
-    <header 
+    <>
+      <header 
       className={`sticky top-0 z-50 w-full transition-all duration-300 ${
         isScrolled 
           ? 'bg-white/80 backdrop-blur-md border-b shadow-sm' 
@@ -195,77 +196,78 @@ export function NavbarClient({ user, profile }: NavbarClientProps) {
         </div>
       </div>
       <CartSheet user={user} profile={profile} />
+    </header>
 
-      {/* Mobile Bottom Navigation Bar */}
-      {(() => {
-        const isProductDetail = pathname.startsWith('/san-pham/') && pathname.split('/').length > 2
-        const isCheckout = pathname === '/thanh-toan'
-        const isAuth = pathname === '/login' || pathname === '/register'
-        const showBottomNav = !isProductDetail && !isCheckout && !isAuth
+    {/* Mobile Bottom Navigation Bar */}
+    {(() => {
+      const isProductDetail = pathname.startsWith('/san-pham/') && pathname.split('/').length > 2
+      const isCheckout = pathname === '/thanh-toan'
+      const isAuth = pathname === '/login' || pathname === '/register'
+      const showBottomNav = !isProductDetail && !isCheckout && !isAuth
 
-        return showBottomNav ? (
-          <div className="fixed bottom-0 left-0 right-0 z-40 lg:hidden bg-white/90 backdrop-blur-lg border-t border-slate-100 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] pb-[env(safe-area-inset-bottom)]">
-            <div className="flex items-center justify-around h-16 px-2">
-              {navItems.map((item) => {
-                const Icon = item.icon
-                const isCart = item.isCart
-                const isActive = isCart ? false : pathname === item.href
+      return showBottomNav ? (
+        <div className="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] pb-[env(safe-area-inset-bottom)]">
+          <div className="flex items-center justify-around h-16 px-2">
+            {navItems.map((item) => {
+              const Icon = item.icon
+              const isCart = item.isCart
+              const isActive = isCart ? false : pathname === item.href
 
-                const content = (
-                  <span className="relative flex flex-col items-center justify-center w-full h-full text-xs font-medium gap-1 text-slate-500">
-                    {isActive && (
+              const content = (
+                <span className="relative flex flex-col items-center justify-center w-full h-full text-xs font-medium gap-1 text-slate-500">
+                  {isActive && (
+                    <motion.span
+                      layoutId="activeTab"
+                      className="absolute inset-x-2 inset-y-1 bg-emerald-50 dark:bg-emerald-950/30 rounded-2xl -z-10"
+                      transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                    />
+                  )}
+                  <div className={cn("relative p-1 rounded-xl transition-colors", isActive ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500')}>
+                    <Icon className="w-5 h-5" />
+                    {isCart && cartCount > 0 && (
                       <motion.span
-                        layoutId="activeTab"
-                        className="absolute inset-x-2 inset-y-1 bg-emerald-50 rounded-2xl -z-10"
-                        transition={{ type: 'spring', stiffness: 380, damping: 30 }}
-                      />
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-bold min-w-[16px] h-4 px-1 rounded-full flex items-center justify-center"
+                      >
+                        {cartCount}
+                      </motion.span>
                     )}
-                    <div className={cn("relative p-1 rounded-xl transition-colors", isActive ? 'text-emerald-600' : 'text-slate-500')}>
-                      <Icon className="w-5 h-5" />
-                      {isCart && cartCount > 0 && (
-                        <motion.span
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-bold min-w-[16px] h-4 px-1 rounded-full flex items-center justify-center"
-                        >
-                          {cartCount}
-                        </motion.span>
-                      )}
-                    </div>
-                    <span className={cn("text-[9px] sm:text-[10px] tracking-tight", isActive ? 'text-emerald-700 font-semibold' : 'text-slate-500')}>
-                      {item.name}
-                    </span>
+                  </div>
+                  <span className={cn("text-[9px] sm:text-[10px] tracking-tight", isActive ? 'text-emerald-700 dark:text-emerald-300 font-semibold' : 'text-slate-500')}>
+                    {item.name}
                   </span>
-                )
+                </span>
+              )
 
-                if (isCart) {
-                  return (
-                    <button
-                      key={item.name}
-                      onClick={() => setIsOpen(true)}
-                      className="flex-1 flex items-center justify-center h-full focus:outline-none cursor-pointer"
-                      style={{ minWidth: '44px', minHeight: '44px' }}
-                    >
-                      {content}
-                    </button>
-                  )
-                }
-
+              if (isCart) {
                 return (
-                  <Link
+                  <button
                     key={item.name}
-                    href={item.href}
-                    className="flex-1 flex items-center justify-center h-full"
+                    onClick={() => setIsOpen(true)}
+                    className="flex-1 flex items-center justify-center h-full focus:outline-none cursor-pointer"
                     style={{ minWidth: '44px', minHeight: '44px' }}
                   >
                     {content}
-                  </Link>
+                  </button>
                 )
-              })}
-            </div>
+              }
+
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className="flex-1 flex items-center justify-center h-full"
+                  style={{ minWidth: '44px', minHeight: '44px' }}
+                >
+                  {content}
+                </Link>
+              )
+            })}
           </div>
-        ) : null
-      })()}
-    </header>
+        </div>
+      ) : null
+    })()}
+    </>
   )
 }

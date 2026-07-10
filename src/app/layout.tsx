@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import { ThemeProvider } from '@/components/theme-provider'
-import { FloatingChat } from '@/components/chat/FloatingChat'
 import { Toaster } from '@/components/ui/sonner'
 import { PwaRegister } from '@/components/pwa/PwaRegister'
 import { OfflineAlert } from '@/components/pwa/OfflineAlert'
@@ -45,7 +44,6 @@ export default function RootLayout({
           <PwaRegister />
           {children}
           <OfflineAlert />
-          <FloatingChat />
           <Toaster position="top-center" richColors />
         </ThemeProvider>
       </body>
