@@ -132,6 +132,9 @@ export default function UserRevenueSharePage() {
                 {filteredShares.map((item: any) => {
                   const date = new Date(item.created_at).toLocaleString('vi-VN')
                   const isReversal = item.status === 'reversed'
+                  const isRefund = isReversal && item.amount > 0
+                  const isRevokedOriginal = isReversal && item.amount < 0
+                  const isSuccess = item.status === 'completed'
 
                   return (
                     <tr 
@@ -145,22 +148,24 @@ export default function UserRevenueSharePage() {
                       <td className="py-3.5 text-slate-500">{item.admin_name_snapshot}</td>
                       <td className="py-3.5">
                         <span className="flex items-center gap-1">
-                          {item.amount < 0 ? (
+                          {isRevokedOriginal ? null : item.amount < 0 ? (
                             <ArrowDownRight className="h-3.5 w-3.5 text-red-500 shrink-0" />
                           ) : (
                             <ArrowUpRight className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
                           )}
-                          <strong className={`font-mono font-bold ${item.amount < 0 ? 'text-red-500' : 'text-emerald-600'}`}>
-                            {item.amount > 0 ? '+' : ''}{item.amount.toLocaleString('vi-VN')}đ
+                          <strong className={`font-mono font-bold ${isRefund ? 'text-emerald-600' : isRevokedOriginal ? 'text-slate-400 line-through' : 'text-red-500'}`}>
+                            {isRefund ? '+' : ''}{item.amount.toLocaleString('vi-VN')}đ
                           </strong>
                         </span>
                       </td>
                       <td className="py-3.5 text-slate-500">{item.percentage ? `${item.percentage}%` : '-'}</td>
                       <td className="py-3.5">
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                          isReversal ? 'bg-red-50 text-red-700 border border-red-100' : 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+                          isRefund ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
+                          isRevokedOriginal ? 'bg-slate-100 text-slate-500 border border-slate-200' :
+                          'bg-emerald-50 text-emerald-700 border border-emerald-100'
                         }`}>
-                          {isReversal ? 'THU HỒI' : 'THÀNH CÔNG'}
+                          {isRefund ? 'HOÀN TIỀN' : isRevokedOriginal ? 'BỊ THU HỒI' : 'THÀNH CÔNG'}
                         </span>
                       </td>
                       <td className="py-3.5 text-right text-slate-400 font-medium">{date}</td>
@@ -194,8 +199,8 @@ export default function UserRevenueSharePage() {
                 <strong className="text-slate-800 text-right">{selectedShare.product_name_snapshot}</strong>
               </div>
               <div className="flex justify-between border-b pb-2 border-slate-50">
-                <span className="text-slate-400">Số tiền bị trừ:</span>
-                <strong className={`font-mono font-black ${selectedShare.amount < 0 ? 'text-red-500' : 'text-emerald-600'}`}>
+                <span className="text-slate-400">Số tiền:</span>
+                <strong className={`font-mono font-black ${selectedShare.amount < 0 ? (selectedShare.status === 'reversed' ? 'text-slate-400 line-through' : 'text-red-500') : 'text-emerald-600'}`}>
                   {selectedShare.amount > 0 ? '+' : ''}{selectedShare.amount.toLocaleString('vi-VN')} VND
                 </strong>
               </div>
