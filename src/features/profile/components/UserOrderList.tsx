@@ -89,6 +89,7 @@ export function UserOrderList({ initialData, total, shares = [] }: UserOrderList
           <TableHeader>
             <TableRow>
               <TableHead>Mã ĐH</TableHead>
+              <TableHead>Sản phẩm</TableHead>
               <TableHead>Ngày đặt</TableHead>
               <TableHead>Tổng tiền</TableHead>
               <TableHead>Thanh toán</TableHead>
@@ -99,7 +100,7 @@ export function UserOrderList({ initialData, total, shares = [] }: UserOrderList
           <TableBody>
             {unifiedList.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center h-32 text-slate-500">
+                <TableCell colSpan={7} className="text-center h-32 text-slate-500">
                   Bạn chưa có đơn hàng hoặc khấu trừ nào
                 </TableCell>
               </TableRow>
@@ -110,6 +111,9 @@ export function UserOrderList({ initialData, total, shares = [] }: UserOrderList
                   return (
                     <TableRow key={`order-${order.id}`}>
                       <TableCell className="font-medium text-emerald-600">{order.order_code}</TableCell>
+                      <TableCell className="max-w-[200px] truncate" title={order.order_items?.map((i: any) => i.product_name).join(', ')}>
+                        {order.order_items?.map((i: any) => i.product_name).join(', ') || 'Không rõ'}
+                      </TableCell>
                       <TableCell>
                         {format(new Date(order.created_at), 'dd/MM/yyyy HH:mm', { locale: vi })}
                       </TableCell>
@@ -144,23 +148,32 @@ export function UserOrderList({ initialData, total, shares = [] }: UserOrderList
                   )
                 } else {
                   const share = item.data;
+                  const isReversal = share.status === 'reversed';
+                  const isRefund = isReversal && share.amount > 0;
+                  const isRevokedOriginal = isReversal && share.amount < 0;
+
                   return (
-                    <TableRow key={`share-${share.id}`} className="bg-red-50/40">
-                      <TableCell className="font-medium text-red-600">{share.order_code_snapshot || 'KHẤU TRỪ'}</TableCell>
-                      <TableCell>
+                    <TableRow key={`share-${share.id}`} className={isRefund ? "bg-emerald-50/40" : isRevokedOriginal ? "bg-slate-50/40" : "bg-red-50/40"}>
+                      <TableCell className={`font-medium ${isRefund ? 'text-emerald-600' : isRevokedOriginal ? 'text-slate-400 line-through' : 'text-red-600'}`}>
+                        {share.order_code_snapshot || 'KHẤU TRỪ'}
+                      </TableCell>
+                      <TableCell className={`max-w-[200px] truncate ${isRevokedOriginal ? "text-slate-400 line-through" : ""}`} title={share.product_name_snapshot}>
+                        {share.product_name_snapshot || 'Không rõ'}
+                      </TableCell>
+                      <TableCell className={isRevokedOriginal ? "text-slate-400" : ""}>
                         {format(new Date(share.created_at), 'dd/MM/yyyy HH:mm', { locale: vi })}
                       </TableCell>
-                      <TableCell className="font-medium text-red-600">
+                      <TableCell className={`font-medium ${isRefund ? 'text-emerald-600' : isRevokedOriginal ? 'text-slate-400 line-through' : 'text-red-600'}`}>
                         {share.amount < 0 ? share.amount.toLocaleString('vi-VN') : '+' + share.amount.toLocaleString('vi-VN')} VND
                       </TableCell>
                       <TableCell>
-                        <span className="text-sm font-medium text-red-600">
+                        <span className={`text-sm font-medium ${isRefund ? 'text-emerald-600' : isRevokedOriginal ? 'text-slate-400' : 'text-red-600'}`}>
                           Trừ vào ví
                         </span>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className="bg-red-100 text-red-800 border-red-200">
-                          {share.status === 'reversed' ? 'Đã hoàn' : 'Khấu trừ'}
+                        <Badge variant="outline" className={isRefund ? "bg-emerald-100 text-emerald-800 border-emerald-200" : isRevokedOriginal ? "bg-slate-100 text-slate-500 border-slate-200" : "bg-red-100 text-red-800 border-red-200"}>
+                          {isRefund ? 'Đã hoàn' : isRevokedOriginal ? 'Bị thu hồi' : 'Khấu trừ'}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">

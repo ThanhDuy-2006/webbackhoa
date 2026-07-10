@@ -909,6 +909,22 @@ export async function executeDirectCostSplitAction(data: {
       })
     }
 
+    // Xóa (ẩn) các sản phẩm đã chia tiền để không còn hiển thị trên web
+    const productIdsToDelete = Array.from(
+      new Set(data.products.map(p => p.product_id).filter((id): id is string => !!id))
+    )
+    
+    if (productIdsToDelete.length > 0) {
+      const { error: delError } = await supabase
+        .from('products')
+        .update({ deleted_at: new Date().toISOString() })
+        .in('id', productIdsToDelete)
+
+      if (delError) {
+        console.error('Lỗi khi ẩn sản phẩm sau khi chia tiền:', delError)
+      }
+    }
+
     // Insert public activity log
     await supabase.from('revenue_share_activities').insert({
       admin_name: adminProfile.full_name || admin.email,

@@ -64,34 +64,6 @@ export default function UserRevenueSharePage() {
         <p className="text-slate-500 mt-2">Theo dõi các khoản tiền chi phí sản phẩm đã được phân bổ và khấu trừ từ số dư của bạn.</p>
       </div>
 
-      {/* Overview Stat Card */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-gradient-to-br from-emerald-500 to-teal-600 p-6 rounded-[24px] text-white shadow-md flex items-center justify-between col-span-1 md:col-span-2">
-          <div className="space-y-2">
-            <span className="text-emerald-100 text-xs font-bold uppercase tracking-wider">Tổng chi phí sản phẩm đã khấu trừ</span>
-            <h2 className="text-3xl md:text-4xl font-black">
-              {stats.totalReceived.toLocaleString('vi-VN')} VND
-            </h2>
-            <p className="text-[11px] text-emerald-100/90 leading-relaxed font-medium">
-              Tiền chi phí sản phẩm được tự động trừ trực tiếp vào số dư ví của bạn mỗi khi có đơn hàng chứa sản phẩm cấu hình hoàn thành.
-            </p>
-          </div>
-          <div className="h-16 w-16 bg-white/10 rounded-full flex items-center justify-center shrink-0">
-            <Coins className="h-9 w-9 text-emerald-100" />
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm flex flex-col justify-between">
-          <div>
-            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-              <HelpCircle className="h-4 w-4 text-slate-400" /> Thông tin khấu trừ
-            </h4>
-            <p className="text-xs text-slate-500 leading-relaxed mt-2.5">
-              Chi phí sản phẩm được tự động trừ vào số dư ví của bạn. Vui lòng nạp đủ số dư để không bị gián đoạn hoặc âm quỹ tài khoản.
-            </p>
-          </div>
-        </div>
-      </div>
 
       {/* History table */}
       <div className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm space-y-4">
@@ -119,13 +91,13 @@ export default function UserRevenueSharePage() {
             <table className="w-full text-left text-xs border-collapse">
               <thead>
                 <tr className="text-slate-400 border-b border-slate-100">
-                  <th className="py-3 font-bold">Mã Đơn Hàng</th>
-                  <th className="py-3 font-bold">Sản phẩm gốc</th>
-                  <th className="py-3 font-bold">Người duyệt chia</th>
-                  <th className="py-3 font-bold">Số tiền</th>
-                  <th className="py-3 font-bold">Tỷ lệ</th>
-                  <th className="py-3 font-bold">Trạng thái</th>
-                  <th className="py-3 font-bold text-right">Thời gian</th>
+                  <th className="py-3 font-bold whitespace-nowrap">Mã Đơn Hàng</th>
+                  <th className="py-3 font-bold whitespace-nowrap">Sản phẩm gốc</th>
+                  <th className="py-3 font-bold whitespace-nowrap">Người duyệt chia</th>
+                  <th className="py-3 font-bold whitespace-nowrap">Số tiền</th>
+                  <th className="py-3 font-bold whitespace-nowrap">Tỷ lệ</th>
+                  <th className="py-3 font-bold whitespace-nowrap">Trạng thái</th>
+                  <th className="py-3 font-bold text-right whitespace-nowrap">Thời gian</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
@@ -148,7 +120,9 @@ export default function UserRevenueSharePage() {
                       <td className="py-3.5 text-slate-500">{item.admin_name_snapshot}</td>
                       <td className="py-3.5">
                         <span className="flex items-center gap-1">
-                          {isRevokedOriginal ? null : item.amount < 0 ? (
+                          {isRevokedOriginal ? (
+                            <ArrowDownRight className="h-3.5 w-3.5 text-slate-300 shrink-0" />
+                          ) : item.amount < 0 ? (
                             <ArrowDownRight className="h-3.5 w-3.5 text-red-500 shrink-0" />
                           ) : (
                             <ArrowUpRight className="h-3.5 w-3.5 text-emerald-500 shrink-0" />

@@ -18,10 +18,16 @@ import {
   RotateCcw, AlertTriangle, FileText, ArrowRight, UserPlus
 } from 'lucide-react'
 
+interface Category {
+  id: string
+  name: string
+}
+
 interface Product {
   id: string
   name: string
   price: number
+  category_id?: string | null
 }
 
 interface Variant {
@@ -41,6 +47,7 @@ interface User {
 
 interface Props {
   products: Product[]
+  categories: Category[]
   variants: Variant[]
   users: User[]
 }
@@ -57,7 +64,7 @@ interface SelectedProduct {
   discount: number
 }
 
-export function RevenueShareClient({ products, variants, users }: Props) {
+export function RevenueShareClient({ products, categories, variants, users }: Props) {
   const [activeTab, setActiveTab] = useState<TabType>('rules')
   
   // States
@@ -71,6 +78,10 @@ export function RevenueShareClient({ products, variants, users }: Props) {
 
   // Current logged in admin role permissions
   const [userRole, setUserRole] = useState<string>('super_admin')
+
+  // Filter states for product dropdown
+  const [productSearchKeyword, setProductSearchKeyword] = useState('')
+  const [productFilterCategoryId, setProductFilterCategoryId] = useState('all')
 
   // Stats dashboard state
   const [stats, setStats] = useState({
@@ -330,20 +341,25 @@ export function RevenueShareClient({ products, variants, users }: Props) {
     setSelectedRecipients([])
   }
 
-  // Manual Compensating Rollback
-  const handleRollbackShare = async (shareId: string) => {
+  // Manual Compensating Rollback for a group of shares
+  const handleRollbackShare = async (shareIds: string[]) => {
     if (!confirm('CẢNH BÁO: Bạn đang thực hiện giao dịch bù trừ để thu hồi tiền thủ công của chia sẻ này. Số dư ví người nhận sẽ bị trừ. Tiếp tục?')) return
 
     setLoading(true)
-    const res = await rollbackRevenueShareAction(shareId)
+    let hasError = false
+    for (const id of shareIds) {
+      const res = await rollbackRevenueShareAction(id)
+      if (!res.success) {
+        hasError = true
+        toast.error(res.error || 'Có lỗi xảy ra khi thu hồi một giao dịch')
+      }
+    }
     setLoading(false)
 
-    if (res.success) {
-      toast.success('Thu hồi và thực hiện giao dịch bù trừ thành công!')
-      loadStatsAndHistory()
-    } else {
-      toast.error(res.error)
+    if (!hasError) {
+      toast.success('Thu hồi thành công giao dịch!')
     }
+    loadStatsAndHistory()
   }
 
   // Permissions Role Change
@@ -590,31 +606,79 @@ export function RevenueShareClient({ products, variants, users }: Props) {
               {/* Product combobox dropdown (Product Adder) */}
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-700">1. Chọn các sản phẩm cần chia chi phí (Thêm nhiều sản phẩm) *</label>
-                <select
-                  value=""
-                  onChange={(e) => {
-                    handleAddProduct(e.target.value)
-                    e.target.value = '' // Reset
-                  }}
-                  className="w-full bg-slate-50 border p-3 rounded-xl text-xs font-semibold text-slate-700 outline-none focus:border-emerald-500 transition-all cursor-pointer"
-                >
-                  <option value="">-- Bấm để chọn & thêm sản phẩm vào danh sách --</option>
-                  {products.map(p => {
-                    const productVariants = variants.filter(v => v.product_id === p.id)
-                    return (
-                      <React.Fragment key={p.id}>
-                        <option value={p.id} className="font-bold text-slate-900">
-                          📦 {p.name} ({p.price.toLocaleString('vi-VN')}đ)
-                        </option>
-                        {productVariants.map(v => (
-                          <option key={v.id} value={`${p.id}|${v.id}`} className="text-slate-600 italic">
-                            &nbsp;&nbsp;&nbsp;&nbsp;↳ Phân loại: {v.name} {v.price ? `(${v.price.toLocaleString('vi-VN')}đ)` : ''}
-                          </option>
-                        ))}
-                      </React.Fragment>
-                    )
-                  })}
-                </select>
+                
+                <div className="border bg-white rounded-xl shadow-sm overflow-hidden flex flex-col mt-2">
+                  {/* The search and category filter */}
+                  <div className="flex flex-col sm:flex-row gap-2 p-2 border-b bg-slate-50/50">
+                    <select
+                      value={productFilterCategoryId}
+                      onChange={(e) => setProductFilterCategoryId(e.target.value)}
+                      className="sm:w-1/3 bg-white border p-2 rounded-lg text-xs font-semibold text-slate-700 outline-none focus:border-emerald-500 transition-all cursor-pointer"
+                    >
+                      <option value="all">Tất cả danh mục</option>
+                      {categories.map(c => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                    <div className="relative flex-1">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                      <input 
+                        type="text" 
+                        placeholder="Tìm kiếm sản phẩm để thêm..."
+                        value={productSearchKeyword}
+                        onChange={(e) => setProductSearchKeyword(e.target.value)}
+                        className="w-full bg-white border pl-9 p-2 rounded-lg text-xs font-semibold text-slate-700 outline-none focus:border-emerald-500 transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  {/* List of products to click */}
+                  <div className="max-h-[240px] overflow-y-auto p-2 bg-slate-50/30">
+                    {products
+                      .filter(p => {
+                        if (productFilterCategoryId !== 'all' && p.category_id !== productFilterCategoryId) return false;
+                        if (productSearchKeyword && !p.name.toLowerCase().includes(productSearchKeyword.toLowerCase())) return false;
+                        return true;
+                      })
+                      .length === 0 ? (
+                        <div className="text-xs text-slate-400 text-center py-6">Không tìm thấy sản phẩm nào phù hợp</div>
+                      ) : (
+                        <div className="space-y-1">
+                          {products
+                            .filter(p => {
+                              if (productFilterCategoryId !== 'all' && p.category_id !== productFilterCategoryId) return false;
+                              if (productSearchKeyword && !p.name.toLowerCase().includes(productSearchKeyword.toLowerCase())) return false;
+                              return true;
+                            })
+                            .map(p => {
+                              const productVariants = variants.filter(v => v.product_id === p.id)
+                              return (
+                                <div key={p.id} className="space-y-1">
+                                  <button
+                                    onClick={() => handleAddProduct(p.id)}
+                                    className="w-full text-left px-3 py-2.5 rounded-lg hover:bg-emerald-50 text-xs font-bold text-slate-700 hover:text-emerald-700 transition-colors flex items-center justify-between group border border-transparent hover:border-emerald-100"
+                                  >
+                                    <span className="flex items-center gap-2"><span className="text-sm">📦</span> {p.name}</span>
+                                    <span className="text-emerald-600 group-hover:text-emerald-700">{p.price.toLocaleString('vi-VN')}đ</span>
+                                  </button>
+                                  {productVariants.length > 0 && productVariants.map(v => (
+                                    <button
+                                      key={v.id}
+                                      onClick={() => handleAddProduct(`${p.id}|${v.id}`)}
+                                      className="w-full text-left pl-9 pr-3 py-2 rounded-lg hover:bg-emerald-50 text-xs font-medium text-slate-600 hover:text-emerald-700 transition-colors flex items-center justify-between group border border-transparent hover:border-emerald-100"
+                                    >
+                                      <span className="italic flex items-center gap-1.5"><span className="text-slate-400">↳</span> Phân loại: {v.name}</span>
+                                      <span className="text-emerald-600 group-hover:text-emerald-700">{v.price ? v.price.toLocaleString('vi-VN') : p.price.toLocaleString('vi-VN')}đ</span>
+                                    </button>
+                                  ))}
+                                </div>
+                              )
+                            })}
+                        </div>
+                      )
+                    }
+                  </div>
+                </div>
               </div>
 
               {/* Added products list */}
@@ -844,42 +908,7 @@ export function RevenueShareClient({ products, variants, users }: Props) {
       {activeTab === 'history' && (
         <div className="space-y-6">
 
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-            <div className="bg-white p-5 rounded-[20px] border border-slate-100 shadow-sm md:col-span-2 space-y-4">
-              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                <Award className="h-4 w-4 text-amber-500" /> Thành viên gánh chi phí hàng đầu
-              </h4>
-              <div className="space-y-2">
-                {stats.topRecipients.length === 0 ? (
-                  <p className="text-xs text-slate-400 text-center py-4">Chưa có dữ liệu</p>
-                ) : (
-                  stats.topRecipients.map((tr) => (
-                    <button
-                      key={tr.id}
-                      onClick={() => setFilterUserId(tr.id)}
-                      className="w-full flex items-center justify-between text-left p-2 rounded-xl hover:bg-slate-50 transition-all group border border-transparent hover:border-slate-100"
-                    >
-                      <span className="text-xs font-semibold text-slate-700 group-hover:text-emerald-600 truncate max-w-[150px]">
-                        {tr.name}
-                      </span>
-                      <strong className="text-xs text-red-500 font-bold font-mono">
-                        -{Math.abs(tr.amount).toLocaleString('vi-VN')}đ
-                      </strong>
-                    </button>
-                  ))
-                )}
-              </div>
-              {filterUserId && (
-                <button 
-                  onClick={() => setFilterUserId('')} 
-                  className="text-[10px] text-red-500 font-bold hover:underline flex items-center gap-0.5 mt-2"
-                >
-                  <X className="h-3 w-3" /> Bỏ lọc drill-down thành viên
-                </button>
-              )}
-            </div>
-
-            <div className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm md:col-span-3 space-y-6">
+          <div className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b pb-4 border-slate-100 gap-4">
                 <div>
                   <h3 className="font-extrabold text-slate-800 text-sm">Lịch sử chia tiền thực tế</h3>
@@ -988,24 +1017,62 @@ export function RevenueShareClient({ products, variants, users }: Props) {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-50">
-                      {history.map((item) => {
+                      {Object.values(
+                        history.reduce((acc, item) => {
+                          const timeKey = item.created_at.substring(0, 16)
+                          const key = `${item.order_code_snapshot}_${item.product_name_snapshot}_${item.status}_${timeKey}`
+                          if (!acc[key]) {
+                            acc[key] = {
+                              ...item,
+                              groupedIds: [item.id],
+                              recipients: [item.recipient_name_snapshot],
+                              totalAmount: item.amount,
+                              allPercentages: [item.percentage]
+                            }
+                          } else {
+                            acc[key].groupedIds.push(item.id)
+                            acc[key].recipients.push(item.recipient_name_snapshot)
+                            acc[key].totalAmount += item.amount
+                            acc[key].allPercentages.push(item.percentage)
+                          }
+                          return acc
+                        }, {} as Record<string, any>)
+                      )
+                      .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                      .map((item: any) => {
                         const date = new Date(item.created_at).toLocaleString('vi-VN')
                         const isReversal = item.status === 'reversed'
-                        const isRefund = isReversal && item.amount > 0
-                        const isRevokedOriginal = isReversal && item.amount < 0
+                        const isRefund = isReversal && item.totalAmount > 0
+                        const isRevokedOriginal = isReversal && item.totalAmount < 0
                         const isSuccess = item.status === 'completed'
+                        const isMulti = item.recipients.length > 1
 
                         return (
-                          <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
+                          <tr key={item.groupedIds.join('-')} className="hover:bg-slate-50/50 transition-colors">
                             <td className="py-3.5 font-mono font-bold text-slate-700">{item.order_code_snapshot}</td>
                             <td className="py-3.5 font-medium text-slate-800">{item.product_name_snapshot}</td>
-                            <td className="py-3.5 text-slate-700">{item.recipient_name_snapshot}</td>
+                            <td className="py-3.5 text-slate-700">
+                              {isMulti ? (
+                                <div className="flex flex-col">
+                                  <span>{item.recipients.length} người</span>
+                                  <span className="text-[10px] text-slate-400 truncate max-w-[150px]" title={item.recipients.join(', ')}>
+                                    {item.recipients.join(', ')}
+                                  </span>
+                                </div>
+                              ) : item.recipients[0]}
+                            </td>
                             <td className="py-3.5">
                               <strong className={`font-mono font-black ${isRefund ? 'text-emerald-600' : isRevokedOriginal ? 'text-slate-400 line-through' : 'text-red-500'}`}>
-                                {isRefund ? '+' : ''}{item.amount.toLocaleString('vi-VN')}đ
+                                {isRefund ? '+' : ''}{item.totalAmount.toLocaleString('vi-VN')}đ
                               </strong>
                             </td>
-                            <td className="py-3.5 text-slate-500">{item.percentage ? `${item.percentage}%` : '-'}</td>
+                            <td className="py-3.5 text-slate-500">
+                              {isMulti ? (
+                                item.allPercentages.every((p: any) => p === item.allPercentages[0]) && item.allPercentages[0] 
+                                  ? `${item.allPercentages[0]}% mỗi người` 
+                                  : 'Nhiều tỷ lệ'
+                              ) : (item.percentage ? `${item.percentage}%` : '-')}
+                            </td>
                             <td className="py-3.5">
                               <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                                 isRefund ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
@@ -1018,9 +1085,9 @@ export function RevenueShareClient({ products, variants, users }: Props) {
                             <td className="py-3.5 text-right">
                               {!isReversal && (
                                 <button 
-                                  onClick={() => handleRollbackShare(item.id)}
+                                  onClick={() => handleRollbackShare(item.groupedIds)}
                                   className="px-2 py-1 bg-red-50 hover:bg-red-100 text-red-700 rounded-lg text-[9px] font-bold transition-all inline-flex items-center gap-0.5 cursor-pointer"
-                                  title="Thực hiện giao dịch bù trừ để thu hồi"
+                                  title="Thực hiện giao dịch bù trừ để thu hồi toàn bộ"
                                 >
                                   <RotateCcw className="h-2.5 w-2.5" /> Thu hồi
                                 </button>
@@ -1036,7 +1103,6 @@ export function RevenueShareClient({ products, variants, users }: Props) {
               </div>
             </div>
           </div>
-        </div>
       )}
 
       {/* RENDER TAB 3: RETRY QUEUE */}

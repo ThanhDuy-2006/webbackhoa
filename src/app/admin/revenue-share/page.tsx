@@ -10,7 +10,15 @@ export default async function AdminRevenueSharePage() {
   // 1. Fetch all active products
   const { data: products } = await supabase
     .from('products')
-    .select('id, name, price')
+    .select('id, name, price, category_id')
+    .is('deleted_at', null)
+    .order('name', { ascending: true })
+
+  // 1.5 Fetch all categories for filtering
+  const { data: categories } = await supabase
+    .from('categories')
+    .select('id, name')
+    .eq('is_active', true)
     .is('deleted_at', null)
     .order('name', { ascending: true })
 
@@ -36,6 +44,7 @@ export default async function AdminRevenueSharePage() {
 
       <RevenueShareClient
         products={products || []}
+        categories={categories || []}
         variants={variants || []}
         users={users || []}
       />
