@@ -45,22 +45,27 @@ export function ProductListClient({ initialProducts, categories }: ProductListCl
   return (
     <div className="flex flex-col md:flex-row gap-8">
       {/* Sidebar Filters */}
-      <aside className="w-full md:w-64 shrink-0 space-y-8">
+      <aside className="w-full md:w-64 shrink-0 space-y-4 md:space-y-8">
         <div>
-          <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+          <h3 className="font-semibold text-lg mb-4 hidden md:flex items-center gap-2">
             <SlidersHorizontal className="h-5 w-5" />
             Bộ lọc
           </h3>
           
-          <div className="space-y-6">
+          <div className="space-y-4 md:space-y-6">
             {/* Category Filter */}
             <div className="space-y-3">
-              <Label className="text-sm font-medium text-slate-500 uppercase tracking-wider">Danh mục</Label>
-              <div className="flex flex-col gap-2">
+              <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider hidden md:block">Danh mục</Label>
+              <div className="flex flex-row md:flex-col gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-none snap-x">
                 <Button 
                   variant={currentCategory === 'all' ? 'default' : 'ghost'} 
-                  className={`justify-start ${currentCategory === 'all' ? 'bg-emerald-600' : 'hover:bg-slate-100'}`}
+                  className={`justify-start shrink-0 snap-start h-10 md:h-9 rounded-full md:rounded-xl border md:border-transparent text-xs md:text-sm font-semibold cursor-pointer ${
+                    currentCategory === 'all' 
+                      ? 'bg-emerald-600 hover:bg-emerald-700 text-white' 
+                      : 'hover:bg-slate-100 text-slate-700 border-slate-200 bg-white'
+                  }`}
                   onClick={() => updateFilters('category', 'all')}
+                  style={{ minHeight: '44px' }}
                 >
                   Tất cả sản phẩm
                 </Button>
@@ -68,8 +73,13 @@ export function ProductListClient({ initialProducts, categories }: ProductListCl
                   <Button
                     key={cat.id}
                     variant={currentCategory === cat.slug ? 'default' : 'ghost'}
-                    className={`justify-start ${currentCategory === cat.slug ? 'bg-emerald-600' : 'hover:bg-slate-100'}`}
+                    className={`justify-start shrink-0 snap-start h-10 md:h-9 rounded-full md:rounded-xl border md:border-transparent text-xs md:text-sm font-semibold cursor-pointer ${
+                      currentCategory === cat.slug 
+                        ? 'bg-emerald-600 hover:bg-emerald-700 text-white' 
+                        : 'hover:bg-slate-100 text-slate-700 border-slate-200 bg-white'
+                    }`}
                     onClick={() => updateFilters('category', cat.slug)}
+                    style={{ minHeight: '44px' }}
                   >
                     {cat.name}
                   </Button>

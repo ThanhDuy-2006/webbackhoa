@@ -43,7 +43,7 @@ export function ProductCard({ product }: ProductCardProps) {
   }
 
   return (
-    <Card className="group overflow-hidden rounded-2xl border-transparent shadow-[0_2px_12px_rgba(0,0,0,0.04)] bg-white transition-all duration-300 hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] hover:-translate-y-1">
+    <Card className="group overflow-hidden rounded-2xl border-transparent shadow-[0_2px_12px_rgba(0,0,0,0.04)] bg-white transition-all duration-300 hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] hover:-translate-y-1 flex flex-col h-full">
       <Link href={`/san-pham/${product.slug}`} className="block relative">
         <div className="relative aspect-[4/3] sm:aspect-square overflow-hidden bg-white p-6">
           <Image
@@ -68,33 +68,34 @@ export function ProductCard({ product }: ProductCardProps) {
         </div>
       </Link>
       
-      <div className="p-4 sm:p-5 flex flex-col justify-between">
-        <Link href={`/san-pham/${product.slug}`}>
-          <h3 className="line-clamp-2 text-sm sm:text-base font-medium text-slate-800 transition-colors group-hover:text-emerald-600 mb-1 leading-snug">
+      <div className="p-3 sm:p-4 flex flex-col justify-between flex-1">
+        <Link href={`/san-pham/${product.slug}`} className="block">
+          <h3 className="line-clamp-2 text-xs sm:text-sm font-semibold text-slate-800 transition-colors group-hover:text-emerald-600 leading-snug min-h-[2.5rem]">
             {product.name}
           </h3>
         </Link>
         
-        <div className="mt-4 flex items-end justify-between gap-2">
-          <div className="flex flex-col">
+        <div className="mt-3 flex items-end justify-between gap-1.5">
+          <div className="flex flex-col min-w-0">
             {hasDiscount && (
-              <span className="text-xs sm:text-sm text-slate-400 line-through mb-0.5">
-                {Number(product.price).toLocaleString('vi-VN')} VND
+              <span className="text-[10px] sm:text-xs text-slate-400 line-through mb-0.5 truncate">
+                {Number(product.price).toLocaleString('vi-VN')} <span className="text-[8px] sm:text-[9px]">VND</span>
               </span>
             )}
-            <span className="text-base sm:text-lg font-bold text-slate-900">
-              {Number(finalPrice).toLocaleString('vi-VN')} VND
+            <span className="text-xs sm:text-sm md:text-base font-black text-slate-900 leading-none truncate">
+              {Number(finalPrice).toLocaleString('vi-VN')} <span className="text-[9px] sm:text-[10px] font-semibold text-slate-500">VND</span>
             </span>
           </div>
           
           <Button 
             size="icon"
-            className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl bg-emerald-600 hover:bg-emerald-700 transition-colors shadow-sm shrink-0" 
+            className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl bg-emerald-600 hover:bg-emerald-700 transition-colors shadow-sm shrink-0 cursor-pointer" 
             disabled={isOutOfStock}
             aria-label="Thêm vào giỏ hàng"
             onClick={handleAddToCart}
+            style={{ minWidth: '32px', minHeight: '32px' }}
           >
-            <ShoppingCart className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+            <ShoppingCart className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-white" />
           </Button>
         </div>
       </div>
