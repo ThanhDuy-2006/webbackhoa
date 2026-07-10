@@ -614,7 +614,7 @@ export async function rollbackRevenueShareAction(shareId: string) {
   try {
     const { profile: adminProfile } = await verifyUserRole()
     checkSuperAdmin(adminProfile.revenue_role)
-    const supabase = createAdminClient()
+    const supabase = await createClient()
 
     const { data: res, error } = await supabase.rpc('manual_rollback_revenue_share', { p_share_id: shareId })
     if (error) throw error
