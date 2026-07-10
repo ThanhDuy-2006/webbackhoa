@@ -2,13 +2,22 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Menu, Package, LogOut } from 'lucide-react'
+import { Menu, Package, LogOut, LayoutDashboard, Tags, ShoppingBag, Users, CreditCard } from 'lucide-react'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
+
+const iconMap = {
+  LayoutDashboard,
+  Package,
+  Tags,
+  ShoppingBag,
+  Users,
+  CreditCard
+}
 
 interface LinkItem {
   name: string
   href: string
-  icon: any
+  iconName: keyof typeof iconMap
 }
 
 interface AdminMobileMenuProps {
@@ -38,7 +47,7 @@ export function AdminMobileMenu({ sidebarLinks, fullName, email, avatarUrl, logo
           <nav className="flex-1 py-4 overflow-y-auto">
             <ul className="space-y-1 px-4">
               {sidebarLinks.map((link) => {
-                const Icon = link.icon
+                const Icon = iconMap[link.iconName] || Package
                 return (
                   <li key={link.href}>
                     <Link

@@ -14,6 +14,15 @@ const sidebarLinks = [
   { name: 'Duyệt nạp tiền', href: '/admin/topups', icon: CreditCard },
 ]
 
+const mobileSidebarLinks: { name: string; href: string; iconName: 'LayoutDashboard' | 'Package' | 'Tags' | 'ShoppingBag' | 'Users' | 'CreditCard' }[] = [
+  { name: 'Dashboard', href: '/admin', iconName: 'LayoutDashboard' },
+  { name: 'Sản phẩm', href: '/admin/products', iconName: 'Package' },
+  { name: 'Danh mục', href: '/admin/categories', iconName: 'Tags' },
+  { name: 'Đơn hàng', href: '/admin/orders', iconName: 'ShoppingBag' },
+  { name: 'Khách hàng', href: '/admin/users', iconName: 'Users' },
+  { name: 'Duyệt nạp tiền', href: '/admin/topups', iconName: 'CreditCard' },
+]
+
 export default async function AdminLayout({
   children,
 }: {
@@ -91,7 +100,7 @@ export default async function AdminLayout({
           {/* Mobile Menu Toggle */}
           <div className="md:hidden">
             <AdminMobileMenu
-              sidebarLinks={sidebarLinks}
+              sidebarLinks={mobileSidebarLinks}
               fullName={fullName}
               email={email}
               avatarUrl={avatarUrl}
