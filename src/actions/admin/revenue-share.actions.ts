@@ -788,3 +788,129 @@ export async function retryOrderRevenueSharingAction(orderId: string) {
     return { success: false, error: error.message }
   }
 }
+
+export async function executeDirectCostSplitAction(data: {
+  product_id?: string | null
+  variant_id?: string | null
+  sharing_method: 'equal' | 'percentage' | 'fixed'
+  amount: number
+  quantity: number
+  discount: number
+  recipients: {
+    user_id: string
+    percentage?: number | null
+    fixed_amount?: number | null
+  }[]
+}) {
+  try {
+    const { user: admin, profile: adminProfile } = await verifyUserRole()
+    checkRevenueManager(adminProfile.revenue_role)
+    const supabase = createAdminClient()
+
+    const netAmount = Math.max(0, (data.amount * data.quantity) - data.discount)
+
+    // Lookup product/variant name for snapshotting
+    let productName = 'Sản phẩm trực tiếp'
+    if (data.variant_id) {
+      const { data: v } = await supabase.from('product_variants').select('name').eq('id', data.variant_id).single()
+      if (v) productName = v.name
+    } else if (data.product_id) {
+      const { data: p } = await supabase.from('products').select('name').eq('id', data.product_id).single()
+      if (p) productName = p.name
+    }
+
+    // Process each recipient
+    const recipientCount = data.recipients.length
+    if (recipientCount === 0) throw new Error('Vui lòng chọn ít nhất một người nhận')
+
+    for (const r of data.recipients) {
+      let shareAmount = 0
+      if (data.sharing_method === 'equal') {
+        shareAmount = netAmount / recipientCount
+      } else if (data.sharing_method === 'percentage') {
+        shareAmount = netAmount * ((r.percentage || 0) / 100)
+      } else if (data.sharing_method === 'fixed') {
+        shareAmount = (r.fixed_amount || 0) * data.quantity
+      }
+
+      shareAmount = Math.round(shareAmount)
+      if (shareAmount <= 0) continue
+
+      // Lock recipient wallet balance
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('wallet_balance, full_name, email')
+        .eq('id', r.user_id)
+        .single()
+
+      const currentBalance = profile ? (profile.wallet_balance || 0) : 0
+      const recipientName = profile ? (profile.full_name || profile.email) : 'Thành viên'
+
+      // Deduct wallet balance
+      const { error: wError } = await supabase
+        .from('profiles')
+        .update({ wallet_balance: currentBalance - shareAmount })
+        .eq('id', r.user_id)
+
+      if (wError) throw wError
+
+      // Insert wallet transaction
+      const { data: tx, error: txError } = await supabase
+        .from('wallet_transactions')
+        .insert({
+          user_id: r.user_id,
+          type: 'revenue_share',
+          amount: -shareAmount,
+          balance_before: currentBalance,
+          balance_after: currentBalance - shareAmount,
+          note: `Trừ tiền chia sẻ chi phí sản phẩm ${productName}: -${shareAmount.toLocaleString()}đ`
+        })
+        .select()
+        .single()
+
+      if (txError) throw txError
+
+      // Insert product_revenue_shares record
+      const { error: shareError } = await supabase
+        .from('product_revenue_shares')
+        .insert({
+          recipient_id: r.user_id,
+          amount: -shareAmount,
+          percentage: data.sharing_method === 'percentage' ? r.percentage : (data.sharing_method === 'equal' ? Math.round(100.0 / recipientCount) : null),
+          status: 'completed',
+          wallet_transaction_id: tx.id,
+          order_code_snapshot: 'MANUAL',
+          product_name_snapshot: productName,
+          admin_name_snapshot: adminProfile.full_name || admin.email,
+          recipient_name_snapshot: recipientName
+        })
+
+      if (shareError) throw shareError
+
+      // Send notification
+      await supabase.from('notifications').insert({
+        user_id: r.user_id,
+        title: 'Chia sẻ chi phí sản phẩm',
+        message: `Tài khoản bị khấu trừ chi phí sản phẩm ${productName}: -${shareAmount.toLocaleString()}đ`,
+        type: 'revenue_share',
+        link: '/tai-khoan/chia-tien'
+      })
+    }
+
+    // Insert public activity log
+    await supabase.from('revenue_share_activities').insert({
+      admin_name: adminProfile.full_name || admin.email,
+      product_name: productName,
+      recipients_count: recipientCount,
+      total_amount: netAmount,
+      description: `Admin ${adminProfile.full_name || admin.email} đã phân chia trực tiếp chi phí sản phẩm ${productName} cho ${recipientCount} người. Tổng khấu trừ: -${netAmount.toLocaleString()}đ.`
+    })
+
+    revalidatePath('/admin/revenue-share')
+    return { success: true }
+  } catch (error: any) {
+    console.error('Lỗi khi chia tiền trực tiếp:', error)
+    return { success: false, error: error.message || 'Có lỗi xảy ra' }
+  }
+}
+
