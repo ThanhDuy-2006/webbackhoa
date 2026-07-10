@@ -341,7 +341,7 @@ export function RevenueShareClient({ products, variants, users, initialRules }: 
     setLoading(false)
 
     if (res.success) {
-      toast.success(editingRuleId ? 'Cập nhật luật chia tiền thành công!' : 'Tạo mới luật chia tiền thành công!')
+      toast.success(editingRuleId ? 'Cập nhật cấu hình chia tiền thành công!' : 'Tạo mới cấu hình chia tiền thành công!')
       initializeClientData()
       handleCloseForm()
     } else {
@@ -383,7 +383,7 @@ export function RevenueShareClient({ products, variants, users, initialRules }: 
 
   // Delete/Archive Rule
   const handleDeleteRule = async (id: string) => {
-    if (!confirm('Bạn có chắc chắn muốn xóa (lưu trữ) luật chia sẻ doanh thu này?')) return
+    if (!confirm('Bạn có chắc chắn muốn xóa (lưu trữ) cấu hình chia tiền sản phẩm này?')) return
 
     setLoading(true)
     const res = await deleteRevenueRuleAction(id)
@@ -738,7 +738,7 @@ export function RevenueShareClient({ products, variants, users, initialRules }: 
     } else {
       changes.push(
         <div key="init" className="text-xs text-emerald-700 bg-emerald-50/50 p-3 rounded-xl border border-emerald-100">
-          <span className="font-bold">Thiết lập luật ban đầu (Version 1)</span>
+          <span className="font-bold">Thiết lập cấu hình ban đầu (Version 1)</span>
           <ul className="list-disc list-inside mt-2 space-y-1 text-slate-600">
             <li>Phương thức: {new_value.sharing_method}</li>
             <li>Trạng thái: {new_value.status}</li>
@@ -777,7 +777,7 @@ export function RevenueShareClient({ products, variants, users, initialRules }: 
             activeTab === 'rules' ? 'border-emerald-600 text-emerald-600' : 'border-transparent text-slate-500 hover:text-slate-700'
           }`}
         >
-          Luật chia tiền
+          Cấu hình chia tiền
         </button>
         <button
           onClick={() => setActiveTab('history')}
@@ -832,7 +832,7 @@ export function RevenueShareClient({ products, variants, users, initialRules }: 
                       QUẢN TRỊ VIÊN HỆ THỐNG (ADMIN)
                     </h4>
                     <p className="text-[10px] text-slate-400 mt-0.5 leading-relaxed">
-                      Bạn có toàn quyền thiết lập luật chia tiền, chỉnh sửa, xóa và rollback hoàn trả giao dịch trực tiếp mà không cần phê duyệt trung gian.
+                      Bạn có toàn quyền thiết lập chia tiền sản phẩm, chỉnh sửa, xóa và rollback hoàn trả giao dịch trực tiếp mà không cần phê duyệt trung gian.
                     </p>
                   </div>
                 </div>
@@ -893,8 +893,8 @@ export function RevenueShareClient({ products, variants, users, initialRules }: 
           <div className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4">
               <div>
-                <h3 className="font-extrabold text-slate-800 text-sm">Danh sách Luật cấu hình chia sẻ doanh thu</h3>
-                <p className="text-xs text-slate-400 mt-0.5">Các luật đang hoạt động sẽ tự động phân phối ví khi đơn hàng hoàn thành.</p>
+                <h3 className="font-extrabold text-slate-800 text-sm">Danh sách cấu hình chia tiền sản phẩm</h3>
+                <p className="text-xs text-slate-400 mt-0.5">Các cấu hình đang hoạt động sẽ tự động phân chia chi phí sản phẩm khi đơn hàng hoàn thành.</p>
               </div>
               
               <div className="flex items-center gap-3 self-start sm:self-auto">
@@ -915,14 +915,14 @@ export function RevenueShareClient({ products, variants, users, initialRules }: 
                   }} 
                   className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
                 >
-                  <Plus className="h-4 w-4" /> Thiết lập luật mới
+                  <Plus className="h-4 w-4" /> Thêm cấu hình chia tiền
                 </button>
               </div>
             </div>
 
             <div className="overflow-x-auto">
               {activeRulesList.length === 0 ? (
-                <p className="text-xs text-slate-400 text-center py-12">Không tìm thấy cấu hình luật chia tiền nào hoạt động.</p>
+                <p className="text-xs text-slate-400 text-center py-12">Không tìm thấy cấu hình chia tiền sản phẩm nào hoạt động.</p>
               ) : (
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
@@ -998,7 +998,7 @@ export function RevenueShareClient({ products, variants, users, initialRules }: 
                                 <button 
                                   onClick={() => handleDeleteRule(rule.id)} 
                                   className="p-1 text-slate-400 hover:text-red-600 transition-colors inline-block" 
-                                  title="Xóa luật chia tiền"
+                                  title="Xóa cấu hình chia tiền"
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </button>
@@ -1354,7 +1354,7 @@ export function RevenueShareClient({ products, variants, users, initialRules }: 
                           >
                             <option value="none">Không cấp quyền (None)</option>
                             <option value="revenue_viewer">Chỉ xem (Viewer)</option>
-                            <option value="revenue_manager">Quản lý luật (Manager)</option>
+                            <option value="revenue_manager">Quản lý chia tiền (Manager)</option>
                             <option value="super_admin">Quản trị tối cao (Super Admin)</option>
                           </select>
                         </td>
@@ -1374,7 +1374,7 @@ export function RevenueShareClient({ products, variants, users, initialRules }: 
           <div className="bg-white rounded-[24px] max-w-lg w-full p-6 md:p-7 space-y-5 shadow-2xl border max-h-[90vh] overflow-y-auto custom-scrollbar">
             <div className="flex items-center justify-between border-b pb-3">
               <h3 className="text-base font-black text-slate-800">
-                {editingRuleId ? 'Cập nhật cấu hình chia tiền' : 'Thiết lập luật chia tiền sản phẩm'}
+                {editingRuleId ? 'Cập nhật cấu hình chia tiền' : 'Cấu hình chia tiền sản phẩm'}
               </h3>
               <button onClick={handleCloseForm} className="p-1.5 hover:bg-slate-100 rounded-full transition-colors cursor-pointer">
                 <X className="h-5 w-5 text-slate-500" />
@@ -1434,7 +1434,7 @@ export function RevenueShareClient({ products, variants, users, initialRules }: 
                       onChange={(e) => setIsRuleActive(e.target.checked)}
                       className="rounded text-emerald-600 h-4 w-4"
                     />
-                    Kích hoạt luật ngay lập tức
+                    Kích hoạt cấu hình chia tiền
                   </label>
                 </div>
               </div>
