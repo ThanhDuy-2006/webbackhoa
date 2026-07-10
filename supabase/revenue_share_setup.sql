@@ -75,7 +75,7 @@ CREATE TABLE IF NOT EXISTS public.product_revenue_recipients (
 -- 6. Tạo bảng Lịch sử chia sẻ doanh thu thực tế (bất biến sau khi ghi)
 CREATE TABLE IF NOT EXISTS public.product_revenue_shares (
   id uuid default uuid_generate_v4() primary key,
-  order_item_id uuid references public.order_items(id) on delete cascade not null,
+  order_item_id uuid references public.order_items(id) on delete cascade,
   rule_id uuid references public.product_revenue_rules(id) on delete set null,
   recipient_id uuid references public.profiles(id) on delete cascade not null,
   amount numeric(12,2) not null,
