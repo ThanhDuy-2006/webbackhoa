@@ -54,7 +54,7 @@ export async function updateSession(request: NextRequest) {
   }
 
   // Protected user routes
-  const protectedRoutes = ['/tai-khoan', '/tai-khoan/don-hang', '/nap-tien', '/thanh-toan']
+  const protectedRoutes = ['/tai-khoan', '/tai-khoan/don-hang', '/tai-khoan/nap-tien', '/thanh-toan']
   const isProtectedRoute = protectedRoutes.some((route) => pathname.startsWith(route))
 
   if (isProtectedRoute && !user) {

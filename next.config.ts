@@ -27,6 +27,11 @@ const nextConfig: NextConfig = {
         destination: '/tai-khoan/don-hang',
         permanent: true,
       },
+      {
+        source: '/nap-tien',
+        destination: '/tai-khoan/nap-tien',
+        permanent: true,
+      },
     ]
   },
 };

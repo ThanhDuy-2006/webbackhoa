@@ -165,7 +165,7 @@ export function NavbarClient({ user, profile }: NavbarClientProps) {
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem>
-                  <Link href="/nap-tien" className="cursor-pointer flex w-full items-center">
+                  <Link href="/tai-khoan/nap-tien" className="cursor-pointer flex w-full items-center">
                     <Wallet className="mr-2 h-4 w-4" />
                     <span>Nạp tiền</span>
                   </Link>
