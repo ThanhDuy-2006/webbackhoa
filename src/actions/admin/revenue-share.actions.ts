@@ -790,12 +790,14 @@ export async function retryOrderRevenueSharingAction(orderId: string) {
 }
 
 export async function executeDirectCostSplitAction(data: {
-  product_id?: string | null
-  variant_id?: string | null
+  products: {
+    product_id?: string | null
+    variant_id?: string | null
+    amount: number
+    quantity: number
+    discount: number
+  }[]
   sharing_method: 'equal' | 'percentage' | 'fixed'
-  amount: number
-  quantity: number
-  discount: number
   recipients: {
     user_id: string
     percentage?: number | null
@@ -807,30 +809,40 @@ export async function executeDirectCostSplitAction(data: {
     checkRevenueManager(adminProfile.revenue_role)
     const supabase = createAdminClient()
 
-    const netAmount = Math.max(0, (data.amount * data.quantity) - data.discount)
+    // 1. Calculate total net amount
+    let totalNetAmount = 0
+    const productNamesList: string[] = []
 
-    // Lookup product/variant name for snapshotting
-    let productName = 'Sản phẩm trực tiếp'
-    if (data.variant_id) {
-      const { data: v } = await supabase.from('product_variants').select('name').eq('id', data.variant_id).single()
-      if (v) productName = v.name
-    } else if (data.product_id) {
-      const { data: p } = await supabase.from('products').select('name').eq('id', data.product_id).single()
-      if (p) productName = p.name
+    for (const p of data.products) {
+      const net = Math.max(0, (p.amount * p.quantity) - p.discount)
+      totalNetAmount += net
+
+      // Lookup product/variant name for snapshotting
+      let productName = 'Sản phẩm trực tiếp'
+      if (p.variant_id) {
+        const { data: v } = await supabase.from('product_variants').select('name').eq('id', p.variant_id).single()
+        if (v) productName = v.name
+      } else if (p.product_id) {
+        const { data: prod } = await supabase.from('products').select('name').eq('id', p.product_id).single()
+        if (prod) productName = prod.name
+      }
+      productNamesList.push(`${productName} (SL: ${p.quantity})`)
     }
 
-    // Process each recipient
+    const combinedProductNames = productNamesList.join(', ')
     const recipientCount = data.recipients.length
     if (recipientCount === 0) throw new Error('Vui lòng chọn ít nhất một người nhận')
 
+    // 2. Process each recipient
     for (const r of data.recipients) {
       let shareAmount = 0
       if (data.sharing_method === 'equal') {
-        shareAmount = netAmount / recipientCount
+        shareAmount = totalNetAmount / recipientCount
       } else if (data.sharing_method === 'percentage') {
-        shareAmount = netAmount * ((r.percentage || 0) / 100)
+        shareAmount = totalNetAmount * ((r.percentage || 0) / 100)
       } else if (data.sharing_method === 'fixed') {
-        shareAmount = (r.fixed_amount || 0) * data.quantity
+        // Fixed amount is entered as a direct value for the total split
+        shareAmount = r.fixed_amount || 0
       }
 
       shareAmount = Math.round(shareAmount)
@@ -863,7 +875,7 @@ export async function executeDirectCostSplitAction(data: {
           amount: -shareAmount,
           balance_before: currentBalance,
           balance_after: currentBalance - shareAmount,
-          note: `Trừ tiền chia sẻ chi phí sản phẩm ${productName}: -${shareAmount.toLocaleString()}đ`
+          note: `Trừ tiền chia sẻ chi phí: ${combinedProductNames} (Tổng trừ: -${shareAmount.toLocaleString()}đ)`
         })
         .select()
         .single()
@@ -880,7 +892,7 @@ export async function executeDirectCostSplitAction(data: {
           status: 'completed',
           wallet_transaction_id: tx.id,
           order_code_snapshot: 'MANUAL',
-          product_name_snapshot: productName,
+          product_name_snapshot: combinedProductNames,
           admin_name_snapshot: adminProfile.full_name || admin.email,
           recipient_name_snapshot: recipientName
         })
@@ -891,7 +903,7 @@ export async function executeDirectCostSplitAction(data: {
       await supabase.from('notifications').insert({
         user_id: r.user_id,
         title: 'Chia sẻ chi phí sản phẩm',
-        message: `Tài khoản bị khấu trừ chi phí sản phẩm ${productName}: -${shareAmount.toLocaleString()}đ`,
+        message: `Tài khoản bị khấu trừ chi phí ${combinedProductNames}: -${shareAmount.toLocaleString()}đ`,
         type: 'revenue_share',
         link: '/tai-khoan/chia-tien'
       })
@@ -900,10 +912,10 @@ export async function executeDirectCostSplitAction(data: {
     // Insert public activity log
     await supabase.from('revenue_share_activities').insert({
       admin_name: adminProfile.full_name || admin.email,
-      product_name: productName,
+      product_name: combinedProductNames,
       recipients_count: recipientCount,
-      total_amount: netAmount,
-      description: `Admin ${adminProfile.full_name || admin.email} đã phân chia trực tiếp chi phí sản phẩm ${productName} cho ${recipientCount} người. Tổng khấu trừ: -${netAmount.toLocaleString()}đ.`
+      total_amount: totalNetAmount,
+      description: `Admin ${adminProfile.full_name || admin.email} đã phân chia trực tiếp chi phí ${combinedProductNames} cho ${recipientCount} người. Tổng khấu trừ: -${totalNetAmount.toLocaleString()}đ.`
     })
 
     revalidatePath('/admin/revenue-share')

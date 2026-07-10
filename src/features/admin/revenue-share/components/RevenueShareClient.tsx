@@ -47,6 +47,16 @@ interface Props {
 
 type TabType = 'rules' | 'history' | 'retry' | 'permissions'
 
+interface SelectedProduct {
+  id: string // unique local key
+  product_id?: string | null
+  variant_id?: string | null
+  name: string
+  amount: number
+  quantity: number
+  discount: number
+}
+
 export function RevenueShareClient({ products, variants, users }: Props) {
   const [activeTab, setActiveTab] = useState<TabType>('rules')
   
@@ -78,12 +88,9 @@ export function RevenueShareClient({ products, variants, users }: Props) {
   const [filterStartDate, setFilterStartDate] = useState('')
   const [filterEndDate, setFilterEndDate] = useState('')
 
-  // Form states for direct split
-  const [selectedProductCombo, setSelectedProductCombo] = useState('')
+  // Form states for direct split (shopping cart of products)
+  const [selectedProductsList, setSelectedProductsList] = useState<SelectedProduct[]>([])
   const [sharingMethod, setSharingMethod] = useState<'equal' | 'percentage' | 'fixed'>('equal')
-  const [previewPrice, setPreviewPrice] = useState(100000)
-  const [previewQty, setPreviewQty] = useState(1)
-  const [previewDiscount, setPreviewDiscount] = useState(0)
   
   // Recipient tag selection
   const [selectedRecipients, setSelectedRecipients] = useState<{
@@ -146,26 +153,58 @@ export function RevenueShareClient({ products, variants, users }: Props) {
     }
   }, [activeTab, filterProductId, filterUserId, filterOrderCode, filterStartDate, filterEndDate])
 
-  // Helper to resolve the price of the selected product or variant
-  const getSelectedPrice = () => {
-    if (!selectedProductCombo) return 0
-    const parts = selectedProductCombo.split('|')
+  // Add product to the split list
+  const handleAddProduct = (comboValue: string) => {
+    if (!comboValue) return
+    const parts = comboValue.split('|')
     const productId = parts[0]
     const variantId = parts[1] || null
 
+    let name = ''
+    let price = 0
+
     if (variantId) {
-      const variant = variants.find(v => v.id === variantId)
-      if (variant && variant.price !== null) return variant.price
+      const v = variants.find(varItem => varItem.id === variantId)
+      if (v) {
+        name = `${products.find(p => p.id === v.product_id)?.name} - Phân loại: ${v.name}`
+        price = v.price || 0
+      }
+    } else {
+      const p = products.find(prod => prod.id === productId)
+      if (p) {
+        name = p.name
+        price = p.price
+      }
     }
-    const product = products.find(p => p.id === productId)
-    return product ? product.price : 0
+
+    if (!name) return
+
+    setSelectedProductsList([
+      ...selectedProductsList,
+      {
+        id: Math.random().toString(36).substring(7),
+        product_id: variantId ? null : productId,
+        variant_id: variantId,
+        name,
+        amount: price,
+        quantity: 1,
+        discount: 0
+      }
+    ])
   }
 
-  // Update preview price automatically when product selection changes
-  useEffect(() => {
-    const price = getSelectedPrice()
-    setPreviewPrice(price > 0 ? price : 100000)
-  }, [selectedProductCombo])
+  const handleUpdateProductField = (id: string, field: 'amount' | 'quantity' | 'discount', value: number) => {
+    setSelectedProductsList(selectedProductsList.map(p => {
+      if (p.id === id) {
+        return { ...p, [field]: value }
+      }
+      return p
+    }))
+  }
+
+  const handleDeleteProductFromList = (id: string) => {
+    setSelectedProductsList(selectedProductsList.filter(p => p.id !== id))
+  }
 
   // Recipient operations
   const handleToggleUser = (userId: string) => {
@@ -190,9 +229,11 @@ export function RevenueShareClient({ products, variants, users }: Props) {
     }))
   }
 
+  // Calculate total net split cost
+  const totalNetAmount = selectedProductsList.reduce((sum, p) => sum + Math.max(0, (p.amount * p.quantity) - p.discount), 0)
+
   // Live preview calculation helper
   const getPreviewCalculations = () => {
-    const netAmount = Math.max(0, (previewPrice * previewQty) - previewDiscount)
     const results = selectedRecipients.map(r => {
       const user = users.find(u => u.id === r.user_id)
       const name = user ? (user.full_name || user.email) : 'Người dùng ẩn danh'
@@ -202,13 +243,13 @@ export function RevenueShareClient({ products, variants, users }: Props) {
 
       if (sharingMethod === 'equal') {
         displayPct = selectedRecipients.length > 0 ? (100 / selectedRecipients.length) : 0
-        amount = selectedRecipients.length > 0 ? (netAmount / selectedRecipients.length) : 0
+        amount = selectedRecipients.length > 0 ? (totalNetAmount / selectedRecipients.length) : 0
       } else if (sharingMethod === 'percentage') {
         displayPct = r.percentage || 0
-        amount = netAmount * (displayPct / 100)
+        amount = totalNetAmount * (displayPct / 100)
       } else if (sharingMethod === 'fixed') {
-        amount = (r.fixed_amount || 0) * previewQty
-        displayPct = netAmount > 0 ? (amount / netAmount) * 100 : 0
+        amount = r.fixed_amount || 0
+        displayPct = totalNetAmount > 0 ? (amount / totalNetAmount) * 100 : 0
       }
 
       return {
@@ -225,7 +266,6 @@ export function RevenueShareClient({ products, variants, users }: Props) {
       : parseFloat(results.reduce((sum, res) => sum + parseFloat(res.percentage), 0).toFixed(1))
 
     return {
-      netAmount,
       results,
       totalShared,
       totalPercentage
@@ -236,11 +276,11 @@ export function RevenueShareClient({ products, variants, users }: Props) {
 
   // Execute Split Directly
   const handleExecuteSplit = async () => {
-    if (!selectedProductCombo) {
-      return toast.error('Vui lòng chọn sản phẩm hoặc phân loại')
+    if (selectedProductsList.length === 0) {
+      return toast.error('Vui lòng chọn ít nhất một sản phẩm để chia')
     }
     if (selectedRecipients.length === 0) {
-      return toast.error('Vui lòng chọn ít nhất một người nhận')
+      return toast.error('Vui lòng chọn ít nhất một thành viên chia tiền')
     }
 
     if (sharingMethod === 'percentage') {
@@ -256,20 +296,18 @@ export function RevenueShareClient({ products, variants, users }: Props) {
       }
     }
 
-    const parts = selectedProductCombo.split('|')
-    const productId = parts[0]
-    const variantId = parts[1] || null
-
     if (!confirm('Bạn có chắc chắn muốn thực hiện giao dịch chia tiền khấu trừ ví các thành viên ngay lập tức?')) return
 
     setLoading(true)
     const res = await executeDirectCostSplitAction({
-      product_id: variantId ? null : productId,
-      variant_id: variantId,
+      products: selectedProductsList.map(p => ({
+        product_id: p.product_id,
+        variant_id: p.variant_id,
+        amount: p.amount,
+        quantity: p.quantity,
+        discount: p.discount
+      })),
       sharing_method: sharingMethod,
-      amount: previewPrice,
-      quantity: previewQty,
-      discount: previewDiscount,
       recipients: selectedRecipients.map(r => ({
         user_id: r.user_id,
         percentage: sharingMethod === 'percentage' ? r.percentage : null,
@@ -287,11 +325,8 @@ export function RevenueShareClient({ products, variants, users }: Props) {
   }
 
   const handleResetForm = () => {
-    setSelectedProductCombo('')
+    setSelectedProductsList([])
     setSharingMethod('equal')
-    setPreviewPrice(100000)
-    setPreviewQty(1)
-    setPreviewDiscount(0)
     setSelectedRecipients([])
   }
 
@@ -547,20 +582,23 @@ export function RevenueShareClient({ products, variants, users }: Props) {
                 <Coins className="h-5 w-5 text-emerald-600" /> Công cụ Chia tiền Sản phẩm trực tiếp
               </h3>
               <p className="text-xs text-slate-500 mt-1">
-                Lựa chọn sản phẩm, thành viên và phương thức để thực hiện trừ tiền trực tiếp trên ví của các thành viên ngay lập tức.
+                Lựa chọn một hoặc nhiều sản phẩm cần chia chi phí, sau đó thêm thành viên để thực hiện chia tiền khấu trừ ví trực tiếp ngay lập tức.
               </p>
             </div>
 
             <div className="space-y-4">
-              {/* Product combobox dropdown */}
+              {/* Product combobox dropdown (Product Adder) */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700">1. Chọn Sản phẩm hoặc Phân loại cần chia *</label>
+                <label className="text-xs font-bold text-slate-700">1. Chọn các sản phẩm cần chia chi phí (Thêm nhiều sản phẩm) *</label>
                 <select
-                  value={selectedProductCombo}
-                  onChange={(e) => setSelectedProductCombo(e.target.value)}
-                  className="w-full bg-slate-50 border p-3 rounded-xl text-xs font-medium text-slate-700 outline-none focus:border-emerald-500 transition-all"
+                  value=""
+                  onChange={(e) => {
+                    handleAddProduct(e.target.value)
+                    e.target.value = '' // Reset
+                  }}
+                  className="w-full bg-slate-50 border p-3 rounded-xl text-xs font-semibold text-slate-700 outline-none focus:border-emerald-500 transition-all cursor-pointer"
                 >
-                  <option value="">-- Bấm để chọn sản phẩm --</option>
+                  <option value="">-- Bấm để chọn & thêm sản phẩm vào danh sách --</option>
                   {products.map(p => {
                     const productVariants = variants.filter(v => v.product_id === p.id)
                     return (
@@ -579,42 +617,65 @@ export function RevenueShareClient({ products, variants, users }: Props) {
                 </select>
               </div>
 
-              {/* Price adjustments & Method */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700">Mức giá sản phẩm (đ)</label>
-                  <input 
-                    type="number" 
-                    value={previewPrice}
-                    onChange={(e) => setPreviewPrice(Number(e.target.value))}
-                    className="w-full bg-slate-50 border p-2.5 rounded-xl text-xs font-bold outline-none"
-                  />
-                </div>
+              {/* Added products list */}
+              {selectedProductsList.length > 0 && (
+                <div className="space-y-2 pt-2 border border-slate-100 p-4 rounded-2xl bg-slate-50/30">
+                  <span className="text-xs font-bold text-slate-600 block">Sản phẩm đang chọn ({selectedProductsList.length}):</span>
+                  <div className="space-y-3 max-h-[200px] overflow-y-auto pr-1">
+                    {selectedProductsList.map(p => (
+                      <div key={p.id} className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-3 bg-white border rounded-xl shadow-xs">
+                        <div className="font-semibold text-slate-700 text-xs truncate max-w-xs">{p.name}</div>
+                        <div className="flex flex-wrap items-center gap-2 shrink-0 text-[11px]">
+                          <div className="flex items-center gap-1 bg-slate-50 border px-2 py-1 rounded-lg">
+                            <span className="text-[9px] text-slate-400">Đơn giá:</span>
+                            <input 
+                              type="number"
+                              value={p.amount}
+                              onChange={(e) => handleUpdateProductField(p.id, 'amount', Number(e.target.value))}
+                              className="w-16 text-center font-bold text-slate-800 bg-transparent outline-none"
+                            />
+                          </div>
+                          <div className="flex items-center gap-1 bg-slate-50 border px-2 py-1 rounded-lg">
+                            <span className="text-[9px] text-slate-400">SL:</span>
+                            <input 
+                              type="number"
+                              min="1"
+                              value={p.quantity}
+                              onChange={(e) => handleUpdateProductField(p.id, 'quantity', Math.max(1, Number(e.target.value)))}
+                              className="w-8 text-center font-bold text-slate-800 bg-transparent outline-none"
+                            />
+                          </div>
+                          <div className="flex items-center gap-1 bg-slate-50 border px-2 py-1 rounded-lg">
+                            <span className="text-[9px] text-slate-400">Trừ:</span>
+                            <input 
+                              type="number"
+                              min="0"
+                              value={p.discount}
+                              onChange={(e) => handleUpdateProductField(p.id, 'discount', Number(e.target.value))}
+                              className="w-12 text-center font-bold text-slate-800 bg-transparent outline-none"
+                            />
+                          </div>
+                          <button 
+                            type="button"
+                            onClick={() => handleDeleteProductFromList(p.id)}
+                            className="p-1 text-red-500 hover:bg-red-50 rounded transition-colors"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700">Số lượng</label>
-                  <input 
-                    type="number" 
-                    min="1"
-                    value={previewQty}
-                    onChange={(e) => setPreviewQty(Math.max(1, Number(e.target.value)))}
-                    className="w-full bg-slate-50 border p-2.5 rounded-xl text-xs font-bold outline-none text-center"
-                  />
+                  <div className="flex justify-between items-center text-xs font-black text-slate-700 pt-2 border-t border-dashed">
+                    <span>TỔNG CHI PHÍ GỐC:</span>
+                    <span className="text-emerald-700 font-mono text-sm">{totalNetAmount.toLocaleString('vi-VN')}đ</span>
+                  </div>
                 </div>
+              )}
 
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700">Khấu trừ/Giảm giá (đ)</label>
-                  <input 
-                    type="number" 
-                    min="0"
-                    value={previewDiscount}
-                    onChange={(e) => setPreviewDiscount(Number(e.target.value))}
-                    className="w-full bg-slate-50 border p-2.5 rounded-xl text-xs font-bold outline-none text-center"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
+              {/* Method select */}
+              <div className="space-y-1.5 border-t pt-4">
                 <label className="text-xs font-bold text-slate-700">2. Phương thức phân bổ chi phí *</label>
                 <select 
                   value={sharingMethod}
@@ -623,7 +684,7 @@ export function RevenueShareClient({ products, variants, users }: Props) {
                 >
                   <option value="equal">Chia đều (Equal Split)</option>
                   <option value="percentage">Chia theo tỷ lệ %</option>
-                  <option value="fixed">Khấu trừ số tiền cố định</option>
+                  <option value="fixed">Khấu trừ số tiền cố định trực tiếp</option>
                 </select>
               </div>
 
@@ -638,7 +699,7 @@ export function RevenueShareClient({ products, variants, users }: Props) {
                       handleToggleUser(userId)
                     }
                   }}
-                  className="w-full bg-slate-50 border p-3 rounded-xl text-xs outline-none"
+                  className="w-full bg-slate-50 border p-3 rounded-xl text-xs outline-none cursor-pointer"
                 >
                   <option value="">-- Chọn thành viên từ danh sách để thêm --</option>
                   {users
@@ -651,7 +712,7 @@ export function RevenueShareClient({ products, variants, users }: Props) {
                 </select>
               </div>
 
-              {/* Recipients detail configuration */}
+              {/* Recipients list */}
               {selectedRecipients.length > 0 ? (
                 <div className="space-y-4">
                   <span className="text-xs font-bold text-slate-600 block">Thành viên tham gia chia ({selectedRecipients.length}):</span>
@@ -723,7 +784,7 @@ export function RevenueShareClient({ products, variants, users }: Props) {
                     </div>
                   </div>
 
-                  {/* Action submit buttons */}
+                  {/* Submit actions */}
                   <div className="flex gap-3 pt-3 border-t">
                     <button 
                       type="button" 
@@ -735,7 +796,7 @@ export function RevenueShareClient({ products, variants, users }: Props) {
                     <button 
                       type="button" 
                       onClick={handleExecuteSplit}
-                      disabled={loading}
+                      disabled={loading || selectedProductsList.length === 0}
                       className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
                     >
                       {loading ? <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : null}
@@ -759,19 +820,19 @@ export function RevenueShareClient({ products, variants, users }: Props) {
               </h4>
               <ul className="list-decimal list-inside text-xs text-slate-500 space-y-3 leading-relaxed">
                 <li>
-                  Chọn sản phẩm cần chia chi phí từ danh sách (hoặc gõ số tiền trực tiếp vào ô giá).
+                  Nhấp vào menu **"Chọn các sản phẩm cần chia"** để thêm một hoặc nhiều sản phẩm cần chia vào danh sách.
                 </li>
                 <li>
-                  Thêm các thành viên tham gia gánh chi phí này.
+                  Mỗi sản phẩm được thêm có thể chỉnh sửa thủ công số lượng, đơn giá và chiết khấu ngay tại danh sách.
+                </li>
+                <li>
+                  Thêm các thành viên tham gia gánh chi phí và chọn phương thức phân bổ.
                 </li>
                 <li>
                   Xem trước bảng tính phân bổ ở ô màu xanh để kiểm tra số tiền sẽ khấu trừ của từng người.
                 </li>
                 <li>
                   Nhấn **"Thực hiện chia tiền ngay"**. Hệ thống sẽ ngay lập tức trừ số dư ví của các thành viên này và tạo nhật ký giao dịch.
-                </li>
-                <li>
-                  Nếu chia nhầm, bạn có thể sang tab **"Lịch sử thực tế"** và nhấn **"Thu hồi"** để hoàn trả lại tiền cho mọi người.
                 </li>
               </ul>
             </div>
