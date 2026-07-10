@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Package, Users, ShoppingBag, LayoutDashboard, Settings, CreditCard, LogOut, Tags, Search, Bell, Calendar, ChevronDown, Ticket, BarChart3, Archive, UserCog, Menu } from 'lucide-react'
+import { Package, Users, ShoppingBag, LayoutDashboard, Settings, CreditCard, LogOut, Tags, Search, Bell, Calendar, ChevronDown, Ticket, BarChart3, Archive, UserCog, Menu, Percent } from 'lucide-react'
 import { logout } from '@/app/login/actions'
 import { Button } from '@/components/ui/button'
 import { createClient } from '@/lib/supabase/server'
@@ -12,15 +12,17 @@ const sidebarLinks = [
   { name: 'Đơn hàng', href: '/admin/orders', icon: ShoppingBag },
   { name: 'Khách hàng', href: '/admin/users', icon: Users },
   { name: 'Duyệt nạp tiền', href: '/admin/topups', icon: CreditCard },
+  { name: 'Chia tiền sản phẩm', href: '/admin/revenue-share', icon: Percent },
 ]
 
-const mobileSidebarLinks: { name: string; href: string; iconName: 'LayoutDashboard' | 'Package' | 'Tags' | 'ShoppingBag' | 'Users' | 'CreditCard' }[] = [
+const mobileSidebarLinks: { name: string; href: string; iconName: 'LayoutDashboard' | 'Package' | 'Tags' | 'ShoppingBag' | 'Users' | 'CreditCard' | 'Percent' }[] = [
   { name: 'Dashboard', href: '/admin', iconName: 'LayoutDashboard' },
   { name: 'Sản phẩm', href: '/admin/products', iconName: 'Package' },
   { name: 'Danh mục', href: '/admin/categories', iconName: 'Tags' },
   { name: 'Đơn hàng', href: '/admin/orders', iconName: 'ShoppingBag' },
   { name: 'Khách hàng', href: '/admin/users', iconName: 'Users' },
   { name: 'Duyệt nạp tiền', href: '/admin/topups', iconName: 'CreditCard' },
+  { name: 'Chia tiền sản phẩm', href: '/admin/revenue-share', iconName: 'Percent' },
 ]
 
 export default async function AdminLayout({

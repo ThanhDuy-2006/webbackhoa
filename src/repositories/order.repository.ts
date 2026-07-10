@@ -78,6 +78,23 @@ export const OrderRepository = {
       return { success: false, error: error.message }
     }
 
+    // Trigger Revenue Sharing RPC transactions on status change
+    if (status === 'completed') {
+      const { data: rpcRes, error: rpcError } = await supabase.rpc('process_order_revenue_sharing', { p_order_id: id })
+      if (rpcError) {
+        console.error('Lỗi khi chạy RPC chia tiền sản phẩm:', rpcError)
+      } else {
+        console.log('Kết quả chia tiền sản phẩm:', rpcRes)
+      }
+    } else if (status === 'refunded' || status === 'cancelled') {
+      const { data: rpcRes, error: rpcError } = await supabase.rpc('reverse_order_revenue_sharing', { p_order_id: id })
+      if (rpcError) {
+        console.error('Lỗi khi chạy RPC đảo ngược tiền chia sản phẩm:', rpcError)
+      } else {
+        console.log('Kết quả đảo ngược tiền chia sản phẩm:', rpcRes)
+      }
+    }
+
     return { success: true, data: (data as any) as Order }
   }
 }
