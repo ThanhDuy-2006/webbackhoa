@@ -50,6 +50,17 @@ CREATE TABLE IF NOT EXISTS public.product_revenue_rules (
   constraint unique_variant_rule unique (variant_id)
 );
 
+-- Đảm bảo các cột mới tồn tại trong trường hợp bảng đã được khởi tạo trước đó
+ALTER TABLE public.product_revenue_rules ADD COLUMN IF NOT EXISTS version integer default 1 not null;
+ALTER TABLE public.product_revenue_rules ADD COLUMN IF NOT EXISTS approved_by uuid references public.profiles(id) on delete set null;
+ALTER TABLE public.product_revenue_rules ADD COLUMN IF NOT EXISTS approved_at timestamp with time zone;
+ALTER TABLE public.product_revenue_rules ADD COLUMN IF NOT EXISTS deleted_at timestamp with time zone;
+
+-- Cập nhật Ràng buộc trạng thái cho bảng product_revenue_rules
+ALTER TABLE public.product_revenue_rules DROP CONSTRAINT IF EXISTS product_revenue_rules_status_check;
+ALTER TABLE public.product_revenue_rules ADD CONSTRAINT product_revenue_rules_status_check check (status in ('draft', 'pending_approval', 'approved', 'active', 'paused', 'expired', 'archived'));
+
+
 -- 5. Tạo bảng Người nhận chia sẻ của Luật (Bảo đảm tính duy nhất của recipient)
 CREATE TABLE IF NOT EXISTS public.product_revenue_recipients (
   id uuid default uuid_generate_v4() primary key,
