@@ -16,14 +16,14 @@ async function verifyUserRole() {
     .eq('id', user.id)
     .single()
 
-  if (!profile || (profile.role !== 'admin' && profile.revenue_role === 'none')) {
-    throw new Error('Không có quyền truy cập')
+  if (!profile) {
+    throw new Error('Không tìm thấy thông tin tài khoản')
   }
 
-  // Fallback existing admin users to super_admin
-  const resolvedRole = profile.revenue_role && profile.revenue_role !== 'none'
-    ? profile.revenue_role
-    : (profile.role === 'admin' ? 'super_admin' : 'none')
+  // Force super_admin access if system role is 'admin'
+  const resolvedRole = profile.role === 'admin'
+    ? 'super_admin'
+    : (profile.revenue_role && profile.revenue_role !== 'none' ? profile.revenue_role : 'none')
 
   if (resolvedRole === 'none') {
     throw new Error('Không có quyền truy cập module chia sẻ doanh thu')
