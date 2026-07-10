@@ -1,8 +1,11 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
+import { ThemeProvider } from '@/components/theme-provider'
+import { FloatingChat } from '@/components/chat/FloatingChat'
 import { Toaster } from '@/components/ui/sonner'
 import { PwaRegister } from '@/components/pwa/PwaRegister'
+import { OfflineAlert } from '@/components/pwa/OfflineAlert'
 
 const inter = Inter({ subsets: ['latin', 'vietnamese'] })
 
@@ -32,10 +35,19 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="vi" suppressHydrationWarning>
-      <body className={`${inter.className} antialiased min-h-screen bg-slate-50 dark:bg-slate-950`}>
-        <PwaRegister />
-        {children}
-        <Toaster position="top-center" richColors />
+      <body className={`${inter.className} antialiased min-h-screen bg-slate-50`}>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="light"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <PwaRegister />
+          {children}
+          <OfflineAlert />
+          <FloatingChat />
+          <Toaster position="top-center" richColors />
+        </ThemeProvider>
       </body>
     </html>
   )

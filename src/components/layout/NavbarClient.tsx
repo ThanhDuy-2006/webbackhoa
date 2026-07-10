@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { ShoppingCart, User as UserIcon, LogOut, Menu, Package, Settings, Wallet, ShoppingBag, Home, Tag } from 'lucide-react'
+import { ShoppingCart, User as UserIcon, LogOut, Menu, Package, Settings, Wallet, ShoppingBag, Home, Tag, Sun, Moon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -20,6 +20,7 @@ import { useCartStore } from '@/store/useCartStore'
 import { CartSheet } from './CartSheet'
 import { cn } from '@/lib/utils'
 import { StorefrontSearch } from './StorefrontSearch'
+import { useTheme } from 'next-themes'
 
 import { useState, useEffect } from 'react'
 import { User } from '@supabase/supabase-js'
@@ -35,6 +36,7 @@ export function NavbarClient({ user, profile }: NavbarClientProps) {
   const cartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0)
   const [isScrolled, setIsScrolled] = useState(false)
   const pathname = usePathname()
+  const { theme, setTheme } = useTheme()
 
   useEffect(() => {
     const handleScroll = () => {
@@ -87,14 +89,27 @@ export function NavbarClient({ user, profile }: NavbarClientProps) {
             </Link>
           )}
 
+          {/* Theme Toggle Button */}
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} 
+            className="hover:bg-slate-100 rounded-full h-11 w-11 transition-colors relative cursor-pointer"
+            style={{ minWidth: '44px', minHeight: '44px' }}
+          >
+            <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0 text-slate-700 dark:text-slate-200 animate-in fade-in" />
+            <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100 text-slate-700 dark:text-slate-200 animate-in fade-in" />
+            <span className="sr-only">Chế độ tối</span>
+          </Button>
+
           <Button 
             variant="ghost" 
             size="icon" 
             onClick={() => setIsOpen(true)} 
-            className="relative hover:bg-slate-100 rounded-full h-11 w-11 transition-colors hidden lg:flex"
+            className="relative hover:bg-slate-100 rounded-full h-11 w-11 transition-colors hidden lg:flex cursor-pointer"
             style={{ minWidth: '44px', minHeight: '44px' }}
           >
-            <ShoppingCart className="h-5 w-5 text-slate-700" />
+            <ShoppingCart className="h-5 w-5 text-slate-700 dark:text-slate-200" />
             {cartCount > 0 && (
               <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
                 {cartCount}

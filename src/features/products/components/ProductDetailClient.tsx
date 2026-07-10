@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { ShoppingCart, Star, Heart, Check, ChevronLeft, ChevronRight } from 'lucide-react'
@@ -8,6 +8,9 @@ import { cn } from '@/lib/utils'
 import { useCartStore } from '@/store/useCartStore'
 import { toggleWishlist } from '@/actions/user/wishlist.actions'
 import { toast } from 'sonner'
+import { addRecentlyViewed } from '@/components/products/RecentlyViewed'
+import { createClient } from '@/lib/supabase/client'
+import { ProductCard } from './ProductCard'
 
 interface ProductDetailClientProps {
   product: any
@@ -17,6 +20,28 @@ interface ProductDetailClientProps {
 
 export function ProductDetailClient({ product, variants, initialFavorited = false }: ProductDetailClientProps) {
   const { addItem, setIsOpen } = useCartStore()
+  const [recommended, setRecommended] = useState<any[]>([])
+
+  useEffect(() => {
+    addRecentlyViewed(product)
+  }, [product])
+
+  useEffect(() => {
+    const fetchRecommended = async () => {
+      const supabase = createClient()
+      const { data } = await supabase
+        .from('products')
+        .select('*')
+        .eq('category_id', product.category_id)
+        .neq('id', product.id)
+        .eq('is_active', true)
+        .limit(4)
+      if (data) {
+        setRecommended(data)
+      }
+    }
+    fetchRecommended()
+  }, [product])
   
   const images = product.images && product.images.length > 0 ? product.images : (product.image_url ? [product.image_url] : [])
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
@@ -318,6 +343,20 @@ export function ProductDetailClient({ product, variants, initialFavorited = fals
           Mua ngay
         </Button>
       </div>
+
+      {/* Recommended Products */}
+      {recommended.length > 0 && (
+        <div className="mt-16 space-y-6 pb-24 md:pb-0">
+          <h3 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-slate-100 border-b pb-3 border-slate-100 dark:border-slate-800">
+            Sản phẩm tương tự
+          </h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
+            {recommended.map((item) => (
+              <ProductCard key={item.id} product={item} />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
