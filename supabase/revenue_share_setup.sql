@@ -1,3 +1,21 @@
+-- 0. TỰ ĐỘNG KHỞI TẠO BẢNG PHÂN LOẠI (PRODUCT VARIANTS) NẾU CHƯA TỒN TẠI
+CREATE TABLE IF NOT EXISTS public.product_variants (
+  id uuid default uuid_generate_v4() primary key,
+  product_id uuid references public.products(id) on delete cascade not null,
+  sku text,
+  name text not null,
+  price numeric(12,2) check (price >= 0),
+  stock integer default 0 check (stock >= 0),
+  image_url text,
+  is_active boolean default true,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  updated_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- Thêm các cột liên quan đến phân loại vào bảng order_items
+ALTER TABLE public.order_items ADD COLUMN IF NOT EXISTS variant_id uuid references public.product_variants(id) on delete set null;
+ALTER TABLE public.order_items ADD COLUMN IF NOT EXISTS variant_name text;
+
 -- 1. Cập nhật Ràng buộc type của wallet_transactions
 ALTER TABLE public.wallet_transactions DROP CONSTRAINT IF EXISTS wallet_transactions_type_check;
 ALTER TABLE public.wallet_transactions ADD CONSTRAINT wallet_transactions_type_check CHECK (type IN ('topup', 'payment', 'refund', 'adjustment', 'revenue_share', 'revenue_share_reversal'));
