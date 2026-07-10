@@ -130,13 +130,14 @@ export function UserOrderList({ initialData, total, shares = [] }: UserOrderList
                         <Button 
                           variant="outline" 
                           size="sm"
+                          className="w-24"
                           onClick={() => {
                             setSelectedOrder(order)
                             setIsDetailOpen(true)
                           }}
                         >
                           <Eye className="h-4 w-4 mr-2" />
-                          Xem
+                          Chi tiết
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -166,6 +167,7 @@ export function UserOrderList({ initialData, total, shares = [] }: UserOrderList
                         <Button 
                           variant="outline" 
                           size="sm"
+                          className="w-24"
                           onClick={() => {
                             router.push('/tai-khoan/chia-tien')
                           }}
