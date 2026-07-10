@@ -270,7 +270,7 @@ BEGIN
 
     -- 9. Thực hiện chia tiền cho từng người nhận
     FOR v_recipient IN 
-      SELECT pr.user_id, pr.percentage, pr.fixed_amount, p.full_name, p.wallet_balance
+      SELECT pr.user_id, pr.percentage, pr.fixed_amount, p.full_name, p.balance
       FROM public.product_revenue_recipients pr
       JOIN public.profiles p ON p.id = pr.user_id
       WHERE pr.rule_id = v_rule.id
@@ -295,7 +295,7 @@ BEGIN
 
       -- Cập nhật số dư ví người nhận (Khấu trừ ví thành viên chia sẻ chi phí sản phẩm)
       UPDATE public.profiles 
-      SET wallet_balance = COALESCE(wallet_balance, 0) - v_share_amount
+      SET balance = COALESCE(balance, 0) - v_share_amount
       WHERE id = v_recipient.user_id;
 
       -- Tạo lịch sử ví (wallet_transactions - Khấu trừ số dư nên ghi âm)
@@ -311,8 +311,8 @@ BEGIN
         v_recipient.user_id,
         'revenue_share',
         -v_share_amount,
-        COALESCE(v_recipient.wallet_balance, 0),
-        COALESCE(v_recipient.wallet_balance, 0) - v_share_amount,
+        COALESCE(v_recipient.balance, 0),
+        COALESCE(v_recipient.balance, 0) - v_share_amount,
         p_order_id,
         CASE 
           WHEN v_rule.sharing_method = 'percentage' THEN 'Trừ tiền chia sẻ ' || v_recipient.percentage || '% chi phí sản phẩm ' || v_product_name || ': -' || to_char(v_share_amount, 'FM999,999,999') || 'đ (Đơn ' || v_order_code || ')'
@@ -478,7 +478,7 @@ BEGIN
 
   -- 4. Tìm tất cả các giao dịch đã chia thành công chưa đảo ngược cho đơn hàng này
   FOR v_share IN 
-    SELECT s.*, p.wallet_balance, p.full_name as recipient_name
+    SELECT s.*, p.balance, p.full_name as recipient_name
     FROM public.product_revenue_shares s
     JOIN public.order_items oi ON oi.id = s.order_item_id
     JOIN public.profiles p ON p.id = s.recipient_id
@@ -492,7 +492,7 @@ BEGIN
 
     -- Khấu trừ tiền trong ví người nhận
     UPDATE public.profiles 
-    SET wallet_balance = COALESCE(wallet_balance, 0) - v_share.amount
+    SET balance = COALESCE(balance, 0) - v_share.amount
     WHERE id = v_share.recipient_id;
 
     -- Tạo lịch sử ví giao dịch thu hồi (Hoàn trả lại tiền đã trừ trước đó nên ghi dương)
@@ -508,8 +508,8 @@ BEGIN
       v_share.recipient_id,
       'revenue_share_reversal',
       -v_share.amount,
-      COALESCE(v_share.wallet_balance, 0),
-      COALESCE(v_share.wallet_balance, 0) - v_share.amount,
+      COALESCE(v_share.balance, 0),
+      COALESCE(v_share.balance, 0) - v_share.amount,
       p_order_id,
       'Hoàn tiền chia sẻ chi phí sản phẩm ' || v_share.product_name_snapshot || ' do đơn hàng bị hoàn/hủy: +' || to_char(ABS(v_share.amount), 'FM999,999,999') || 'đ (Đơn ' || v_order_code || ')'
     ) RETURNING id INTO v_tx_id;
@@ -614,7 +614,7 @@ BEGIN
   END IF;
 
   -- 2. Khóa dòng chia sẻ để tránh xử lý đồng thời chéo
-  SELECT s.*, p.wallet_balance, p.full_name as recipient_name
+  SELECT s.*, p.balance, p.full_name as recipient_name
   INTO v_share
   FROM public.product_revenue_shares s
   JOIN public.profiles p ON p.id = s.recipient_id
@@ -632,7 +632,7 @@ BEGIN
 
   -- 4. Khấu trừ tiền trong ví người nhận
   UPDATE public.profiles 
-  SET wallet_balance = COALESCE(wallet_balance, 0) - v_share.amount
+  SET balance = COALESCE(balance, 0) - v_share.amount
   WHERE id = v_share.recipient_id;
 
   -- 5. Tạo lịch sử ví giao dịch thu hồi (Hoàn trả lại tiền đã trừ trước đó nên ghi dương)
@@ -648,8 +648,8 @@ BEGIN
     v_share.recipient_id,
     'revenue_share_reversal',
     -v_share.amount,
-    COALESCE(v_share.wallet_balance, 0),
-    COALESCE(v_share.wallet_balance, 0) - v_share.amount,
+    COALESCE(v_share.balance, 0),
+    COALESCE(v_share.balance, 0) - v_share.amount,
     null,
     'Hoàn tiền chia sẻ chi phí sản phẩm thủ công ' || v_share.product_name_snapshot || ' bởi Super Admin ' || v_admin_name || ': +' || to_char(ABS(v_share.amount), 'FM999,999,999') || 'đ (Đơn ' || v_share.order_code_snapshot || ')'
   ) RETURNING id INTO v_tx_id;

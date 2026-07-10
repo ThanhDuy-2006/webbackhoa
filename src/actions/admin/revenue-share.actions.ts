@@ -851,17 +851,17 @@ export async function executeDirectCostSplitAction(data: {
       // Lock recipient wallet balance
       const { data: profile } = await supabase
         .from('profiles')
-        .select('wallet_balance, full_name, email')
+        .select('balance, full_name, email')
         .eq('id', r.user_id)
         .single()
 
-      const currentBalance = profile ? (profile.wallet_balance || 0) : 0
+      const currentBalance = profile ? (profile.balance || 0) : 0
       const recipientName = profile ? (profile.full_name || profile.email) : 'Thành viên'
 
       // Deduct wallet balance
       const { error: wError } = await supabase
         .from('profiles')
-        .update({ wallet_balance: currentBalance - shareAmount })
+        .update({ balance: currentBalance - shareAmount })
         .eq('id', r.user_id)
 
       if (wError) throw wError
