@@ -144,6 +144,27 @@ export function RevenueShareClient({ products, variants, users, initialRules }: 
   const [previewQty, setPreviewQty] = useState(1)
   const [previewDiscount, setPreviewDiscount] = useState(0)
 
+  // Helper to resolve the price of the selected product or variant
+  const getSelectedPrice = () => {
+    if (!selectedProductCombo) return 0
+    const parts = selectedProductCombo.split('|')
+    const productId = parts[0]
+    const variantId = parts[1] || null
+
+    if (variantId) {
+      const variant = variants.find(v => v.id === variantId)
+      if (variant && variant.price !== null) return variant.price
+    }
+    const product = products.find(p => p.id === productId)
+    return product ? product.price : 0
+  }
+
+  // Update preview price automatically when product selection changes
+  useEffect(() => {
+    const price = getSelectedPrice()
+    setPreviewPrice(price > 0 ? price : 100000)
+  }, [selectedProductCombo])
+
   // Fetch initial configs, roles, stats
   const initializeClientData = async () => {
     setLoading(true)
@@ -1537,15 +1558,41 @@ export function RevenueShareClient({ products, variants, users, initialRules }: 
                   </div>
 
                   {/* Inline quick preview summary */}
-                  <div className="bg-emerald-50/50 p-3.5 rounded-xl border border-emerald-100 text-xs text-emerald-800 space-y-1">
-                    <div className="flex justify-between font-bold">
-                      <span>Xem trước phân bổ (giả định 100k/sp):</span>
-                      <span>{preview.totalShared.toLocaleString('vi-VN')}đ ({preview.totalPercentage}%)</span>
+                  <div className="bg-emerald-50/50 p-3.5 rounded-xl border border-emerald-100 text-xs text-emerald-800 space-y-2">
+                    <div className="flex justify-between font-bold items-center border-b pb-1.5 border-emerald-100">
+                      <span>Xem trước phân bổ (Giá: {previewPrice.toLocaleString('vi-VN')}đ/sp):</span>
+                      <span className="font-mono">{preview.totalShared.toLocaleString('vi-VN')}đ ({preview.totalPercentage}%)</span>
                     </div>
-                    <div className="text-[10px] text-slate-400 leading-normal pt-1">
+
+                    {/* Optional quick adjustment controls */}
+                    <div className="grid grid-cols-2 gap-3 text-[10px] text-slate-500 pt-0.5">
+                      <div className="flex items-center gap-1">
+                        <span>Số lượng:</span>
+                        <input 
+                          type="number" 
+                          min="1" 
+                          value={previewQty}
+                          onChange={(e) => setPreviewQty(Math.max(1, Number(e.target.value)))}
+                          className="w-10 bg-white border rounded px-1 text-center font-bold text-slate-700 outline-none"
+                        />
+                      </div>
+                      <div className="flex items-center gap-1 justify-end">
+                        <span>Khấu trừ (chiết khấu):</span>
+                        <input 
+                          type="number" 
+                          min="0" 
+                          step="1000"
+                          value={previewDiscount}
+                          onChange={(e) => setPreviewDiscount(Math.max(0, Number(e.target.value)))}
+                          className="w-16 bg-white border rounded px-1 text-center font-bold text-slate-700 outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="text-[10px] text-slate-400 leading-normal pt-1.5 border-t border-dashed border-emerald-200">
                       {preview.results.map((res, i) => (
                         <span key={res.userId}>
-                          {i > 0 && ', '}{res.name}: +{res.amount.toLocaleString()}đ ({res.percentage})
+                          {i > 0 && ', '}{res.name}: +{res.amount.toLocaleString('vi-VN')}đ ({res.percentage})
                         </span>
                       ))}
                     </div>
