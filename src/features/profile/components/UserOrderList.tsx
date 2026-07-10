@@ -28,6 +28,7 @@ import { OrderDetailDialog } from '@/features/admin/orders/components/OrderDetai
 interface UserOrderListProps {
   initialData: Order[]
   total: number
+  shares?: any[]
 }
 
 const ORDER_STATUS_MAP: Record<string, { label: string; color: string }> = {
@@ -45,12 +46,17 @@ const PAYMENT_STATUS_MAP: Record<string, { label: string; color: string }> = {
   refunded: { label: 'Đã hoàn tiền', color: 'text-gray-600' },
 }
 
-export function UserOrderList({ initialData, total }: UserOrderListProps) {
+export function UserOrderList({ initialData, total, shares = [] }: UserOrderListProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
+
+  const unifiedList = [
+    ...initialData.map(o => ({ type: 'order', data: o, date: new Date(o.created_at).getTime() })),
+    ...shares.map(s => ({ type: 'share', data: s, date: new Date(s.created_at).getTime() }))
+  ].sort((a, b) => b.date - a.date)
 
   return (
     <div className="space-y-4">
@@ -91,47 +97,87 @@ export function UserOrderList({ initialData, total }: UserOrderListProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {initialData.length === 0 ? (
+            {unifiedList.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center h-32 text-slate-500">
-                  Bạn chưa có đơn hàng nào
+                  Bạn chưa có đơn hàng hoặc khấu trừ nào
                 </TableCell>
               </TableRow>
             ) : (
-              initialData.map((order) => (
-                <TableRow key={order.id}>
-                  <TableCell className="font-medium text-emerald-600">{order.order_code}</TableCell>
-                  <TableCell>
-                    {format(new Date(order.created_at), 'dd/MM/yyyy HH:mm', { locale: vi })}
-                  </TableCell>
-                  <TableCell className="font-medium">
-                    {order.final_amount.toLocaleString('vi-VN')} VND
-                  </TableCell>
-                  <TableCell>
-                    <span className={`text-sm font-medium ${PAYMENT_STATUS_MAP[order.payment_status]?.color}`}>
-                      {PAYMENT_STATUS_MAP[order.payment_status]?.label}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className={ORDER_STATUS_MAP[order.status]?.color}>
-                      {ORDER_STATUS_MAP[order.status]?.label}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => {
-                        setSelectedOrder(order)
-                        setIsDetailOpen(true)
-                      }}
-                    >
-                      <Eye className="h-4 w-4 mr-2" />
-                      Xem
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))
+              unifiedList.map((item) => {
+                if (item.type === 'order') {
+                  const order = item.data;
+                  return (
+                    <TableRow key={`order-${order.id}`}>
+                      <TableCell className="font-medium text-emerald-600">{order.order_code}</TableCell>
+                      <TableCell>
+                        {format(new Date(order.created_at), 'dd/MM/yyyy HH:mm', { locale: vi })}
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        {order.final_amount.toLocaleString('vi-VN')} VND
+                      </TableCell>
+                      <TableCell>
+                        <span className={`text-sm font-medium ${PAYMENT_STATUS_MAP[order.payment_status]?.color}`}>
+                          {PAYMENT_STATUS_MAP[order.payment_status]?.label}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={ORDER_STATUS_MAP[order.status]?.color}>
+                          {ORDER_STATUS_MAP[order.status]?.label}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => {
+                            setSelectedOrder(order)
+                            setIsDetailOpen(true)
+                          }}
+                        >
+                          <Eye className="h-4 w-4 mr-2" />
+                          Xem
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  )
+                } else {
+                  const share = item.data;
+                  return (
+                    <TableRow key={`share-${share.id}`} className="bg-red-50/40">
+                      <TableCell className="font-medium text-red-600">{share.order_code_snapshot || 'KHẤU TRỪ'}</TableCell>
+                      <TableCell>
+                        {format(new Date(share.created_at), 'dd/MM/yyyy HH:mm', { locale: vi })}
+                      </TableCell>
+                      <TableCell className="font-medium text-red-600">
+                        {share.amount < 0 ? share.amount.toLocaleString('vi-VN') : '+' + share.amount.toLocaleString('vi-VN')} VND
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm font-medium text-red-600">
+                          Trừ vào ví
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="bg-red-100 text-red-800 border-red-200">
+                          {share.status === 'reversed' ? 'Đã hoàn' : 'Khấu trừ'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => {
+                            router.push('/tai-khoan/chia-tien')
+                          }}
+                        >
+                          <Eye className="h-4 w-4 mr-2" />
+                          Chi tiết
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  )
+                }
+              })
             )}
           </TableBody>
         </Table>
