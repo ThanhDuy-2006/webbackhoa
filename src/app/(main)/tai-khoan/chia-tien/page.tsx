@@ -52,7 +52,7 @@ export default function UserRevenueSharePage() {
     return (
       <div className="py-24 flex flex-col items-center justify-center text-slate-400 text-sm bg-white rounded-2xl border">
         <Loader2 className="h-8 w-8 animate-spin text-emerald-600 mb-2" />
-        Đang tải thông tin chia sẻ doanh thu...
+        Đang tải thông tin khấu trừ chi phí...
       </div>
     )
   }
