@@ -727,6 +727,7 @@ END;
 $$;
 
 -- 13. Cấp quyền truy cập bảng cho các tài khoản API Supabase (anon, authenticated, service_role)
+GRANT ALL PRIVILEGES ON TABLE public.product_variants TO postgres, service_role, authenticated;
 GRANT ALL PRIVILEGES ON TABLE public.product_revenue_rules TO postgres, service_role, authenticated;
 GRANT ALL PRIVILEGES ON TABLE public.product_revenue_recipients TO postgres, service_role, authenticated;
 GRANT ALL PRIVILEGES ON TABLE public.product_revenue_shares TO postgres, service_role, authenticated;
