@@ -52,11 +52,22 @@ export async function deleteProductAction(id: string) {
     await ProductService.deleteProduct(id)
     revalidatePath('/admin/products')
     revalidatePath('/')
-    revalidatePath('/')
     return { success: true }
   } catch (err: unknown) {
     const error = err as any;
     return { success: false, error: error?.message || 'Có lỗi xảy ra khi xóa sản phẩm' }
+  }
+}
+
+export async function bulkDeleteProductsAction(ids: string[]) {
+  try {
+    await ProductService.bulkDeleteProducts(ids)
+    revalidatePath('/admin/products')
+    revalidatePath('/')
+    return { success: true }
+  } catch (err: unknown) {
+    const error = err as any;
+    return { success: false, error: error?.message || 'Có lỗi xảy ra khi xóa danh sách sản phẩm' }
   }
 }
 

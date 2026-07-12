@@ -28,8 +28,9 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Pencil, Trash2, Plus, Search, Coins, X, Check } from 'lucide-react'
-import { deleteProductAction } from '@/actions/admin/product.actions'
+import { deleteProductAction, bulkDeleteProductsAction } from '@/actions/admin/product.actions'
 import { executeDirectCostSplitAction } from '@/actions/admin/revenue-share.actions'
+import { Checkbox } from '@/components/ui/checkbox'
 import { toast } from 'sonner'
 import { Input } from '@/components/ui/input'
 import { useRouter } from 'next/navigation'
@@ -80,6 +81,10 @@ export function ProductList({ initialProducts, totalCount, currentPage, searchTe
   const [shareRecipients, setShareRecipients] = useState<Array<{user_id: string, percentage?: number, fixed_amount?: number}>>([])
   const [shareLoading, setShareLoading] = useState(false)
 
+  // Bulk Delete State
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false)
+
   useEffect(() => {
     setProducts(initialProducts)
   }, [initialProducts])
@@ -105,6 +110,39 @@ export function ProductList({ initialProducts, totalCount, currentPage, searchTe
     if (searchInput) searchParams.set('search', searchInput)
     if (selectedCategory && selectedCategory !== 'all') searchParams.set('category', selectedCategory)
     router.push(`/admin/products?${searchParams.toString()}`)
+  }
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedIds(products.map(p => p.id))
+    } else {
+      setSelectedIds([])
+    }
+  }
+
+  const handleSelectProduct = (id: string, checked: boolean) => {
+    if (checked) {
+      setSelectedIds(prev => [...prev, id])
+    } else {
+      setSelectedIds(prev => prev.filter(item => item !== id))
+    }
+  }
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return
+    if (!confirm(`Bạn có chắc chắn muốn xóa ${selectedIds.length} sản phẩm đã chọn?`)) return
+    
+    setIsBulkDeleting(true)
+    const result = await bulkDeleteProductsAction(selectedIds)
+    setIsBulkDeleting(false)
+    
+    if (result.success) {
+      toast.success('Xóa danh sách sản phẩm thành công')
+      setProducts(products.filter(p => !selectedIds.includes(p.id)))
+      setSelectedIds([])
+    } else {
+      toast.error(result.error)
+    }
   }
 
   const handleCategoryChange = (value: string | null) => {
@@ -203,6 +241,17 @@ export function ProductList({ initialProducts, totalCount, currentPage, searchTe
               </SelectContent>
             </Select>
           )}
+          {selectedIds.length > 0 && (
+            <Button 
+              variant="destructive" 
+              onClick={handleBulkDelete} 
+              disabled={isBulkDeleting}
+              className="rounded-xl shadow-sm transition-all"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Xóa ({selectedIds.length})
+            </Button>
+          )}
         </div>
         <div className="space-x-2 flex">
           <Link href="/admin/products/import" passHref legacyBehavior>
@@ -223,6 +272,12 @@ export function ProductList({ initialProducts, totalCount, currentPage, searchTe
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-[50px]">
+                <Checkbox 
+                  checked={products.length > 0 && selectedIds.length === products.length}
+                  onCheckedChange={(checked) => handleSelectAll(checked as boolean)}
+                />
+              </TableHead>
               <TableHead>Hình ảnh</TableHead>
               <TableHead>Tên sản phẩm</TableHead>
               <TableHead>Danh mục</TableHead>
@@ -235,13 +290,19 @@ export function ProductList({ initialProducts, totalCount, currentPage, searchTe
           <TableBody>
             {products.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center h-24 text-slate-500">
+                <TableCell colSpan={8} className="text-center h-24 text-slate-500">
                   Không tìm thấy sản phẩm nào.
                 </TableCell>
               </TableRow>
             ) : (
               products.map((product) => (
                 <TableRow key={product.id}>
+                  <TableCell>
+                    <Checkbox 
+                      checked={selectedIds.includes(product.id)}
+                      onCheckedChange={(checked) => handleSelectProduct(product.id, checked as boolean)}
+                    />
+                  </TableCell>
                   <TableCell>
                     {product.image_url ? (
                       <AdminProductRowImage src={product.image_url} alt={product.name} />

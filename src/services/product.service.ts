@@ -84,5 +84,9 @@ export const ProductService = {
 
   async deleteProduct(id: string) {
     return await ProductRepository.softDeleteProduct(id)
+  },
+
+  async bulkDeleteProducts(ids: string[]) {
+    return await ProductRepository.bulkSoftDeleteProducts(ids)
   }
 }

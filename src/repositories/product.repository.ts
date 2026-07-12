@@ -239,5 +239,15 @@ export const ProductRepository = {
       .eq('id', id)
 
     if (error) throw error
+  },
+
+  async bulkSoftDeleteProducts(ids: string[]) {
+    const supabase = createAdminClient()
+    const { error } = await supabase
+      .from('products')
+      .update({ is_deleted: true, deleted_at: new Date().toISOString(), is_active: false })
+      .in('id', ids)
+
+    if (error) throw error
   }
 }
