@@ -7,6 +7,7 @@ import { ShoppingCart, Eye } from 'lucide-react'
 import { useCartStore } from '@/store/useCartStore'
 import { toast } from 'sonner'
 import { useState } from 'react'
+import { motion, Variants } from 'framer-motion'
 import { QuickViewSheet } from '@/components/products/QuickViewSheet'
 import { ProgressiveImage } from '@/components/ui/ProgressiveImage'
 
@@ -22,9 +23,16 @@ interface ProductCardProps {
     stock: number
     description?: string | null
   }
+  index?: number
+  priority?: boolean
 }
 
-export function ProductCard({ product }: ProductCardProps) {
+const itemVariants: Variants = {
+  hidden: { opacity: 0, y: 30 },
+  show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } }
+}
+
+export function ProductCard({ product, index = 0, priority = false }: ProductCardProps) {
   const { addItem } = useCartStore()
   const [isQuickViewOpen, setIsQuickViewOpen] = useState(false)
   const isOutOfStock = product.stock <= 0
@@ -49,15 +57,17 @@ export function ProductCard({ product }: ProductCardProps) {
 
   return (
     <>
-      <Card className="group overflow-hidden rounded-2xl border-transparent shadow-[0_2px_12px_rgba(0,0,0,0.04)] bg-white dark:bg-slate-900 transition-all duration-300 hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] hover:-translate-y-1 flex flex-col h-full">
-        <Link href={`/san-pham/${product.slug}`} className="block relative">
+      <motion.div variants={itemVariants} className="h-full">
+        <Card className="group overflow-hidden rounded-2xl border-transparent shadow-[0_2px_12px_rgba(0,0,0,0.04)] bg-white dark:bg-slate-900 transition-all duration-300 hover:shadow-[0_12px_32px_rgba(0,0,0,0.12)] hover:-translate-y-1.5 flex flex-col h-full relative z-0 hover:z-10">
+          <Link href={`/san-pham/${product.slug}`} className="block relative">
           <div className="relative aspect-[4/3] sm:aspect-square overflow-hidden bg-white dark:bg-slate-950 p-6">
             <ProgressiveImage
               src={images[0] || 'https://placehold.co/400x400?text=ĐANG+UPDATE'}
               alt={product.name}
               fill
+              priority={priority}
               sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 20vw"
-              className="object-contain transition-transform duration-500 group-hover:scale-105"
+              className="object-contain transition-transform duration-700 ease-out group-hover:scale-105"
             />
             {hasDiscount && (
               <div className="absolute left-3 top-3 rounded bg-red-500 px-2 py-1 text-xs font-bold text-white shadow-sm z-10">
@@ -140,10 +150,10 @@ export function ProductCard({ product }: ProductCardProps) {
           </div>
         </div>
       </Card>
+      </motion.div>
 
-      {/* Quick View Sheet */}
       <QuickViewSheet
-        product={product}
+        product={product as any}
         isOpen={isQuickViewOpen}
         onClose={() => setIsQuickViewOpen(false)}
       />

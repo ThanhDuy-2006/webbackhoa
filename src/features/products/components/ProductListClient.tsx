@@ -17,6 +17,15 @@ import { Button } from '@/components/ui/button'
 import { PullToRefresh } from '@/components/ui/PullToRefresh'
 import { ProductSkeleton } from '@/components/ui/ProductSkeleton'
 import { createClient } from '@/lib/supabase/client'
+import { motion } from 'framer-motion'
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.05 }
+  }
+}
 
 interface ProductListClientProps {
   initialProducts: any[]
@@ -252,11 +261,16 @@ export function ProductListClient({ initialProducts, categories }: ProductListCl
               <p className="text-slate-500">Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm</p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6">
-              {products.map(product => (
-                <ProductCard key={product.id} product={product} />
+            <motion.div 
+              variants={containerVariants}
+              initial="hidden"
+              animate="show"
+              className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6"
+            >
+              {products.map((product, idx) => (
+                <ProductCard key={product.id} product={product} index={idx} priority={idx < 4} />
               ))}
-            </div>
+            </motion.div>
           )}
 
           {/* Loading Indicator for Infinite Scroll */}
