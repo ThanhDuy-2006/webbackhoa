@@ -54,11 +54,9 @@ export function ProfileCard({ profile }: ProfileCardProps) {
         </div>
         
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
-          <DialogTrigger asChild>
-            <Button variant="outline" className="shrink-0 rounded-xl font-medium cursor-pointer dark:bg-slate-900 dark:border-slate-700">
-              <Edit className="w-4 h-4 mr-2" />
-              Chỉnh sửa
-            </Button>
+          <DialogTrigger className="inline-flex items-center justify-center whitespace-nowrap text-sm shrink-0 rounded-xl font-medium cursor-pointer border border-slate-200 bg-white hover:bg-slate-100 dark:bg-slate-900 dark:border-slate-700 dark:hover:bg-slate-800 h-10 px-4 py-2">
+            <Edit className="w-4 h-4 mr-2" />
+            Chỉnh sửa
           </DialogTrigger>
           <DialogContent className="sm:max-w-[425px] rounded-2xl dark:bg-slate-900 dark:border-slate-800">
             <DialogHeader>

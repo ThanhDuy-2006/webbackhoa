@@ -107,7 +107,8 @@ export function ProductList({ initialProducts, totalCount, currentPage, searchTe
     router.push(`/admin/products?${searchParams.toString()}`)
   }
 
-  const handleCategoryChange = (value: string) => {
+  const handleCategoryChange = (value: string | null) => {
+    if (value === null) return;
     setSelectedCategory(value)
     const searchParams = new URLSearchParams()
     if (searchInput) searchParams.set('search', searchInput)
@@ -439,7 +440,8 @@ export function ProductList({ initialProducts, totalCount, currentPage, searchTe
                 })}
 
                 <div className="mt-2">
-                  <Select key={shareRecipients.length} onValueChange={(val) => {
+                  <Select key={shareRecipients.length} onValueChange={(val: string | null) => {
+                    if (val === null) return;
                     if (!shareRecipients.find(r => r.user_id === val)) {
                       setShareRecipients([...shareRecipients, { user_id: val }])
                     }
