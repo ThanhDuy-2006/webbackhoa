@@ -55,7 +55,7 @@ export function RecentOrders({ orders }: RecentOrdersProps) {
           </div>
           <h3 className="text-lg font-medium text-slate-900 mb-1">Chưa có đơn hàng nào</h3>
           <p className="text-slate-500 mb-6">Bạn chưa thực hiện giao dịch nào trên hệ thống.</p>
-          <Link href="/san-pham" className="inline-block">
+          <Link href="/" className="inline-block">
             <Button className="bg-emerald-600 hover:bg-emerald-700 rounded-xl px-8">
               Mua sắm ngay
             </Button>

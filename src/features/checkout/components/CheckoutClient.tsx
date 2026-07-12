@@ -131,7 +131,7 @@ export function CheckoutClient({ user, profile, settings }: CheckoutClientProps)
     return (
       <div className="text-center py-20 bg-white rounded-xl border">
         <h2 className="text-2xl font-bold mb-4">Giỏ hàng trống</h2>
-        <Button onClick={() => router.push('/san-pham')}>Mua sắm ngay</Button>
+        <Button onClick={() => router.push('/')}>Mua sắm ngay</Button>
       </div>
     )
   }

@@ -6,7 +6,7 @@ export const ProductRepository = {
     const supabase = createAdminClient()
     let query = supabase
       .from('products')
-      .select('*, categories(name)', { count: 'exact' })
+      .select('*, categories(name), variants:product_variants(*)', { count: 'exact' })
       .is('deleted_at', null)
 
     if (search) {
@@ -32,7 +32,7 @@ export const ProductRepository = {
     const supabase = createAdminClient()
     let query = supabase
       .from('products')
-      .select('*, categories!inner(slug)', { count: 'exact' })
+      .select('*, categories!inner(slug), variants:product_variants(*)', { count: 'exact' })
       .is('deleted_at', null)
       .eq('is_active', true)
 
@@ -70,7 +70,7 @@ export const ProductRepository = {
     const supabase = createAdminClient()
     const { data, error } = await supabase
       .from('products')
-      .select('*')
+      .select('*, variants:product_variants(*)')
       .eq('id', id)
       .is('deleted_at', null)
       .single()
@@ -83,7 +83,7 @@ export const ProductRepository = {
     const supabase = createAdminClient()
     const { data, error } = await supabase
       .from('products')
-      .select('*, categories(name)')
+      .select('*, categories(name), variants:product_variants(*)')
       .eq('slug', slug)
       .is('deleted_at', null)
       .single()
@@ -117,34 +117,34 @@ export const ProductRepository = {
     }
 
     // 3. Create Variants if any
-    // if (variantsData && variantsData.length > 0) {
-    //   const variantsToInsert = variantsData.map(v => ({
-    //     ...v,
-    //     product_id: product.id
-    //   }))
+    if (variantsData && variantsData.length > 0) {
+      const variantsToInsert = variantsData.map(v => ({
+        ...v,
+        product_id: product.id
+      }))
 
-    //   const { data: variants, error: variantError } = await supabase
-    //     .from('product_variants')
-    //     .insert(variantsToInsert)
-    //     .select()
+      const { data: variants, error: variantError } = await supabase
+        .from('product_variants')
+        .insert(variantsToInsert)
+        .select()
 
-    //   if (variantError) throw variantError
+      if (variantError) throw variantError
 
-    //   // Log inventory for variants
-    //   const logs = variants.filter(v => v.stock > 0).map(v => ({
-    //     product_id: product.id,
-    //     variant_id: v.id,
-    //     type: 'IMPORT',
-    //     qty_before: 0,
-    //     qty_after: v.stock,
-    //     reason: 'Khởi tạo phân loại mới',
-    //     created_by: adminId
-    //   }))
+      // Log inventory for variants
+      const logs = variants.filter(v => v.stock > 0).map(v => ({
+        product_id: product.id,
+        variant_id: v.id,
+        type: 'IMPORT',
+        qty_before: 0,
+        qty_after: v.stock,
+        reason: 'Khởi tạo phân loại mới',
+        created_by: adminId
+      }))
 
-    //   if (logs.length > 0) {
-    //     await supabase.from('inventory_logs').insert(logs)
-    //   }
-    // }
+      if (logs.length > 0) {
+        await supabase.from('inventory_logs').insert(logs)
+      }
+    }
 
     return product
   },
@@ -166,22 +166,22 @@ export const ProductRepository = {
     if (productError) throw productError
 
     // Log Inventory if base stock changed
-    // if (product.stock !== oldProduct.stock) {
-    //   const diff = product.stock - oldProduct.stock
-    //   await supabase.from('inventory_logs').insert([{
-    //     product_id: product.id,
-    //     type: diff > 0 ? 'IMPORT' : 'ADJUST',
-    //     qty_before: oldProduct.stock,
-    //     qty_after: product.stock,
-    //     reason: 'Cập nhật kho từ admin',
-    //     created_by: adminId
-    //   }])
-    // }
+    if (product.stock !== oldProduct.stock) {
+      const diff = product.stock - oldProduct.stock
+      await supabase.from('inventory_logs').insert([{
+        product_id: product.id,
+        type: diff > 0 ? 'IMPORT' : 'ADJUST',
+        qty_before: oldProduct.stock,
+        qty_after: product.stock,
+        reason: 'Cập nhật kho từ admin',
+        created_by: adminId
+      }])
+    }
 
     // 2. Sync Variants
     // For simplicity, if variant has ID -> update. If no ID -> insert. 
     // If old variant not in new list -> deactivate (soft delete).
-    /*
+    
     const newVariantIds = variantsData.filter(v => v.id).map(v => v.id)
     
     // Deactivate missing variants
@@ -226,7 +226,7 @@ export const ProductRepository = {
         }
       }
     }
-    */
+
 
     return product
   },

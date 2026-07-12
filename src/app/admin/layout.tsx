@@ -1,9 +1,11 @@
 import Link from 'next/link'
-import { Package, Users, ShoppingBag, LayoutDashboard, Settings, CreditCard, LogOut, Tags, Search, Bell, Calendar, ChevronDown, Ticket, BarChart3, Archive, UserCog, Menu, Percent } from 'lucide-react'
+import { Package, Users, ShoppingBag, LayoutDashboard, Settings, CreditCard, LogOut, Tags, Search, Bell, Calendar, ChevronDown, Ticket, BarChart3, Archive, UserCog, Menu, Percent, Sprout } from 'lucide-react'
 import { logout } from '@/app/login/actions'
 import { Button } from '@/components/ui/button'
 import { createClient } from '@/lib/supabase/server'
 import { AdminMobileMenu } from '@/components/admin/AdminMobileMenu'
+import { AdminRealtimeListener } from '@/components/admin/AdminRealtimeListener'
+import { PageTransition } from '@/components/ui/PageTransition'
 
 const sidebarLinks = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
@@ -44,13 +46,14 @@ export default async function AdminLayout({
 
   return (
     <div className="flex h-screen bg-[#F5F7FB] overflow-hidden font-sans">
+      <AdminRealtimeListener />
       {/* Sidebar - Floating Glass Card */}
       <aside className="w-64 my-4 ml-4 bg-white rounded-[24px] shadow-sm flex-col hidden md:flex overflow-hidden border border-slate-100">
         <div className="h-20 flex items-center px-6">
-          <div className="bg-emerald-100 p-2 rounded-xl mr-3">
-            <Package className="h-6 w-6 text-emerald-600" />
+          <div className="relative flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 shadow-sm shadow-emerald-200 mr-3">
+             <Sprout className="h-5 w-5 text-white" />
           </div>
-          <span className="font-bold text-lg text-slate-800">Bách Hóa Admin</span>
+          <span className="font-extrabold text-lg tracking-tight bg-gradient-to-r from-emerald-700 to-teal-600 bg-clip-text text-transparent">Bách Hóa Admin</span>
         </div>
         <nav className="flex-1 py-4 overflow-y-auto custom-scrollbar">
           <ul className="space-y-1 px-4">
@@ -111,13 +114,7 @@ export default async function AdminLayout({
           </div>
 
           <div className="flex items-center gap-2 md:gap-4">
-            <button className="relative p-2.5 text-slate-500 hover:bg-white hover:shadow-sm rounded-full transition-all">
-              <Bell className="h-5 w-5" />
-              <span className="absolute top-2 right-2.5 h-2 w-2 bg-red-500 rounded-full border-2 border-white"></span>
-            </button>
-            <button className="p-2.5 text-slate-500 hover:bg-white hover:shadow-sm rounded-full transition-all">
-              <Calendar className="h-5 w-5" />
-            </button>
+
             
             <div className="h-8 w-px bg-slate-200 mx-2"></div>
             
@@ -133,7 +130,9 @@ export default async function AdminLayout({
 
         {/* Page Content */}
         <main className="flex-1 overflow-y-auto p-4 px-8 pb-10">
-          {children}
+          <PageTransition>
+            {children}
+          </PageTransition>
         </main>
       </div>
     </div>

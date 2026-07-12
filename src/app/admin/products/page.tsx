@@ -1,4 +1,6 @@
 import { ProductService } from '@/services/product.service'
+import { CategoryService } from '@/services/category.service'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { ProductList } from '@/features/admin/products/components/ProductList'
 import { Suspense } from 'react'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -13,9 +15,16 @@ export default async function AdminProductsPage({
   const resolvedParams = await searchParams
   const page = typeof resolvedParams.page === 'string' ? parseInt(resolvedParams.page, 10) : 1
   const search = typeof resolvedParams.search === 'string' ? resolvedParams.search : ''
+  const categoryId = typeof resolvedParams.category === 'string' ? resolvedParams.category : ''
   const limit = 10
 
-  const { data: products, count } = await ProductService.getPaginatedProducts(page, limit, search)
+  const supabase = createAdminClient()
+
+  const [{ data: products, count }, { data: categories }, { data: users }] = await Promise.all([
+    ProductService.getPaginatedProducts(page, limit, search, categoryId || undefined),
+    CategoryService.getPaginatedCategories(1, 1000, ''), // Fetch all categories
+    supabase.from('profiles').select('id, full_name, email').order('full_name', { ascending: true })
+  ])
 
   return (
     <div className="space-y-6">
@@ -40,6 +49,9 @@ export default async function AdminProductsPage({
           totalCount={count}
           currentPage={page}
           searchTerm={search}
+          categories={categories}
+          currentCategory={categoryId}
+          users={users || []}
         />
       </Suspense>
     </div>

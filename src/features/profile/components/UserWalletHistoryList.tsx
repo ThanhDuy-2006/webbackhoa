@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { Skeleton } from '@/components/ui/skeleton'
 import { getUserWalletTransactionsAction } from '@/actions/user/revenue-share.actions'
 import { Loader2, ArrowUpRight, ArrowDownRight } from 'lucide-react'
 
@@ -44,9 +45,15 @@ export function UserWalletHistoryList() {
       {/* List / Table */}
       <div className="border rounded-2xl bg-white overflow-hidden shadow-sm">
         {loading ? (
-          <div className="h-48 flex flex-col items-center justify-center text-slate-400 text-xs">
-            <Loader2 className="h-6 w-6 animate-spin text-emerald-600 mb-2" />
-            Đang tải lịch sử ví...
+          <div className="p-4 space-y-4">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="flex gap-4">
+                <Skeleton className="h-8 w-1/4" />
+                <Skeleton className="h-8 w-1/4" />
+                <Skeleton className="h-8 w-1/4" />
+                <Skeleton className="h-8 w-1/4" />
+              </div>
+            ))}
           </div>
         ) : transactions.length === 0 ? (
           <div className="h-48 flex items-center justify-center text-slate-400 text-xs">

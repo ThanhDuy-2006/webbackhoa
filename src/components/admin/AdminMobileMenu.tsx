@@ -9,7 +9,7 @@ export function AdminMobileMenu({ sidebarLinks, fullName, email, avatarUrl, logo
   const [open, setOpen] = useState(false)
 
   const MenuIcon = Lucide.Menu || (() => null)
-  const PackageIcon = Lucide.Package || (() => null)
+  const PackageIcon = Lucide.Sprout || (() => null)
   const LogOutIcon = Lucide.LogOut || (() => null)
 
   return (
@@ -20,10 +20,10 @@ export function AdminMobileMenu({ sidebarLinks, fullName, email, avatarUrl, logo
       <SheetUI.SheetContent side="left" className="w-[280px] p-0 bg-[#F5F7FB]">
         <div className="h-full bg-white flex flex-col overflow-hidden border-r border-slate-100">
           <div className="h-20 flex items-center px-6 shrink-0 border-b border-slate-100">
-            <div className="bg-emerald-100 p-2 rounded-xl mr-3">
-              <PackageIcon className="h-6 w-6 text-emerald-600" />
+            <div className="relative flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 shadow-sm shadow-emerald-200 mr-3">
+               <PackageIcon className="h-5 w-5 text-white" />
             </div>
-            <span className="font-bold text-lg text-slate-800">Bách Hóa Admin</span>
+            <span className="font-extrabold text-lg tracking-tight bg-gradient-to-r from-emerald-700 to-teal-600 bg-clip-text text-transparent">Bách Hóa Admin</span>
           </div>
           <nav className="flex-1 py-4 overflow-y-auto">
             <ul className="space-y-1 px-4">

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { ShoppingCart, Star, Heart, Check, ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useCartStore } from '@/store/useCartStore'
-import { toggleWishlist } from '@/actions/user/wishlist.actions'
+// import { toggleWishlist } from '@/actions/user/wishlist.actions'
 import { toast } from 'sonner'
 import { addRecentlyViewed } from '@/components/products/RecentlyViewed'
 import { createClient } from '@/lib/supabase/client'
@@ -48,8 +48,8 @@ export function ProductDetailClient({ product, variants, initialFavorited = fals
   
   const [selectedVariant, setSelectedVariant] = useState<any>(variants.length > 0 ? variants[0] : null)
   const [quantity, setQuantity] = useState(1)
-  const [isWishlisting, setIsWishlisting] = useState(false)
-  const [isFavorited, setIsFavorited] = useState(initialFavorited)
+  // const [isWishlisting, setIsWishlisting] = useState(false)
+  // const [isFavorited, setIsFavorited] = useState(initialFavorited)
 
   const finalPrice = selectedVariant 
     ? selectedVariant.price || product.sale_price || product.price
@@ -76,17 +76,17 @@ export function ProductDetailClient({ product, variants, initialFavorited = fals
     toast.success('Đã thêm vào giỏ hàng')
   }
 
-  const handleToggleWishlist = async () => {
-    setIsWishlisting(true)
-    const res = await toggleWishlist(product.id)
-    if (res.success) {
-      setIsFavorited(res.isFavorited || false)
-      toast.success(res.isFavorited ? 'Đã thêm vào danh sách yêu thích' : 'Đã xóa khỏi danh sách yêu thích')
-    } else {
-      toast.error(res.error)
-    }
-    setIsWishlisting(false)
-  }
+  // const handleToggleWishlist = async () => {
+  //   setIsWishlisting(true)
+  //   const res = await toggleWishlist(product.id)
+  //   if (res.success) {
+  //     setIsFavorited(res.isFavorited || false)
+  //     toast.success(res.isFavorited ? 'Đã thêm vào danh sách yêu thích' : 'Đã xóa khỏi danh sách yêu thích')
+  //   } else {
+  //     toast.error(res.error)
+  //   }
+  //   setIsWishlisting(false)
+  // }
 
   const nextImage = () => {
     setCurrentImageIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1))
@@ -277,15 +277,7 @@ export function ProductDetailClient({ product, variants, initialFavorited = fals
               <ShoppingCart className="mr-2 w-5 h-5" />
               {isOutOfStock ? 'Hết hàng' : 'Thêm vào giỏ hàng'}
             </Button>
-            <Button 
-              size="lg" 
-              variant="outline" 
-              className={cn("h-14 w-14 shrink-0 rounded-xl transition-colors cursor-pointer", isFavorited && "border-red-500 bg-red-50")}
-              onClick={handleToggleWishlist}
-              disabled={isWishlisting}
-            >
-              <Heart className={cn("w-5 h-5", isFavorited ? "text-red-500 fill-red-500" : "text-slate-600")} />
-            </Button>
+            {/* Removed wishlist button */}
           </div>
 
           <div className="grid grid-cols-2 gap-4 text-sm text-slate-600 pt-4">
@@ -303,15 +295,7 @@ export function ProductDetailClient({ product, variants, initialFavorited = fals
 
       {/* Mobile Sticky Add To Cart / Buy Now Bar */}
       <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-100 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] flex items-center justify-between gap-3 md:hidden">
-        <Button 
-          variant="outline" 
-          className={cn("h-12 w-12 shrink-0 rounded-xl transition-colors cursor-pointer", isFavorited && "border-red-500 bg-red-50")}
-          onClick={handleToggleWishlist}
-          disabled={isWishlisting}
-          style={{ minWidth: '44px', minHeight: '44px' }}
-        >
-          <Heart className={cn("w-5 h-5", isFavorited ? "text-red-500 fill-red-500" : "text-slate-600")} />
-        </Button>
+        {/* Removed mobile wishlist button */}
         <Button 
           variant="outline"
           className="flex-1 border-emerald-600 text-emerald-700 hover:bg-emerald-50 h-12 text-sm font-semibold rounded-xl cursor-pointer"

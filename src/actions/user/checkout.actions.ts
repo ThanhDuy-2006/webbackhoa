@@ -28,6 +28,7 @@ export async function processCheckout(
     const cartInserts = items.map(item => ({
       user_id: userId,
       product_id: item.id,
+      variant_id: item.variantId || null,
       quantity: item.quantity
     }))
 

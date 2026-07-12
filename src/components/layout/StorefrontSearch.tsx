@@ -71,14 +71,14 @@ export function StorefrontSearch() {
     if (searchTerm.trim()) {
       setIsFocused(false)
       setIsMobileOpen(false)
-      router.push(`/san-pham?q=${encodeURIComponent(searchTerm.trim())}`)
+      router.push(`/?q=${encodeURIComponent(searchTerm.trim())}`)
     }
   }
 
   const handleHotSearchClick = (keyword: string) => {
     setSearchTerm(keyword)
     setIsMobileOpen(false)
-    router.push(`/san-pham?q=${encodeURIComponent(keyword)}`)
+    router.push(`/?q=${encodeURIComponent(keyword)}`)
   }
 
   return (

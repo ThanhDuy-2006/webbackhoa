@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Package, MapPin, Phone, Mail } from 'lucide-react'
+import { Sprout, MapPin, Phone, Mail } from 'lucide-react'
 
 export function Footer() {
   return (
@@ -8,9 +8,13 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12 lg:gap-8 mb-16">
           {/* Brand Info */}
           <div className="lg:col-span-2">
-            <Link href="/" className="flex items-center gap-2 mb-6">
-              <Package className="h-8 w-8 text-emerald-600" />
-              <span className="font-extrabold text-2xl text-slate-900 tracking-tight">Bách Hóa</span>
+            <Link href="/" className="flex items-center gap-2.5 mb-6 group">
+              <div className="relative flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 shadow-sm shadow-emerald-200 transition-transform group-hover:scale-105 group-hover:-rotate-6 duration-300">
+                 <Sprout className="h-5 w-5 text-white" />
+              </div>
+              <span className="font-extrabold text-2xl tracking-tight bg-gradient-to-r from-emerald-700 to-teal-600 bg-clip-text text-transparent">
+                Bách Hóa
+              </span>
             </Link>
             <p className="text-base text-slate-500 mb-8 max-w-sm leading-relaxed">
               Hệ thống siêu thị thực phẩm trực tuyến hàng đầu, mang đến rau củ quả tươi sạch và thực phẩm an toàn mỗi ngày cho gia đình bạn.

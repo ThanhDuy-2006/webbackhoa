@@ -1,4 +1,6 @@
 import { Navbar } from '@/components/layout/Navbar'
+import { PageTransition } from '@/components/ui/PageTransition'
+
 export default function MainLayout({
   children,
 }: {
@@ -8,7 +10,9 @@ export default function MainLayout({
     <div className="flex flex-col min-h-screen">
       <Navbar />
       <main className="flex-grow">
-        {children}
+        <PageTransition>
+          {children}
+        </PageTransition>
       </main>
     </div>
   )

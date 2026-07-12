@@ -23,7 +23,7 @@ export async function toggleWishlist(productId: string) {
     if (existing) {
       // Remove
       await supabase.from('wishlists').delete().eq('id', existing.id)
-      revalidatePath('/san-pham')
+      revalidatePath('/')
       revalidatePath(`/san-pham/[slug]`, 'page')
       return { success: true, isFavorited: false }
     } else {
@@ -32,7 +32,7 @@ export async function toggleWishlist(productId: string) {
         user_id: user.id,
         product_id: productId
       })
-      revalidatePath('/san-pham')
+      revalidatePath('/')
       revalidatePath(`/san-pham/[slug]`, 'page')
       return { success: true, isFavorited: true }
     }

@@ -17,6 +17,7 @@ import {
   Calendar, DollarSign, Users, Award, TrendingUp, X, Check, Shield, Clock, 
   RotateCcw, AlertTriangle, FileText, ArrowRight, UserPlus
 } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
 
 interface Category {
   id: string
@@ -563,29 +564,7 @@ export function RevenueShareClient({ products, categories, variants, users }: Pr
         >
           Lịch sử thực tế
         </button>
-        <button
-          onClick={() => setActiveTab('retry')}
-          className={`pb-3 font-bold text-sm border-b-2 transition-all cursor-pointer flex items-center gap-1.5 ${
-            activeTab === 'retry' ? 'border-emerald-600 text-emerald-600' : 'border-transparent text-slate-500 hover:text-slate-700'
-          }`}
-        >
-          Thử lại lỗi chia
-          {failedOrders.length > 0 && (
-            <span className="px-1.5 py-0.5 bg-red-500 text-white rounded-full text-[10px] font-bold animate-pulse">
-              {failedOrders.length}
-            </span>
-          )}
-        </button>
-        {userRole === 'super_admin' && (
-          <button
-            onClick={() => setActiveTab('permissions')}
-            className={`pb-3 font-bold text-sm border-b-2 transition-all cursor-pointer ${
-              activeTab === 'permissions' ? 'border-emerald-600 text-emerald-600' : 'border-transparent text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            Phân quyền Module
-          </button>
-        )}
+
       </div>
 
       {/* RENDER TAB 1: DIRECT SPLIT FORM (NO SAVED CONFIGURATIONS) */}
@@ -997,9 +976,16 @@ export function RevenueShareClient({ products, categories, variants, users }: Pr
               {/* Table */}
               <div className="overflow-x-auto">
                 {historyLoading ? (
-                  <div className="py-12 flex flex-col items-center justify-center text-slate-400 text-xs">
-                    <span className="h-6 w-6 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin mb-2" />
-                    Đang tải dữ liệu...
+                  <div className="py-4 space-y-4">
+                    {Array.from({ length: 4 }).map((_, i) => (
+                      <div key={i} className="flex gap-4">
+                        <Skeleton className="h-8 w-1/5" />
+                        <Skeleton className="h-8 w-1/5" />
+                        <Skeleton className="h-8 w-1/5" />
+                        <Skeleton className="h-8 w-1/5" />
+                        <Skeleton className="h-8 w-1/5" />
+                      </div>
+                    ))}
                   </div>
                 ) : history.length === 0 ? (
                   <p className="text-xs text-slate-400 text-center py-12">Không tìm thấy bản ghi lịch sử chia tiền.</p>
@@ -1106,125 +1092,7 @@ export function RevenueShareClient({ products, categories, variants, users }: Pr
       )}
 
       {/* RENDER TAB 3: RETRY QUEUE */}
-      {activeTab === 'retry' && (
-        <div className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm space-y-6">
-          <div>
-            <h3 className="font-extrabold text-slate-800 text-sm flex items-center gap-1.5">
-              <AlertTriangle className="h-5 w-5 text-amber-500" /> Bảng thử lại lỗi phân phối tiền đơn hàng
-            </h3>
-            <p className="text-xs text-slate-500 mt-1">
-              Hiển thị danh sách các đơn hàng đã Hoàn thành trong vòng 30 ngày nhưng có sản phẩm thuộc diện chia tiền chưa được ghi nhận phân phối (Do tạo cấu hình muộn hoặc lỗi tiến trình).
-            </p>
-          </div>
 
-          <div className="overflow-x-auto">
-            {retryLoading ? (
-              <div className="py-12 flex flex-col items-center justify-center text-slate-400 text-xs">
-                <span className="h-6 w-6 border-2 border-amber-500 border-t-transparent rounded-full animate-spin mb-2" />
-                Đang quét đơn hàng lỗi...
-              </div>
-            ) : failedOrders.length === 0 ? (
-              <p className="text-xs text-slate-400 text-center py-12">Tuyệt vời! Không phát hiện đơn hàng lỗi chia tiền nào.</p>
-            ) : (
-              <table className="w-full text-left text-xs border-collapse">
-                <thead>
-                  <tr className="text-slate-400 border-b border-slate-100">
-                    <th className="py-3 font-bold">Mã Đơn Hàng</th>
-                    <th className="py-3 font-bold">Tổng Giá Trị</th>
-                    <th className="py-3 font-bold">Ngày Đặt Hàng</th>
-                    <th className="py-3 font-bold">Các Sản Phẩm Chưa Chia</th>
-                    <th className="py-3 text-right font-bold">Hành Động</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-50">
-                  {failedOrders.map((order) => (
-                    <tr key={order.id} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="py-4 font-mono font-bold text-slate-800">{order.order_code}</td>
-                      <td className="py-4 font-bold font-mono">{order.total_amount.toLocaleString('vi-VN')}đ</td>
-                      <td className="py-4 text-slate-500">{new Date(order.created_at).toLocaleString('vi-VN')}</td>
-                      <td className="py-4">
-                        <div className="flex flex-wrap gap-1">
-                          {order.unshared_items.map((item: string, idx: number) => (
-                            <span key={idx} className="px-2 py-0.5 bg-red-50 text-red-700 border border-red-100 rounded-md text-[10px] font-bold">
-                              {item}
-                            </span>
-                          ))}
-                        </div>
-                      </td>
-                      <td className="py-4 text-right">
-                        <button
-                          onClick={() => handleRetrySharing(order.id)}
-                          className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[10px] font-bold transition-all inline-flex items-center gap-1 shadow-sm cursor-pointer"
-                        >
-                          <RotateCcw className="h-3 w-3" /> Chạy lại chia tiền
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* RENDER TAB 4: PERMISSIONS */}
-      {activeTab === 'permissions' && (
-        <div className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm space-y-6">
-          <div>
-            <h3 className="font-extrabold text-slate-800 text-sm">Quản lý quyền hạn Module chia tiền</h3>
-            <p className="text-xs text-slate-500 mt-1">Super Admin có thể cấp quyền hạn điều hành cho các thành viên hệ thống khác.</p>
-          </div>
-
-          <div className="overflow-x-auto">
-            {permissionsLoading ? (
-              <div className="py-12 flex flex-col items-center justify-center text-slate-400 text-xs">
-                <span className="h-6 w-6 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin mb-2" />
-                Đang cập nhật...
-              </div>
-            ) : (
-              <table className="w-full text-left text-xs border-collapse">
-                <thead>
-                  <tr className="text-slate-400 border-b border-slate-100">
-                    <th className="py-3 font-bold">Thành viên</th>
-                    <th className="py-3 font-bold">Email</th>
-                    <th className="py-3 font-bold">Quyền hạn hệ thống hiện tại</th>
-                    <th className="py-3 text-right font-bold">Vai trò phân quyền Module</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-50">
-                  {userList.map((u) => {
-                    const resolvedRole = u.revenue_role || 'none'
-                    return (
-                      <tr key={u.id} className="hover:bg-slate-50/50 transition-colors">
-                        <td className="py-4 font-bold text-slate-800">{u.full_name || 'Chưa thiết lập'}</td>
-                        <td className="py-4 text-slate-500 font-mono">{u.email}</td>
-                        <td className="py-4">
-                          <span className="px-2 py-0.5 bg-slate-100 rounded-md text-[10px] font-bold text-slate-600">
-                            {u.role?.toUpperCase()}
-                          </span>
-                        </td>
-                        <td className="py-4 text-right">
-                          <select
-                            value={resolvedRole}
-                            onChange={(e) => handleUpdateRevenueRole(u.id, e.target.value as any)}
-                            className="bg-slate-50 border p-1.5 rounded-lg text-xs"
-                          >
-                            <option value="none">Không cấp quyền (None)</option>
-                            <option value="revenue_viewer">Chỉ xem (Viewer)</option>
-                            <option value="revenue_manager">Quản lý chia tiền (Manager)</option>
-                            <option value="super_admin">Quản trị tối cao (Super Admin)</option>
-                          </select>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   )
 }

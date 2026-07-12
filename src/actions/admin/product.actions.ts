@@ -17,7 +17,7 @@ export async function createProductAction(data: ProductFormData) {
     const adminId = await getAdminId()
     const product = await ProductService.createProduct(data, adminId)
     revalidatePath('/admin/products')
-    revalidatePath('/san-pham')
+    revalidatePath('/')
     revalidatePath('/')
     return { success: true, data: product }
   } catch (err: unknown) {
@@ -35,7 +35,7 @@ export async function updateProductAction(id: string, data: ProductFormData) {
     const product = await ProductService.updateProduct(id, data, adminId)
     revalidatePath('/admin/products')
     revalidatePath(`/san-pham/${data.slug}`)
-    revalidatePath('/san-pham')
+    revalidatePath('/')
     revalidatePath('/')
     return { success: true, data: product }
   } catch (err: unknown) {
@@ -51,7 +51,7 @@ export async function deleteProductAction(id: string) {
   try {
     await ProductService.deleteProduct(id)
     revalidatePath('/admin/products')
-    revalidatePath('/san-pham')
+    revalidatePath('/')
     revalidatePath('/')
     return { success: true }
   } catch (err: unknown) {
@@ -77,7 +77,7 @@ export async function bulkCreateProductsAction(productsData: ProductFormData[]) 
     }
 
     revalidatePath('/admin/products')
-    revalidatePath('/san-pham')
+    revalidatePath('/')
     revalidatePath('/')
     
     return { success: true, results }

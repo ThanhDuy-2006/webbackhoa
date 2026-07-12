@@ -1,9 +1,10 @@
 'use client'
 
+import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { ShoppingCart, User as UserIcon, LogOut, Menu, Package, Settings, Wallet, ShoppingBag, Home, Tag, Sun, Moon } from 'lucide-react'
+import { ShoppingCart, User as UserIcon, LogOut, Menu, Package, Settings, Wallet, ShoppingBag, Home, Tag, Sun, Moon, Sprout } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -37,6 +38,31 @@ export function NavbarClient({ user, profile }: NavbarClientProps) {
   const [isScrolled, setIsScrolled] = useState(false)
   const pathname = usePathname()
   const { theme, setTheme } = useTheme()
+  const [balance, setBalance] = useState<number>(Number(profile?.balance || 0))
+
+  useEffect(() => {
+    setBalance(Number(profile?.balance || 0))
+  }, [profile?.balance])
+
+  useEffect(() => {
+    if (!user) return
+
+    const supabase = createClient()
+    const channel = supabase
+      .channel('public:profiles')
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${user.id}` },
+        (payload) => {
+          setBalance(Number(payload.new.balance || 0))
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [user])
 
   useEffect(() => {
     const handleScroll = () => {
@@ -47,8 +73,7 @@ export function NavbarClient({ user, profile }: NavbarClientProps) {
   }, [])
 
   const navItems = [
-    { name: 'Trang chủ', href: '/', icon: Home },
-    { name: 'Sản phẩm', href: '/san-pham', icon: Package },
+    { name: 'Sản phẩm', href: '/', icon: Package },
     { name: 'Giỏ hàng', href: '#cart', icon: ShoppingCart, isCart: true },
     { name: 'Cá nhân', href: user ? '/tai-khoan' : '/login', icon: UserIcon },
   ]
@@ -58,22 +83,24 @@ export function NavbarClient({ user, profile }: NavbarClientProps) {
       <header 
       className={`sticky top-0 z-50 w-full transition-all duration-300 ${
         isScrolled 
-          ? 'bg-white/80 backdrop-blur-md border-b shadow-sm' 
-          : 'bg-white border-transparent'
+          ? 'bg-white/80 dark:bg-slate-950/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 shadow-sm' 
+          : 'bg-white dark:bg-slate-950 border-transparent'
       }`}
     >
       <div className="max-w-[1440px] mx-auto flex h-[72px] items-center justify-between px-4 sm:px-6 lg:px-8">
         
         {/* Left: Logo & Menu */}
         <div className="flex items-center gap-8">
-          <Link href="/" className="flex items-center gap-2" style={{ minWidth: '44px', minHeight: '44px' }}>
-            <Package className="h-7 w-7 text-emerald-600" />
-            <span className="font-bold text-2xl text-slate-900 tracking-tight hidden sm:inline-block">Bách Hóa</span>
+          <Link href="/" className="flex items-center gap-2.5 group" style={{ minWidth: '44px', minHeight: '44px' }}>
+            <div className="relative flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 shadow-sm shadow-emerald-200 dark:shadow-none transition-transform group-hover:scale-105 group-hover:-rotate-6 duration-300">
+               <Sprout className="h-5 w-5 text-white" />
+            </div>
+            <span className="font-extrabold text-2xl tracking-tight hidden sm:inline-block bg-gradient-to-r from-emerald-700 to-teal-600 dark:from-emerald-400 dark:to-teal-300 bg-clip-text text-transparent">
+              Bách Hóa
+            </span>
           </Link>
-          <nav className="hidden lg:flex gap-6 text-sm font-medium text-slate-600">
-            <Link href="/" className="hover:text-emerald-600 transition-colors">Trang chủ</Link>
-            <Link href="/san-pham" className="hover:text-emerald-600 transition-colors">Sản phẩm</Link>
-            <Link href="/khuyen-mai" className="hover:text-emerald-600 transition-colors">Khuyến mãi</Link>
+          <nav className="hidden lg:flex gap-6 text-sm font-medium text-slate-600 dark:text-slate-300">
+            <Link href="/" className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">Sản phẩm</Link>
           </nav>
         </div>
 
@@ -82,11 +109,11 @@ export function NavbarClient({ user, profile }: NavbarClientProps) {
           {user && (
             <Link 
               href="/tai-khoan/nap-tien" 
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-100 text-emerald-700 rounded-full text-xs font-bold transition-all shadow-sm"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-950/50 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 border border-emerald-100 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 rounded-full text-xs font-bold transition-all shadow-sm"
               style={{ minHeight: '44px' }}
             >
               <Wallet className="w-4 h-4" />
-              <span>{Number(profile?.balance || 0).toLocaleString('vi-VN')}đ</span>
+              <span>{balance.toLocaleString('vi-VN')}đ</span>
             </Link>
           )}
 
@@ -95,7 +122,7 @@ export function NavbarClient({ user, profile }: NavbarClientProps) {
             variant="ghost" 
             size="icon" 
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} 
-            className="hover:bg-slate-100 rounded-full h-11 w-11 transition-colors relative cursor-pointer"
+            className="hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full h-11 w-11 transition-colors relative cursor-pointer"
             style={{ minWidth: '44px', minHeight: '44px' }}
           >
             <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0 text-slate-700 dark:text-slate-200 animate-in fade-in" />
@@ -107,7 +134,7 @@ export function NavbarClient({ user, profile }: NavbarClientProps) {
             variant="ghost" 
             size="icon" 
             onClick={() => setIsOpen(true)} 
-            className="relative hover:bg-slate-100 rounded-full h-11 w-11 transition-colors hidden lg:flex cursor-pointer"
+            className="relative hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full h-11 w-11 transition-colors hidden lg:flex cursor-pointer"
             style={{ minWidth: '44px', minHeight: '44px' }}
           >
             <ShoppingCart className="h-5 w-5 text-slate-700 dark:text-slate-200" />
@@ -121,12 +148,12 @@ export function NavbarClient({ user, profile }: NavbarClientProps) {
 
           {user ? (
             <DropdownMenu>
-              <DropdownMenuTrigger className="flex items-center gap-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 p-1.5 pr-4 rounded-full transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 text-left cursor-pointer" style={{ minHeight: '44px' }}>
-                <div className="w-8 h-8 flex items-center justify-center bg-emerald-100 text-emerald-700 rounded-full shrink-0">
+              <DropdownMenuTrigger className="flex items-center gap-3 bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 p-1.5 pr-4 rounded-full transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/20 text-left cursor-pointer" style={{ minHeight: '44px' }}>
+                <div className="w-8 h-8 flex items-center justify-center bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400 rounded-full shrink-0">
                   <UserIcon className="w-4 h-4" />
                 </div>
                 <div className="hidden sm:flex flex-col justify-center">
-                  <span className="text-sm font-semibold text-slate-900 leading-none max-w-[120px] truncate">
+                  <span className="text-sm font-semibold text-slate-900 dark:text-slate-100 leading-none max-w-[120px] truncate">
                     {(profile?.full_name as string) || user?.email?.split('@')[0] || 'Tài khoản'}
                   </span>
                   <span className={`text-xs font-medium mt-1.5 leading-none ${Number(profile?.balance || 0) < 0 ? 'text-red-600' : 'text-emerald-600'}`}>
@@ -134,7 +161,7 @@ export function NavbarClient({ user, profile }: NavbarClientProps) {
                   </span>
                 </div>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 rounded-xl shadow-lg border-slate-100">
+              <DropdownMenuContent align="end" className="w-56 rounded-xl shadow-lg border-slate-100 dark:border-slate-800 dark:bg-slate-900">
                 <DropdownMenuGroup>
                   <DropdownMenuLabel>
                     <div className="flex flex-col space-y-1">
