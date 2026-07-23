@@ -119,10 +119,38 @@ export const DashboardRepository = {
       }
     }
 
+    // Calculate financial stats: Monthly Topups, Monthly Product Imports, Total Transactions
+    const now = new Date()
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+
+    const [
+      { data: monthlyTopupsData },
+      { data: allApprovedTopupsData },
+      { data: monthlyImportsData }
+    ] = await Promise.all([
+      supabase.from('topup_requests').select('amount').eq('status', 'approved').gte('created_at', startOfMonth),
+      supabase.from('topup_requests').select('amount').eq('status', 'approved'),
+      supabase.from('inventory_logs').select('qty_before, qty_after, products:product_id(price)').eq('type', 'IMPORT').gte('created_at', startOfMonth)
+    ])
+
+    const monthlyTopup = monthlyTopupsData?.reduce((acc, row) => acc + Number(row.amount || 0), 0) || 0
+    const totalTopupAllTime = allApprovedTopupsData?.reduce((acc, row) => acc + Number(row.amount || 0), 0) || 0
+    const totalTransactions = totalRevenue + totalTopupAllTime
+
+    const monthlyImportCost = monthlyImportsData?.reduce((acc: number, log: any) => {
+      const qtyAdded = Math.max(0, (log.qty_after || 0) - (log.qty_before || 0))
+      const prodData = Array.isArray(log.products) ? log.products[0] : log.products
+      const prodPrice = prodData ? Number(prodData.price || 0) : 0
+      return acc + (qtyAdded * prodPrice)
+    }, 0) || 0
+
     return {
       totalRevenue,
       totalOrders: totalOrders || 0,
       totalCustomers: totalCustomers || 0,
+      monthlyTopup,
+      monthlyImportCost,
+      totalTransactions,
       statusCounts,
       revenueChart: last7Days,
       topProducts

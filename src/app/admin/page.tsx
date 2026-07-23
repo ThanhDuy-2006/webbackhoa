@@ -1,6 +1,6 @@
 import { DashboardService } from '@/services/dashboard.service'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { DollarSign, Users, ShoppingBag, Package, TrendingUp, MoreHorizontal, CheckCircle2, Clock, Truck, XCircle, FileEdit, UserPlus } from 'lucide-react'
+import { DollarSign, Users, ShoppingBag, Package, TrendingUp, MoreHorizontal, CheckCircle2, Clock, Truck, XCircle, FileEdit, UserPlus, CreditCard, Receipt, ArrowLeftRight } from 'lucide-react'
 import Link from 'next/link'
 import { AdminDashboardCharts } from '@/features/admin/dashboard/components/AdminDashboardCharts'
 import Image from 'next/image'
@@ -99,7 +99,7 @@ export default async function AdminDashboardPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-6">
         {/* Revenue */}
         <Card className="rounded-[24px] border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white/80 backdrop-blur-xl hover:-translate-y-1 transition-transform duration-300">
           <CardContent className="p-6">
@@ -192,6 +192,69 @@ export default async function AdminDashboardPage() {
             <div className="mt-4 flex items-center text-sm font-medium text-emerald-600 bg-emerald-50 w-fit px-2.5 py-1 rounded-full">
               <TrendingUp className="w-4 h-4 mr-1" />
               +15.3% <span className="text-slate-500 font-normal ml-1">so với hôm qua</span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Monthly Financial Stats Cards */}
+      <div className="grid gap-6 md:grid-cols-3 mb-8">
+        {/* Nạp tiền trong tháng */}
+        <Card className="rounded-[24px] border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white/80 backdrop-blur-xl hover:-translate-y-1 transition-transform duration-300">
+          <CardContent className="p-6">
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-teal-400 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                  <CreditCard className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-slate-500 mb-1">User nạp trong tháng</p>
+                  <h3 className="text-2xl font-bold text-slate-800">{(stats.monthlyTopup || 0).toLocaleString('vi-VN')} VND</h3>
+                </div>
+              </div>
+            </div>
+            <div className="mt-4 flex items-center text-xs font-semibold text-emerald-700 bg-emerald-50 w-fit px-3 py-1 rounded-full">
+              Tháng {new Date().getMonth() + 1}/{new Date().getFullYear()} (Đã duyệt)
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Tiền nhập sản phẩm trong tháng */}
+        <Card className="rounded-[24px] border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white/80 backdrop-blur-xl hover:-translate-y-1 transition-transform duration-300">
+          <CardContent className="p-6">
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg shadow-amber-500/20">
+                  <Receipt className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-slate-500 mb-1">Tiền nhập SP trong tháng</p>
+                  <h3 className="text-2xl font-bold text-slate-800">{(stats.monthlyImportCost || 0).toLocaleString('vi-VN')} VND</h3>
+                </div>
+              </div>
+            </div>
+            <div className="mt-4 flex items-center text-xs font-semibold text-amber-700 bg-amber-50 w-fit px-3 py-1 rounded-full">
+              Tháng {new Date().getMonth() + 1}/{new Date().getFullYear()} (Tổng giá trị kho)
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Tổng tiền giao dịch */}
+        <Card className="rounded-[24px] border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white/80 backdrop-blur-xl hover:-translate-y-1 transition-transform duration-300">
+          <CardContent className="p-6">
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                  <ArrowLeftRight className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-slate-500 mb-1">Tổng tiền giao dịch</p>
+                  <h3 className="text-2xl font-bold text-slate-800">{(stats.totalTransactions || 0).toLocaleString('vi-VN')} VND</h3>
+                </div>
+              </div>
+            </div>
+            <div className="mt-4 flex items-center text-xs font-semibold text-indigo-700 bg-indigo-50 w-fit px-3 py-1 rounded-full">
+              Tổng doanh thu + Tổng tiền nạp
             </div>
           </CardContent>
         </Card>
