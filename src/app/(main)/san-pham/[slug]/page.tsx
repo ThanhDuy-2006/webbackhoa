@@ -3,7 +3,7 @@ import { ProductService } from '@/services/product.service'
 import { ProductDetailClient } from '@/features/products/components/ProductDetailClient'
 import { createClient } from '@/lib/supabase/server'
 
-export const revalidate = 0
+export const revalidate = 60
 
 export default async function ProductDetailPage({
   params,
@@ -13,23 +13,24 @@ export default async function ProductDetailPage({
   const resolvedParams = await params
 
   try {
-    const product = await ProductService.getProductBySlug(resolvedParams.slug)
+    const supabase = await createClient()
+    const [product, { data: { user } }] = await Promise.all([
+      ProductService.getProductBySlug(resolvedParams.slug),
+      supabase.auth.getUser()
+    ])
     
     if (!product) {
       notFound()
     }
 
     let isFavorited = false
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    
     if (user) {
       const { data } = await supabase
         .from('wishlists')
         .select('id')
         .eq('user_id', user.id)
         .eq('product_id', product.id)
-        .single()
+        .maybeSingle()
       if (data) isFavorited = true
     }
 

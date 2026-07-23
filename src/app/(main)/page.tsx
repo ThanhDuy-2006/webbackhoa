@@ -2,7 +2,7 @@ import { ProductListClient } from '@/features/products/components/ProductListCli
 import { ProductService } from '@/services/product.service'
 import { CategoryService } from '@/services/category.service'
 
-export const revalidate = 0
+export const revalidate = 30
 
 export default async function ProductsPage({
   searchParams,
@@ -15,18 +15,15 @@ export default async function ProductsPage({
   const search = typeof params.q === 'string' ? params.q : ''
   const sort = typeof params.sort === 'string' ? params.sort : 'newest'
   
-  const { data: categories } = await CategoryService.getPaginatedCategories(1, 100, '')
-  
-  // Custom fetch for user product list (only active products, with filter/sort)
-  // We can reuse getPaginatedProducts but we need sort and category slug.
-  // Wait, ProductService.getPaginatedProducts doesn't accept categorySlug or sort.
-  // I will add a custom method for user storefront in ProductService or just use getPaginatedProducts and filter later if it's small, 
-  // but let's assume we can fetch them via a new service method `getStorefrontProducts`.
-  const { data: products } = await ProductService.getStorefrontProducts({
-    categorySlug,
-    search,
-    sort
-  })
+  // Parallelize category and product queries for maximum speed
+  const [{ data: categories }, { data: products }] = await Promise.all([
+    CategoryService.getPaginatedCategories(1, 100, ''),
+    ProductService.getStorefrontProducts({
+      categorySlug,
+      search,
+      sort
+    })
+  ])
 
   return (
     <div className="container mx-auto px-4 py-8">
