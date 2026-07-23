@@ -6,6 +6,10 @@ import { Toaster } from '@/components/ui/sonner'
 import { PwaRegister } from '@/components/pwa/PwaRegister'
 import { OfflineAlert } from '@/components/pwa/OfflineAlert'
 
+import { Suspense } from 'react'
+import { NavigationProgressBar } from '@/components/layout/NavigationProgressBar'
+import { ScrollToTopButton } from '@/components/layout/ScrollToTopButton'
+
 const inter = Inter({ subsets: ['latin', 'vietnamese'] })
 
 export const metadata: Metadata = {
@@ -41,8 +45,12 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
+          <Suspense fallback={null}>
+            <NavigationProgressBar />
+          </Suspense>
           <PwaRegister />
           {children}
+          <ScrollToTopButton />
           <OfflineAlert />
           <Toaster position="top-center" richColors />
         </ThemeProvider>
