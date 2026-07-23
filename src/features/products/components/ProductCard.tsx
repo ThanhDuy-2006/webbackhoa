@@ -9,7 +9,7 @@ import { toast } from 'sonner'
 import { useState } from 'react'
 import { motion, Variants } from 'framer-motion'
 import { QuickViewSheet } from '@/components/products/QuickViewSheet'
-import { ProgressiveImage } from '@/components/ui/ProgressiveImage'
+import { SmartImage } from '@/components/ui/smart-image'
 
 interface ProductCardProps {
   product: {
@@ -61,8 +61,9 @@ export function ProductCard({ product, index = 0, priority = false }: ProductCar
         <Card className="group overflow-hidden rounded-2xl border-transparent shadow-[0_2px_12px_rgba(0,0,0,0.04)] bg-white dark:bg-slate-900 transition-all duration-300 hover:shadow-[0_12px_32px_rgba(0,0,0,0.12)] hover:-translate-y-1.5 flex flex-col h-full relative z-0 hover:z-10">
           <Link href={`/san-pham/${product.slug}`} className="block relative">
           <div className="relative aspect-[4/3] sm:aspect-square overflow-hidden bg-white dark:bg-slate-950 p-6">
-            <ProgressiveImage
-              src={images[0] || 'https://placehold.co/400x400?text=ĐANG+UPDATE'}
+            <SmartImage
+              productId={product.id}
+              src={images[0]}
               alt={product.name}
               fill
               priority={priority}

@@ -29,7 +29,15 @@ export interface Product {
   updated_at: string
   deleted_at: string | null
   
+  // Smart Image Automation Fields
+  image_source: 'auto' | 'manual'
+  image_status: 'unchecked' | 'searching' | 'valid' | 'invalid' | 'needs_review'
+  image_last_checked_at: string | null
+  image_retry_count: number
+  image_failed_urls: string[]
+
   // Relations
   variants?: ProductVariant[]
   category?: { id: string, name: string }
 }
+

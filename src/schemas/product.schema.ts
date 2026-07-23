@@ -23,6 +23,10 @@ export const productSchema = z.object({
   is_active: z.boolean(),
   is_featured: z.boolean(),
   variants: z.array(productVariantSchema).default([]),
+  
+  // Smart Image Automation Fields (Optional in input form, handled internally)
+  image_source: z.enum(['auto', 'manual']).default('auto'),
+  image_status: z.enum(['unchecked', 'searching', 'valid', 'invalid', 'needs_review']).default('unchecked'),
 })
 
 export type ProductFormData = z.infer<typeof productSchema>

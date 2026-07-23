@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'sonner'
-import Image from 'next/image'
+import { SmartImage } from '@/components/ui/smart-image'
 import { Loader2, Ticket, MapPin, Phone, User as UserIcon } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
@@ -206,7 +206,7 @@ export function CheckoutClient({ user, profile, settings }: CheckoutClientProps)
             {items.map(item => (
               <div key={`${item.id}-${item.variantId}`} className="flex gap-3">
                 <div className="relative w-16 h-16 rounded-md overflow-hidden shrink-0 border">
-                  <Image src={item.image || 'https://placehold.co/100x100?text=ĐANG+UPDATE'} alt={item.name} fill className="object-cover" />
+                  <SmartImage productId={item.id} src={item.image} alt={item.name} fill className="object-cover" />
                 </div>
                 <div className="flex-1 text-sm">
                   <p className="font-medium text-slate-900 line-clamp-2">{item.name}</p>

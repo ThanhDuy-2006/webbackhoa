@@ -3,7 +3,7 @@
 import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, ShoppingCart, Plus, Minus } from 'lucide-react'
-import Image from 'next/image'
+import { SmartImage } from '@/components/ui/smart-image'
 import { Button } from '@/components/ui/button'
 import { useCartStore } from '@/store/useCartStore'
 import { toast } from 'sonner'
@@ -92,8 +92,9 @@ export function QuickViewSheet({ product, isOpen, onClose }: QuickViewSheetProps
                 {/* Images Gallery */}
                 <div className="w-full md:w-1/2 space-y-4">
                   <div className="relative aspect-square rounded-2xl overflow-hidden bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800">
-                    <Image
-                      src={images[currentImageIndex] || 'https://placehold.co/400x400?text=ĐANG+UPDATE'}
+                    <SmartImage
+                      productId={product.id}
+                      src={images[currentImageIndex]}
                       alt={product.name}
                       fill
                       className="object-contain"
@@ -110,7 +111,7 @@ export function QuickViewSheet({ product, isOpen, onClose }: QuickViewSheetProps
                             currentImageIndex === idx ? "border-emerald-600" : "border-slate-100 dark:border-slate-800"
                           )}
                         >
-                          <Image src={img} alt="" fill className="object-cover" />
+                          <SmartImage productId={product.id} src={img} alt="" fill className="object-cover" />
                         </button>
                       ))}
                     </div>

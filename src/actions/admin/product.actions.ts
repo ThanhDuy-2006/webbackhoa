@@ -74,16 +74,38 @@ export async function bulkDeleteProductsAction(ids: string[]) {
 export async function bulkCreateProductsAction(productsData: ProductFormData[]) {
   try {
     const adminId = await getAdminId()
-    const results = { success: 0, failed: 0, errors: [] as string[] }
+    const results = { success: 0, merged: 0, failed: 0, errors: [] as string[] }
     
-    for (const data of productsData) {
+    // Deduplicate in batch array first
+    const mergedMap = new Map<string, ProductFormData>()
+
+    for (const item of productsData) {
+      const cleanName = item.name.trim().toLowerCase()
+      const key = `${cleanName}___${item.price}`
+      if (mergedMap.has(key)) {
+        const existing = mergedMap.get(key)!
+        existing.stock += item.stock
+        if (!existing.image_url && item.image_url) {
+          existing.image_url = item.image_url
+          existing.images = [item.image_url]
+        }
+      } else {
+        mergedMap.set(key, { ...item })
+      }
+    }
+
+    for (const data of Array.from(mergedMap.values())) {
       try {
-        await ProductService.createProduct(data, adminId)
-        results.success++
+        const res = await ProductService.upsertImportProduct(data, adminId)
+        if (res.action === 'merged') {
+          results.merged++
+        } else {
+          results.success++
+        }
       } catch (err: unknown) {
         const error = err as any
         results.failed++
-        results.errors.push(`Lỗi khi thêm "${data.name}": ${error?.code === '23505' ? 'Trùng đường dẫn' : error?.message || 'Lỗi không xác định'}`)
+        results.errors.push(`Lỗi khi xử lý "${data.name}": ${error?.message || 'Lỗi không xác định'}`)
       }
     }
 

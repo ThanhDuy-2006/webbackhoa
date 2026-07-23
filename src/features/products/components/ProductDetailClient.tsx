@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import Image from 'next/image'
+import { SmartImage } from '@/components/ui/smart-image'
 import { Button } from '@/components/ui/button'
 import { ShoppingCart, Star, Heart, Check, ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -102,8 +102,9 @@ export function ProductDetailClient({ product, variants, initialFavorited = fals
       <div className="space-y-4">
         {/* Desktop Image View */}
         <div className="hidden md:block relative aspect-square bg-slate-100 rounded-2xl overflow-hidden group">
-          <Image
-            src={images[currentImageIndex] || 'https://placehold.co/800x800?text=ĐANG+UPDATE'}
+          <SmartImage
+            productId={product.id}
+            src={images[currentImageIndex]}
             alt={product.name}
             fill
             sizes="(max-width: 768px) 100vw, 50vw"
@@ -146,7 +147,7 @@ export function ProductDetailClient({ product, variants, initialFavorited = fals
           >
             {images.map((img: string, idx: number) => (
               <div key={idx} className="flex-shrink-0 w-full h-full snap-start relative">
-                <Image src={img} alt={`${product.name} ${idx + 1}`} fill sizes="100vw" className="object-contain" />
+                <SmartImage productId={product.id} src={img} alt={`${product.name} ${idx + 1}`} fill sizes="100vw" className="object-contain" />
               </div>
             ))}
           </div>
@@ -174,7 +175,7 @@ export function ProductDetailClient({ product, variants, initialFavorited = fals
                   currentImageIndex === idx ? "border-emerald-600" : "border-transparent opacity-70 hover:opacity-100"
                 )}
               >
-                <Image src={img} alt={`Thumbnail ${idx + 1}`} fill className="object-cover animate-fade-in" />
+                <SmartImage productId={product.id} src={img} alt={`Thumbnail ${idx + 1}`} fill className="object-cover animate-fade-in" />
               </button>
             ))}
           </div>

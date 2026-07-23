@@ -343,10 +343,37 @@ $$;
 
 -- ADD IS_DELETED TO CATEGORIES AND PRODUCTS
 ALTER TABLE categories ADD COLUMN IF NOT EXISTS is_deleted boolean default false;
+
+
+-- ADD IS_DELETED TO CATEGORIES AND PRODUCTS
+ALTER TABLE categories ADD COLUMN IF NOT EXISTS is_deleted boolean default false;
 ALTER TABLE categories ADD COLUMN IF NOT EXISTS deleted_at timestamp with time zone;
 
 ALTER TABLE products ADD COLUMN IF NOT EXISTS is_deleted boolean default false;
 ALTER TABLE products ADD COLUMN IF NOT EXISTS deleted_at timestamp with time zone;
+
+-- PRODUCT IMAGE CANDIDATE SESSIONS & CANDIDATES
+CREATE TABLE IF NOT EXISTS public.product_image_candidate_sessions (
+  id text PRIMARY KEY,
+  admin_id uuid REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  product_id uuid REFERENCES public.products(id) ON DELETE CASCADE,
+  form_session_id text,
+  expires_at timestamp with time zone NOT NULL,
+  consumed_at timestamp with time zone,
+  created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.product_image_candidates (
+  id text PRIMARY KEY,
+  session_id text REFERENCES public.product_image_candidate_sessions(id) ON DELETE CASCADE NOT NULL,
+  url text NOT NULL,
+  thumbnail_url text,
+  metadata_score integer NOT NULL,
+  visual_score integer,
+  photographer text,
+  source_page_url text,
+  created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
+);
 
 -- GRANT PERMISSIONS TO POSTGRES ROLES
 GRANT ALL ON ALL TABLES IN SCHEMA public TO postgres, anon, authenticated, service_role;

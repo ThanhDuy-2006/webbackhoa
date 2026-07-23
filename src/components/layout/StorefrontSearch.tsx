@@ -8,7 +8,7 @@ import { ProductService } from '@/services/product.service'
 import { Product } from '@/types/product.type'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
-import Image from 'next/image'
+import { SmartImage } from '@/components/ui/smart-image'
 
 export function StorefrontSearch() {
   const router = useRouter()
@@ -115,8 +115,9 @@ export function StorefrontSearch() {
                       onClick={() => setIsFocused(false)}
                     >
                       <div className="h-12 w-12 rounded-lg overflow-hidden bg-slate-100 shrink-0 relative">
-                        <Image 
-                          src={product.image_url || 'https://placehold.co/100x100?text=SP'} 
+                        <SmartImage 
+                          productId={product.id}
+                          src={product.image_url} 
                           alt={product.name} 
                           fill
                           sizes="48px"
@@ -230,8 +231,9 @@ export function StorefrontSearch() {
                           onClick={() => setIsMobileOpen(false)}
                         >
                           <div className="h-10 w-10 rounded bg-slate-100 overflow-hidden shrink-0 relative">
-                            <Image
-                              src={product.image_url || 'https://placehold.co/100x100?text=SP'}
+                            <SmartImage
+                              productId={product.id}
+                              src={product.image_url}
                               alt={product.name}
                               fill
                               sizes="40px"
