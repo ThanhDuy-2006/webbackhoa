@@ -11,15 +11,15 @@ export default function manifest(): MetadataRoute.Manifest {
     theme_color: '#059669',
     icons: [
       {
-        src: 'https://placehold.co/192x192/059669/ffffff?text=BH',
+        src: '/icon.svg',
         sizes: '192x192',
-        type: 'image/png',
+        type: 'image/svg+xml',
         purpose: 'maskable',
       },
       {
-        src: 'https://placehold.co/512x512/059669/ffffff?text=BH',
+        src: '/icon.svg',
         sizes: '512x512',
-        type: 'image/png',
+        type: 'image/svg+xml',
         purpose: 'any',
       },
     ],
