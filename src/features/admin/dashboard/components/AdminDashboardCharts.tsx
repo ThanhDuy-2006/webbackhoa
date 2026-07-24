@@ -3,6 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts'
 import { MoreHorizontal } from 'lucide-react'
+import { useState, useEffect } from 'react'
 
 interface ChartProps {
   revenueData: {
@@ -21,6 +22,12 @@ interface ChartProps {
 const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444']
 
 export function AdminDashboardCharts({ revenueData, statusData }: ChartProps) {
+  const [isMounted, setIsMounted] = useState(false)
+  
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
   const pieData = [
     { name: 'Đã giao', value: statusData.completed },
     { name: 'Đang giao', value: statusData.shipping },
@@ -55,6 +62,10 @@ export function AdminDashboardCharts({ revenueData, statusData }: ChartProps) {
       )
     }
     return null
+  }
+
+  if (!isMounted) {
+    return <div className="h-[350px] w-full bg-slate-100/50 animate-pulse rounded-[24px]" />
   }
 
   return (

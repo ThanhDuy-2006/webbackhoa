@@ -2,14 +2,9 @@ import { DashboardService } from '@/services/dashboard.service'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { DollarSign, Users, ShoppingBag, Package, TrendingUp, MoreHorizontal, CheckCircle2, Clock, Truck, XCircle, FileEdit, UserPlus, CreditCard, Receipt, ArrowLeftRight } from 'lucide-react'
 import Link from 'next/link'
-import dynamic from 'next/dynamic'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/server'
-
-const AdminDashboardCharts = dynamic(
-  () => import('@/features/admin/dashboard/components/AdminDashboardCharts').then(m => m.AdminDashboardCharts),
-  { ssr: false, loading: () => <div className="h-[350px] w-full bg-slate-100/50 animate-pulse rounded-[24px]" /> }
-)
+import { AdminDashboardCharts } from '@/features/admin/dashboard/components/AdminDashboardCharts'
 
 export const revalidate = 0
 
