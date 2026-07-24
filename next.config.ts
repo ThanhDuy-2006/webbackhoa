@@ -15,9 +15,6 @@ const nextConfig: NextConfig = {
       'sonner',
     ],
   },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   typescript: {
     ignoreBuildErrors: true,
   },

@@ -32,7 +32,7 @@ export const ProductRepository = {
     const supabase = createAdminClient()
     let query = supabase
       .from('products')
-      .select('*, categories!inner(slug), variants:product_variants(*)', { count: 'exact' })
+      .select('id, name, slug, price, sale_price, stock, image_url, images, is_featured, category_id, categories!inner(slug), variants:product_variants(id, name, price, stock, is_active)', { count: 'exact' })
       .is('deleted_at', null)
       .eq('is_active', true)
 

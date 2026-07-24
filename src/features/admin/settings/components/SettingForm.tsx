@@ -12,6 +12,8 @@ import { updateGeneralSettingsAction } from '@/actions/admin/setting.actions'
 import { toast } from 'sonner'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 
+import Image from 'next/image'
+
 interface Props {
   initialData: GeneralSettings
 }
@@ -28,6 +30,8 @@ export function SettingForm({ initialData }: Props) {
     resolver: zodResolver(generalSettingsSchema),
     defaultValues: initialData,
   })
+
+  const logoUrl = watch('logo_url')
 
   const onSubmit = async (data: GeneralSettingsFormData) => {
     setLoading(true)
@@ -71,8 +75,10 @@ export function SettingForm({ initialData }: Props) {
             <div className="grid gap-2">
               <Label htmlFor="logo_url">Link Logo</Label>
               <Input id="logo_url" {...register('logo_url')} placeholder="https://..." />
-              {watch('logo_url') && (
-                <img src={watch('logo_url')} alt="Logo preview" className="h-12 object-contain bg-slate-100 rounded border p-2 mt-2" />
+              {logoUrl && (
+                <div className="relative h-12 w-36 bg-slate-100 rounded border p-2 mt-2">
+                  <Image src={logoUrl} alt="Logo preview" fill className="object-contain" unoptimized />
+                </div>
               )}
             </div>
 
