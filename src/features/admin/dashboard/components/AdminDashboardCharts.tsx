@@ -29,17 +29,17 @@ export function AdminDashboardCharts({ revenueData, statusData }: ChartProps) {
   }, [])
 
   const pieData = [
-    { name: 'Đã giao', value: statusData.completed },
-    { name: 'Đang giao', value: statusData.shipping },
-    { name: 'Chờ xử lý', value: statusData.pending },
-    { name: 'Đã hủy', value: statusData.cancelled },
+    { name: 'Đã giao', value: statusData.completed, isFallback: false },
+    { name: 'Đang giao', value: statusData.shipping, isFallback: false },
+    { name: 'Chờ xử lý', value: statusData.pending, isFallback: false },
+    { name: 'Đã hủy', value: statusData.cancelled, isFallback: false },
   ].filter(item => item.value > 0) // only show if > 0
 
   const totalOrders = Object.values(statusData).reduce((a, b) => a + b, 0)
   
   // To avoid empty chart errors
   if (pieData.length === 0) {
-    pieData.push({ name: 'Chưa có đơn', value: 1 })
+    pieData.push({ name: 'Chưa có đơn', value: 1, isFallback: true })
   }
 
   // Format Y Axis for large numbers
@@ -166,8 +166,8 @@ export function AdminDashboardCharts({ revenueData, statusData }: ChartProps) {
                   <span className="text-sm text-slate-600">{entry.name}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-semibold text-slate-800">{entry.value}</span>
-                  <span className="text-xs text-slate-400">({((entry.value / Math.max(totalOrders, 1)) * 100).toFixed(1)}%)</span>
+                  <span className="text-sm font-semibold text-slate-800">{entry.isFallback ? 0 : entry.value}</span>
+                  <span className="text-xs text-slate-400">({entry.isFallback ? '0.0%' : ((entry.value / Math.max(totalOrders, 1)) * 100).toFixed(1) + '%'})</span>
                 </div>
               </div>
             ))}

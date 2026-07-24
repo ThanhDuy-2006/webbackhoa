@@ -36,10 +36,11 @@ export const DashboardRepository = {
     }
 
     statusData?.forEach(order => {
-      if (order.status === 'completed') statusCounts.completed++
-      else if (order.status === 'shipping') statusCounts.shipping++
-      else if (order.status === 'pending') statusCounts.pending++
-      else if (order.status === 'cancelled') statusCounts.cancelled++
+      const s = (order.status || '').toLowerCase()
+      if (s === 'completed') statusCounts.completed++
+      else if (s === 'shipping') statusCounts.shipping++
+      else if (s === 'cancelled' || s === 'refunded') statusCounts.cancelled++
+      else statusCounts.pending++ // 'pending', 'confirmed', or any other active status
     })
 
     // 5. Get 7 days revenue
