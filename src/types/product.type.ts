@@ -36,9 +36,16 @@ export interface Product {
   image_retry_count: number
   image_failed_urls: string[]
 
+  // C2C Marketplace Fields
+  seller_id?: string | null
+  product_source?: 'platform' | 'seller'
+  listing_status?: 'draft' | 'active' | 'paused' | 'suspended' | 'deleted'
+  suspension_reason?: string | null
+
   // Relations
   variants?: ProductVariant[]
   category?: { id: string, name: string }
+  seller_profile?: { full_name: string | null; email: string | null }
 }
 
 export interface StorefrontProductSummary {

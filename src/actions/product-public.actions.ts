@@ -45,3 +45,18 @@ export async function getProductQuickViewAction(id: string): Promise<QuickViewPr
     return null
   }
 }
+
+export async function searchPexelsImagesPublicAction(query: string): Promise<string | null> {
+  try {
+    const { PexelsImageSearchProvider } = await import('@/lib/images/pexels.provider')
+    const provider = new PexelsImageSearchProvider()
+    const results = await provider.searchImages(query)
+    if (results && results.length > 0) {
+      return results[0].url
+    }
+    return null
+  } catch (err) {
+    console.error('[searchPexelsImagesPublicAction] Error:', err)
+    return null
+  }
+}

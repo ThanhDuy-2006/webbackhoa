@@ -47,6 +47,8 @@ export const ProductRepository = {
       .select('id, name, slug, price, sale_price, stock, image_url, is_featured, category_id, categories!inner(slug)', { count: 'exact' })
       .is('deleted_at', null)
       .eq('is_active', true)
+      .eq('listing_status', 'active')
+      .gt('stock', 0)
 
     if (categorySlug) {
       query = query.eq('categories.slug', categorySlug)
@@ -290,9 +292,36 @@ export const ProductRepository = {
     const supabase = createAdminClient()
     const { error } = await supabase
       .from('products')
-      .update({ is_deleted: true, deleted_at: new Date().toISOString(), is_active: false })
+      .update({ is_deleted: true, deleted_at: new Date().toISOString(), is_active: false, listing_status: 'deleted' })
       .in('id', ids)
 
     if (error) throw error
+  },
+
+  async getSellerProducts(sellerId: string, page: number = 1, limit: number = 10, search: string = '', status?: string) {
+    const supabase = createAdminClient()
+    let query = supabase
+      .from('products')
+      .select('*, categories(name), variants:product_variants(*)', { count: 'exact' })
+      .eq('seller_id', sellerId)
+      .neq('listing_status', 'deleted')
+
+    if (search) {
+      query = query.ilike('name', `%${search}%`)
+    }
+
+    if (status && status !== 'all') {
+      query = query.eq('listing_status', status)
+    }
+
+    const from = (page - 1) * limit
+    const to = from + limit - 1
+
+    const { data, count, error } = await query
+      .order('created_at', { ascending: false })
+      .range(from, to)
+
+    if (error) throw error
+    return { data: data || [], count: count || 0 }
   }
 }

@@ -2,13 +2,16 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { User, ShoppingBag, CreditCard, Lock, LogOut, Activity, Percent } from 'lucide-react'
+import { User, ShoppingBag, CreditCard, Lock, LogOut, Activity, Percent, Store, PackageCheck, DollarSign } from 'lucide-react'
 import { logout } from '@/app/login/actions'
 import { Button } from '@/components/ui/button'
 
 const sidebarLinks = [
   { name: 'Hồ sơ', href: '/tai-khoan', icon: User },
-  { name: 'Đơn hàng', href: '/tai-khoan/don-hang', icon: ShoppingBag },
+  { name: 'Đơn mua', href: '/tai-khoan/don-hang', icon: ShoppingBag },
+  { name: 'Sản phẩm của tôi', href: '/tai-khoan/san-pham-cua-toi', icon: Store },
+  { name: 'Đơn bán', href: '/tai-khoan/don-ban', icon: PackageCheck },
+  { name: 'Doanh thu', href: '/tai-khoan/doanh-thu', icon: DollarSign },
   { name: 'Ví của tôi', href: '/tai-khoan/nap-tien', icon: CreditCard },
   { name: 'Khấu trừ chi phí', href: '/tai-khoan/chia-tien', icon: Percent },
   { name: 'Lịch sử chung', href: '/tai-khoan/lich-su-chung', icon: Activity },
