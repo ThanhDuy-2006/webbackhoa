@@ -206,12 +206,12 @@ export function NavbarClient({ user, profile }: NavbarClientProps) {
             </DropdownMenu>
           ) : (
             <div className="hidden sm:flex gap-3">
-              <Link href="/login" passHref legacyBehavior>
+              <Link href="/login">
                 <Button variant="ghost" className="rounded-full hover:bg-slate-100 font-medium" style={{ minHeight: '44px' }}>
                   Đăng nhập
                 </Button>
               </Link>
-              <Link href="/register" passHref legacyBehavior>
+              <Link href="/register">
                 <Button className="bg-emerald-600 hover:bg-emerald-700 rounded-full font-medium shadow-sm hover:shadow transition-all" style={{ minHeight: '44px' }}>
                   Đăng ký
                 </Button>

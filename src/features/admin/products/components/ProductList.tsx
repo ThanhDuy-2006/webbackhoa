@@ -254,12 +254,12 @@ export function ProductList({ initialProducts, totalCount, currentPage, searchTe
           )}
         </div>
         <div className="space-x-2 flex">
-          <Link href="/admin/products/import" passHref legacyBehavior>
+          <Link href="/admin/products/import">
             <Button variant="outline" className="text-emerald-600 border-emerald-600 hover:bg-emerald-50">
               Nhập từ file Excel
             </Button>
           </Link>
-          <Link href="/admin/products/create" passHref legacyBehavior>
+          <Link href="/admin/products/create">
             <Button className="bg-emerald-600 hover:bg-emerald-700">
               <Plus className="h-4 w-4 mr-2" />
               Thêm sản phẩm
@@ -352,7 +352,7 @@ export function ProductList({ initialProducts, totalCount, currentPage, searchTe
                     >
                       <Coins className="h-4 w-4 text-orange-500" />
                     </Button>
-                    <Link href={`/admin/products/${product.id}/edit`} passHref legacyBehavior>
+                    <Link href={`/admin/products/${product.id}/edit`}>
                       <Button variant="outline" size="icon" title="Chỉnh sửa">
                         <Pencil className="h-4 w-4 text-emerald-600" />
                       </Button>
