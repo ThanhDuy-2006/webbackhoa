@@ -187,12 +187,12 @@ export function ProductListClient({
 
               {/* Working Server-Side Pagination Controls */}
               {totalPages > 1 && (
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-slate-200 dark:border-slate-800">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 mb-24 md:mb-0 border-t border-slate-200 dark:border-slate-800">
                   <span className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
                     Trang <strong className="text-slate-900 dark:text-slate-100">{page}</strong> / <strong>{totalPages}</strong> ({totalCount} sản phẩm)
                   </span>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-center flex-wrap gap-2">
                     <Button
                       variant="outline"
                       size="sm"

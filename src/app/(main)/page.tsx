@@ -32,7 +32,7 @@ export default async function ProductsPage({
   ])
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 pt-8 pb-24 lg:pb-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Sản phẩm</h1>
         <p className="mt-2 text-slate-600 dark:text-slate-400">Khám phá các sản phẩm thực phẩm tươi sạch, an toàn mỗi ngày với giá tốt nhất.</p>
