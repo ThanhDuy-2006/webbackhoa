@@ -22,6 +22,7 @@ import { bulkCreateProductsAction } from '@/actions/admin/product.actions'
 import { generateProductImageAction, selectManualCandidateAction } from '@/actions/admin/image.actions'
 import { ImageCandidate } from '@/lib/images/types'
 import { toast } from 'sonner'
+import { handleServerActionError } from '@/lib/server-action-error-handler'
 import { useRouter } from 'next/navigation'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Input } from '@/components/ui/input'
@@ -353,7 +354,7 @@ export function ProductImportClient({ categories }: Props) {
         toast.error(res.error || 'Không thể chọn ảnh này')
       }
     } catch (err) {
-      toast.error('Lỗi khi xác nhận chọn ảnh')
+      handleServerActionError(err, 'Lỗi khi xác nhận chọn ảnh')
     }
   }
 
@@ -366,32 +367,38 @@ export function ProductImportClient({ categories }: Props) {
     }
 
     setLoading(true)
-    const result = await bulkCreateProductsAction(validItems)
-    setLoading(false)
+    try {
+      const result = await bulkCreateProductsAction(validItems)
+      setLoading(false)
 
-    if (result.success) {
-      const createdCount = result.results?.success || 0
-      const mergedCount = result.results?.merged || 0
-      
-      let msg = `Hoàn tất nhập dữ liệu!`
-      if (createdCount > 0 && mergedCount > 0) {
-        msg = `Thêm mới ${createdCount} sản phẩm, gộp tồn kho ${mergedCount} sản phẩm trùng tên!`
-      } else if (mergedCount > 0) {
-        msg = `Đã gộp số lượng cho ${mergedCount} sản phẩm đã có trong cơ sở dữ liệu!`
+      if (result.success) {
+        const createdCount = result.results?.success || 0
+        const mergedCount = result.results?.merged || 0
+        
+        let msg = `Hoàn tất nhập dữ liệu!`
+        if (createdCount > 0 && mergedCount > 0) {
+          msg = `Thêm mới ${createdCount} sản phẩm, gộp tồn kho ${mergedCount} sản phẩm trùng tên!`
+        } else if (mergedCount > 0) {
+          msg = `Đã gộp số lượng cho ${mergedCount} sản phẩm đã có trong cơ sở dữ liệu!`
+        } else {
+          msg = `Thêm thành công ${createdCount} sản phẩm vào cơ sở dữ liệu!`
+        }
+        toast.success(msg)
+
+        if (result.results?.failed && result.results.failed > 0) {
+          toast.error(`Thất bại ${result.results.failed} sản phẩm.`)
+          console.error('Lỗi nhập:', result.results.errors)
+        }
+
+        setTimeout(() => {
+          router.push('/admin/products')
+        }, 1200)
       } else {
-        msg = `Thêm thành công ${createdCount} sản phẩm vào cơ sở dữ liệu!`
+        toast.error(result.error || 'Có lỗi xảy ra khi nhập dữ liệu')
       }
-      toast.success(msg)
-
-      if (result.results?.failed && result.results.failed > 0) {
-        toast.error(`Thất bại ${result.results.failed} sản phẩm.`)
-        console.error('Lỗi nhập:', result.results.errors)
-      }
-      setTimeout(() => {
-        router.push('/admin/products')
-      }, 1500)
-    } else {
-      toast.error(result.error || 'Có lỗi xảy ra khi nhập dữ liệu')
+    } catch (err) {
+      setLoading(false)
+      handleServerActionError(err, 'Lỗi khi thực hiện nhập dữ liệu')
     }
   }
 

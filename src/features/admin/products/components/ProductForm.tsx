@@ -16,6 +16,7 @@ import { ImageCandidate, VisualVerificationStatus } from '@/lib/images/types'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { handleServerActionError } from '@/lib/server-action-error-handler'
 import { Plus, Trash2, Loader2, RefreshCw, Sparkles, ExternalLink, AlertCircle, CheckCircle } from 'lucide-react'
 
 interface Props {
@@ -139,7 +140,7 @@ export function ProductForm({ initialData, categories }: Props) {
             setImageError(res.message)
           }
         } catch (e) {
-          console.error(e)
+          handleServerActionError(e, 'Lỗi khi tự động tìm ảnh')
         } finally {
           if (currentRequestId === requestIdRef.current) {
             setIsGeneratingImage(false)
@@ -213,7 +214,7 @@ export function ProductForm({ initialData, categories }: Props) {
         toast.error(res.message)
       }
     } catch (e) {
-      toast.error('Lỗi khi tạo ảnh')
+      handleServerActionError(e, 'Lỗi khi tạo ảnh')
     } finally {
       if (currentRequestId === requestIdRef.current) {
         setIsGeneratingImage(false)
@@ -243,14 +244,13 @@ export function ProductForm({ initialData, categories }: Props) {
         toast.error(res.error || 'Không thể chọn ảnh này')
       }
     } catch (e) {
-      toast.error('Lỗi khi xác nhận chọn ảnh')
+      handleServerActionError(e, 'Lỗi khi chọn ảnh thủ công')
     } finally {
       setSelectingCandidateId(null)
     }
   }
 
   const handleRefreshPreview = () => {
-    // Refresh preview without calling external search or vision API
     const current = watch('image_url')
     if (current) {
       setValue('image_url', '')
@@ -260,20 +260,25 @@ export function ProductForm({ initialData, categories }: Props) {
 
   const onSubmit = async (data: ProductFormData) => {
     setLoading(true)
-    let result
-    if (initialData) {
-      result = await updateProductAction(initialData.id, data)
-    } else {
-      result = await createProductAction(data)
-    }
+    try {
+      let result
+      if (initialData) {
+        result = await updateProductAction(initialData.id, data, initialData.slug)
+      } else {
+        result = await createProductAction(data)
+      }
 
-    setLoading(false)
+      setLoading(false)
 
-    if (result.success) {
-      toast.success(initialData ? 'Cập nhật sản phẩm thành công' : 'Thêm sản phẩm thành công')
-      router.push('/admin/products')
-    } else {
-      toast.error(result.error)
+      if (result.success) {
+        toast.success(initialData ? 'Cập nhật sản phẩm thành công' : 'Thêm sản phẩm thành công')
+        router.push('/admin/products')
+      } else {
+        toast.error(result.error)
+      }
+    } catch (e) {
+      setLoading(false)
+      handleServerActionError(e, 'Lỗi khi lưu sản phẩm')
     }
   }
 
