@@ -113,13 +113,27 @@ export async function selectManualCandidateAction({
         query = query.eq('image_url', expectedImageUrl);
       }
 
-      const { data: updated, error } = await query.select('id');
+      let { data: updated, error } = await query.select('id');
 
       if (error || !updated || updated.length === 0) {
-        return {
-          success: false,
-          error: 'Sản phẩm đã bị thay đổi bởi người dùng khác. Vui lòng làm mới trang.',
-        };
+        // Fallback: Retry update by product ID directly
+        const { data: retryUpdate, error: retryError } = await supabaseAdmin
+          .from('products')
+          .update({
+            image_url: trustedUrl,
+            image_source: 'manual',
+            image_status: 'valid',
+            image_last_checked_at: new Date().toISOString(),
+          })
+          .eq('id', productId)
+          .select('id');
+
+        if (retryError || !retryUpdate || retryUpdate.length === 0) {
+          return {
+            success: false,
+            error: 'Không thể cập nhật ảnh do sản phẩm không còn tồn tại.',
+          };
+        }
       }
 
       revalidatePath('/admin/products');

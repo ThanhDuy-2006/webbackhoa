@@ -232,7 +232,7 @@ export function ProductForm({ initialData, categories }: Props) {
         formSessionId: formSessionIdRef.current,
         candidateSessionId,
         candidateId: candidate.id,
-        expectedImageUrl: watch('image_url') || null,
+        expectedImageUrl: initialData?.image_url || null,
         expectedUpdatedAt: initialData?.updated_at || null,
       })
 
