@@ -15,7 +15,7 @@ export function StorefrontSearch() {
   const [searchTerm, setSearchTerm] = useState('')
   const [isFocused, setIsFocused] = useState(false)
   const [isMobileOpen, setIsMobileOpen] = useState(false)
-  const [suggestions, setSuggestions] = useState<Product[]>([])
+  const [suggestions, setSuggestions] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   
   const debouncedSearch = useDebounce(searchTerm, 300)
