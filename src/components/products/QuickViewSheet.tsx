@@ -19,14 +19,35 @@ export function QuickViewSheet({ product, isOpen, onClose }: QuickViewSheetProps
   const { addItem, setIsOpen: setCartOpen } = useCartStore()
   const [quantity, setQuantity] = useState(1)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
+  const [fullProduct, setFullProduct] = useState<any>(null)
+  const [loading, setLoading] = useState(false)
+
+  React.useEffect(() => {
+    if (isOpen && product?.id) {
+      if (!product.images || !product.description) {
+        setLoading(true)
+        import('@/services/product.service').then(({ ProductService }) => {
+          ProductService.getProductQuickViewById(product.id)
+            .then(data => {
+              if (data) setFullProduct(data)
+            })
+            .catch(console.error)
+            .finally(() => setLoading(false))
+        })
+      } else {
+        setFullProduct(product)
+      }
+    }
+  }, [isOpen, product])
 
   if (!product) return null
 
-  const price = Number(product.price)
-  const finalPrice = product.sale_price ? Number(product.sale_price) : price
-  const hasDiscount = product.sale_price && price > finalPrice
-  const isOutOfStock = product.stock <= 0
-  const images = product.images || [product.image_url]
+  const activeProduct = fullProduct || product
+  const price = Number(activeProduct.price)
+  const finalPrice = activeProduct.sale_price ? Number(activeProduct.sale_price) : price
+  const hasDiscount = activeProduct.sale_price && price > finalPrice
+  const isOutOfStock = activeProduct.stock <= 0
+  const images = activeProduct.images || (activeProduct.image_url ? [activeProduct.image_url] : [])
 
   const handleAddToCart = () => {
     addItem({

@@ -28,11 +28,23 @@ export const ProductRepository = {
     return { data, count: count || 0 }
   },
 
-  async getStorefrontProducts({ categorySlug, search, sort }: { categorySlug?: string, search?: string, sort?: string }) {
+  async getStorefrontProducts({ 
+    categorySlug, 
+    search, 
+    sort,
+    page = 1,
+    pageSize = 20
+  }: { 
+    categorySlug?: string
+    search?: string
+    sort?: string
+    page?: number
+    pageSize?: number
+  }) {
     const supabase = createAdminClient()
     let query = supabase
       .from('products')
-      .select('id, name, slug, price, sale_price, stock, image_url, images, is_featured, category_id, categories!inner(slug), variants:product_variants(id, name, price, stock, is_active)', { count: 'exact' })
+      .select('id, name, slug, price, sale_price, stock, image_url, is_featured, category_id, categories!inner(slug)', { count: 'exact' })
       .is('deleted_at', null)
       .eq('is_active', true)
 
@@ -60,10 +72,41 @@ export const ProductRepository = {
         break
     }
 
-    const { data, count, error } = await query
+    const from = (page - 1) * pageSize
+    const to = from + pageSize - 1
+
+    const { data, count, error } = await query.range(from, to)
 
     if (error) throw error
-    return { data, count: count || 0 }
+    return { data: data || [], count: count || 0 }
+  },
+
+  async getFeaturedProducts(limit: number = 10) {
+    const supabase = createAdminClient()
+    const { data, error } = await supabase
+      .from('products')
+      .select('id, name, slug, price, sale_price, stock, image_url, category_id, is_featured, categories!inner(slug)')
+      .is('deleted_at', null)
+      .eq('is_active', true)
+      .eq('is_featured', true)
+      .order('created_at', { ascending: false })
+      .limit(limit)
+
+    if (error) throw error
+    return data || []
+  },
+
+  async getProductQuickViewById(id: string) {
+    const supabase = createAdminClient()
+    const { data, error } = await supabase
+      .from('products')
+      .select('id, name, slug, price, sale_price, stock, image_url, images, description, category_id, variants:product_variants(id, name, price, stock, is_active)')
+      .eq('id', id)
+      .is('deleted_at', null)
+      .single()
+
+    if (error) throw error
+    return data
   },
 
   async getProductById(id: string) {

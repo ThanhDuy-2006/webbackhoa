@@ -268,7 +268,7 @@ export function ProductListClient({ initialProducts, categories }: ProductListCl
               className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6"
             >
               {products.map((product, idx) => (
-                <ProductCard key={product.id} product={product} index={idx} priority={idx < 4} />
+                <ProductCard key={product.id} product={product} index={idx} priority={idx === 0} />
               ))}
             </motion.div>
           )}

@@ -24,6 +24,19 @@ export const CategoryRepository = {
     return { data: data as Category[], count: count || 0 }
   },
 
+  async getStorefrontCategories() {
+    const supabase = createAdminClient()
+    const { data, error } = await supabase
+      .from('categories')
+      .select('id, name, slug, image_url, description')
+      .eq('is_deleted', false)
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+
+    if (error) throw error
+    return data as Category[]
+  },
+
   async getCategoryById(id: string) {
     const supabase = createAdminClient()
     const { data, error } = await supabase

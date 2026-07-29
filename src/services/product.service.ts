@@ -1,6 +1,30 @@
 import { ProductRepository } from '@/repositories/product.repository'
 import { ProductFormData, productSchema } from '@/schemas/product.schema'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { unstable_cache } from 'next/cache'
+import { CACHE_TAGS } from '@/lib/cache-tags'
+
+const getStorefrontProductsCached = unstable_cache(
+  async (params: { categorySlug?: string; search?: string; sort?: string; page?: number; pageSize?: number }) => {
+    return await ProductRepository.getStorefrontProducts(params)
+  },
+  ['storefront-products-v1'],
+  {
+    tags: [CACHE_TAGS.STOREFRONT_PRODUCTS],
+    revalidate: 60,
+  }
+)
+
+const getFeaturedProductsCached = unstable_cache(
+  async (limit: number = 10) => {
+    return await ProductRepository.getFeaturedProducts(limit)
+  },
+  ['featured-products-v1'],
+  {
+    tags: [CACHE_TAGS.FEATURED_PRODUCTS],
+    revalidate: 60,
+  }
+)
 
 export const ProductService = {
   async generateUniqueSlug(baseSlug: string, currentProductId?: string): Promise<string> {
@@ -28,8 +52,16 @@ export const ProductService = {
     return await ProductRepository.getProducts(page, limit, search, categoryId)
   },
 
-  async getStorefrontProducts(params: { categorySlug?: string, search?: string, sort?: string }) {
-    return await ProductRepository.getStorefrontProducts(params)
+  async getStorefrontProducts(params: { categorySlug?: string; search?: string; sort?: string; page?: number; pageSize?: number }) {
+    return await getStorefrontProductsCached(params)
+  },
+
+  async getFeaturedProducts(limit: number = 10) {
+    return await getFeaturedProductsCached(limit)
+  },
+
+  async getProductQuickViewById(id: string) {
+    return await ProductRepository.getProductQuickViewById(id)
   },
 
   async createProduct(data: ProductFormData, adminId: string) {
@@ -112,7 +144,6 @@ export const ProductService = {
     const validatedData = productSchema.parse(data)
     const supabase = createAdminClient()
 
-    // 1. Search for existing product with matching name & price (case-insensitive)
     const cleanName = validatedData.name.trim()
     const { data: existingList } = await supabase
       .from('products')
@@ -125,11 +156,8 @@ export const ProductService = {
     const existingProduct = existingList && existingList.length > 0 ? existingList[0] : null
 
     if (existingProduct) {
-      // MERGE WITH EXISTING DB PRODUCT:
-      // Stock = existing stock + imported stock
       const newStock = Number(existingProduct.stock || 0) + Number(validatedData.stock || 0)
 
-      // Image = keep existing DB image if present, else use newly imported/searched image
       const finalImageUrl = existingProduct.image_url || validatedData.image_url || null
       const finalImages = existingProduct.image_url 
         ? (existingProduct.images || [existingProduct.image_url])
@@ -146,7 +174,6 @@ export const ProductService = {
         })
         .eq('id', existingProduct.id)
 
-      // Inventory log entry
       if (validatedData.stock > 0) {
         await supabase.from('inventory_logs').insert([{
           product_id: existingProduct.id,
@@ -160,7 +187,6 @@ export const ProductService = {
 
       return { action: 'merged', id: existingProduct.id }
     } else {
-      // CREATE NEW PRODUCT
       const created = await this.createProduct(validatedData, adminId)
       return { action: 'created', id: created.id }
     }

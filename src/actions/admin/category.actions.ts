@@ -2,12 +2,15 @@
 
 import { CategoryService } from '@/services/category.service'
 import { CategoryFormData } from '@/schemas/category.schema'
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, revalidateTag } from 'next/cache'
+import { CACHE_TAGS } from '@/lib/cache-tags'
 
 export async function createCategoryAction(data: CategoryFormData) {
   try {
     const category = await CategoryService.createCategory(data)
     revalidatePath('/admin/categories')
+    revalidateTag(CACHE_TAGS.CATEGORIES, 'max')
+    revalidateTag(CACHE_TAGS.STOREFRONT_PRODUCTS, 'max')
     return { success: true, data: category }
   } catch (err: unknown) {
     const error = err as any;
@@ -22,6 +25,8 @@ export async function updateCategoryAction(id: string, data: CategoryFormData) {
   try {
     const category = await CategoryService.updateCategory(id, data)
     revalidatePath('/admin/categories')
+    revalidateTag(CACHE_TAGS.CATEGORIES, 'max')
+    revalidateTag(CACHE_TAGS.STOREFRONT_PRODUCTS, 'max')
     return { success: true, data: category }
   } catch (err: unknown) {
     const error = err as any;
@@ -36,6 +41,8 @@ export async function deleteCategoryAction(id: string) {
   try {
     await CategoryService.deleteCategory(id)
     revalidatePath('/admin/categories')
+    revalidateTag(CACHE_TAGS.CATEGORIES, 'max')
+    revalidateTag(CACHE_TAGS.STOREFRONT_PRODUCTS, 'max')
     return { success: true }
   } catch (err: unknown) {
     const error = err as any;

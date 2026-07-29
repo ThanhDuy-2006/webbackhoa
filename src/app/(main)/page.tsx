@@ -16,12 +16,14 @@ export default async function ProductsPage({
   const sort = typeof params.sort === 'string' ? params.sort : 'newest'
   
   // Parallelize category and product queries for maximum speed
-  const [{ data: categories }, { data: products }] = await Promise.all([
-    CategoryService.getPaginatedCategories(1, 100, ''),
+  const [categories, { data: products }] = await Promise.all([
+    CategoryService.getStorefrontCategories(),
     ProductService.getStorefrontProducts({
       categorySlug,
       search,
-      sort
+      sort,
+      page: 1,
+      pageSize: 20
     })
   ])
 

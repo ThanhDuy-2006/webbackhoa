@@ -17,7 +17,6 @@ import {
   ExternalLink,
   Loader2 
 } from 'lucide-react'
-import * as XLSX from 'xlsx'
 import { ProductFormData } from '@/schemas/product.schema'
 import { bulkCreateProductsAction } from '@/actions/admin/product.actions'
 import { generateProductImageAction, selectManualCandidateAction } from '@/actions/admin/image.actions'
@@ -216,7 +215,8 @@ export function ProductImportClient({ categories }: Props) {
     if (!file) return
 
     const reader = new FileReader()
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
+      const XLSX = await import('xlsx')
       const data = new Uint8Array(e.target?.result as ArrayBuffer)
       const workbook = XLSX.read(data, { type: 'array' })
       const firstSheet = workbook.Sheets[workbook.SheetNames[0]]
@@ -226,9 +226,10 @@ export function ProductImportClient({ categories }: Props) {
     reader.readAsArrayBuffer(file)
   }
 
-  const handleTextImport = () => {
+  const handleTextImport = async () => {
     if (!rawText.trim()) return
     try {
+      const XLSX = await import('xlsx')
       const workbook = XLSX.read(rawText, { type: 'string' })
       const firstSheet = workbook.Sheets[workbook.SheetNames[0]]
       const jsonData = XLSX.utils.sheet_to_json(firstSheet)

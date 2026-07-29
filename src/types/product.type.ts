@@ -41,3 +41,16 @@ export interface Product {
   category?: { id: string, name: string }
 }
 
+export interface StorefrontProductSummary {
+  id: string
+  name: string
+  slug: string
+  price: number
+  sale_price: number | null
+  stock: number
+  image_url: string | null
+  category_id: string | null
+  is_featured: boolean
+  categories?: { slug: string; name?: string } | null
+}
+

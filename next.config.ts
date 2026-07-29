@@ -15,9 +15,6 @@ const nextConfig: NextConfig = {
       'sonner',
     ],
   },
-  typescript: {
-    ignoreBuildErrors: true,
-  },
   images: {
     formats: ['image/avif', 'image/webp'],
     minimumCacheTTL: 31536000,

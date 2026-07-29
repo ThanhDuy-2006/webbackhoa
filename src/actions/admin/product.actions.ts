@@ -2,8 +2,9 @@
 
 import { ProductService } from '@/services/product.service'
 import { ProductFormData } from '@/schemas/product.schema'
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, revalidateTag } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { CACHE_TAGS } from '@/lib/cache-tags'
 
 async function getAdminId() {
   const supabase = await createClient()
@@ -17,8 +18,8 @@ export async function createProductAction(data: ProductFormData) {
     const adminId = await getAdminId()
     const product = await ProductService.createProduct(data, adminId)
     revalidatePath('/admin/products')
-    revalidatePath('/')
-    revalidatePath('/')
+    revalidateTag(CACHE_TAGS.STOREFRONT_PRODUCTS, 'max')
+    revalidateTag(CACHE_TAGS.FEATURED_PRODUCTS, 'max')
     return { success: true, data: product }
   } catch (err: unknown) {
     const error = err as any;
@@ -35,8 +36,8 @@ export async function updateProductAction(id: string, data: ProductFormData) {
     const product = await ProductService.updateProduct(id, data, adminId)
     revalidatePath('/admin/products')
     revalidatePath(`/san-pham/${data.slug}`)
-    revalidatePath('/')
-    revalidatePath('/')
+    revalidateTag(CACHE_TAGS.STOREFRONT_PRODUCTS, 'max')
+    revalidateTag(CACHE_TAGS.FEATURED_PRODUCTS, 'max')
     return { success: true, data: product }
   } catch (err: unknown) {
     const error = err as any;
@@ -51,7 +52,8 @@ export async function deleteProductAction(id: string) {
   try {
     await ProductService.deleteProduct(id)
     revalidatePath('/admin/products')
-    revalidatePath('/')
+    revalidateTag(CACHE_TAGS.STOREFRONT_PRODUCTS, 'max')
+    revalidateTag(CACHE_TAGS.FEATURED_PRODUCTS, 'max')
     return { success: true }
   } catch (err: unknown) {
     const error = err as any;
@@ -63,7 +65,8 @@ export async function bulkDeleteProductsAction(ids: string[]) {
   try {
     await ProductService.bulkDeleteProducts(ids)
     revalidatePath('/admin/products')
-    revalidatePath('/')
+    revalidateTag(CACHE_TAGS.STOREFRONT_PRODUCTS, 'max')
+    revalidateTag(CACHE_TAGS.FEATURED_PRODUCTS, 'max')
     return { success: true }
   } catch (err: unknown) {
     const error = err as any;
@@ -110,8 +113,8 @@ export async function bulkCreateProductsAction(productsData: ProductFormData[]) 
     }
 
     revalidatePath('/admin/products')
-    revalidatePath('/')
-    revalidatePath('/')
+    revalidateTag(CACHE_TAGS.STOREFRONT_PRODUCTS, 'max')
+    revalidateTag(CACHE_TAGS.FEATURED_PRODUCTS, 'max')
     
     return { success: true, results }
   } catch (err: unknown) {
@@ -119,4 +122,3 @@ export async function bulkCreateProductsAction(productsData: ProductFormData[]) 
     return { success: false, error: error?.message || 'Có lỗi xảy ra khi thực hiện import' }
   }
 }
-
