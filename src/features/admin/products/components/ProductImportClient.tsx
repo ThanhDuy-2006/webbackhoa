@@ -330,31 +330,11 @@ export function ProductImportClient({ categories }: Props) {
   }
 
   // Select candidate from Dialog
-  const handleSelectCandidateInDialog = async (candidate: ImageCandidate) => {
-    if (!selectedRowForImage || !selectedRowForImage.candidateSessionId) {
-      // Direct selection fallback
-      handleUpdateRow(selectedRowForImage!.tempId, 'image_url', candidate.url)
+  const handleSelectCandidateInDialog = (candidate: ImageCandidate) => {
+    if (selectedRowForImage) {
+      handleUpdateRow(selectedRowForImage.tempId, 'image_url', candidate.url)
       setSelectedRowForImage(prev => prev ? { ...prev, image_url: candidate.url } : null)
-      toast.success('Đã chọn ảnh thành công')
-      return
-    }
-
-    try {
-      const res = await selectManualCandidateAction({
-        formSessionId: selectedRowForImage.tempId,
-        candidateSessionId: selectedRowForImage.candidateSessionId,
-        candidateId: candidate.id,
-      })
-
-      if (res.success && res.url) {
-        handleUpdateRow(selectedRowForImage.tempId, 'image_url', res.url)
-        setSelectedRowForImage(prev => prev ? { ...prev, image_url: res.url } : null)
-        toast.success('Đã chọn ảnh thành công!')
-      } else {
-        toast.error(res.error || 'Không thể chọn ảnh này')
-      }
-    } catch (err) {
-      handleServerActionError(err, 'Lỗi khi xác nhận chọn ảnh')
+      toast.success('Đã chọn ảnh thành công!')
     }
   }
 

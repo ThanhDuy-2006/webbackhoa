@@ -222,32 +222,10 @@ export function ProductForm({ initialData, categories }: Props) {
     }
   }
 
-  const handleSelectCandidate = async (candidate: ImageCandidate) => {
-    if (!candidateSessionId) return
-    setSelectingCandidateId(candidate.id)
-
-    try {
-      const res = await selectManualCandidateAction({
-        productId: initialData?.id,
-        formSessionId: formSessionIdRef.current,
-        candidateSessionId,
-        candidateId: candidate.id,
-        expectedImageUrl: initialData?.image_url || null,
-        expectedUpdatedAt: initialData?.updated_at || null,
-      })
-
-      if (res.success && res.url) {
-        setValue('image_url', res.url, { shouldValidate: true })
-        setValue('image_source', 'manual')
-        toast.success('Đã chọn hình ảnh sản phẩm')
-      } else {
-        toast.error(res.error || 'Không thể chọn ảnh này')
-      }
-    } catch (e) {
-      handleServerActionError(e, 'Lỗi khi chọn ảnh thủ công')
-    } finally {
-      setSelectingCandidateId(null)
-    }
+  const handleSelectCandidate = (candidate: ImageCandidate) => {
+    setValue('image_url', candidate.url, { shouldValidate: true })
+    setValue('image_source', 'manual')
+    toast.success('Đã chọn hình ảnh sản phẩm')
   }
 
   const handleRefreshPreview = () => {
