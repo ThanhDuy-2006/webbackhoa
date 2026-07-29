@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbo",
-    "dev:mem": "NODE_OPTIONS='--max-old-space-size=2048' next dev --turbo",
+    "dev:mem": "npx cross-env NODE_OPTIONS=--max-old-space-size=2048 next dev --turbo",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"
