@@ -28,11 +28,11 @@ ALTER TABLE public.product_image_candidates ENABLE ROW LEVEL SECURITY;
 -- Admin access policies
 CREATE POLICY "Only admins can manage candidate sessions" ON public.product_image_candidate_sessions
     FOR ALL TO authenticated
-    USING ( (auth.jwt() ->> 'role' = 'admin') OR (EXISTS (SELECT 1 FROM public.users WHERE users.id = auth.uid() AND users.role = 'admin')) );
+    USING ( (auth.jwt() ->> 'role' = 'admin') OR (EXISTS (SELECT 1 FROM public.profiles WHERE profiles.id = auth.uid() AND profiles.role = 'admin')) );
 
 CREATE POLICY "Only admins can manage candidates" ON public.product_image_candidates
     FOR ALL TO authenticated
-    USING ( (auth.jwt() ->> 'role' = 'admin') OR (EXISTS (SELECT 1 FROM public.users WHERE users.id = auth.uid() AND users.role = 'admin')) );
+    USING ( (auth.jwt() ->> 'role' = 'admin') OR (EXISTS (SELECT 1 FROM public.profiles WHERE profiles.id = auth.uid() AND profiles.role = 'admin')) );
 
 -- Index for session queries and cleanup
 CREATE INDEX IF NOT EXISTS idx_candidate_sessions_admin ON public.product_image_candidate_sessions(admin_id, expires_at);

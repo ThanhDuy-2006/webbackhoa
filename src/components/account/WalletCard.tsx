@@ -1,5 +1,6 @@
 import { Wallet, Plus, History } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { formatCurrency } from '@/lib/utils'
 
 interface WalletCardProps {
   balance: number
@@ -19,7 +20,7 @@ export function WalletCard({ balance }: WalletCardProps) {
         <div>
           <p className="text-sm font-medium text-slate-500 mb-2">Số dư hiện tại</p>
           <p className="text-4xl font-bold text-emerald-600 tracking-tight">
-            {balance.toLocaleString('vi-VN')} VND
+            {formatCurrency(balance)}
           </p>
         </div>
       </div>

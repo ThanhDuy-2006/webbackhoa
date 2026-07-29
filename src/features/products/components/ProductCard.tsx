@@ -11,6 +11,7 @@ import { motion, Variants } from 'framer-motion'
 import { QuickViewSheet } from '@/components/products/QuickViewSheet'
 import { SmartImage } from '@/components/ui/smart-image'
 import { StorefrontProductSummary } from '@/types/product.type'
+import { formatCurrency } from '@/lib/utils'
 
 interface ProductCardProps {
   product: StorefrontProductSummary
@@ -104,11 +105,11 @@ export function ProductCard({ product, index = 0, priority = false }: ProductCar
               <div className="flex flex-col min-w-0">
                 {hasDiscount && (
                   <span className="text-[10px] sm:text-xs text-slate-400 line-through mb-0.5 truncate">
-                    {price.toLocaleString('vi-VN')} <span className="text-[8px] sm:text-[9px]">VND</span>
+                    {formatCurrency(price)} <span className="text-[8px] sm:text-[9px]">VND</span>
                   </span>
                 )}
                 <span className="text-xs sm:text-sm md:text-base font-black text-slate-900 dark:text-slate-100 leading-none truncate">
-                  {finalPrice.toLocaleString('vi-VN')} <span className="text-[9px] sm:text-[10px] font-semibold text-slate-500">VND</span>
+                  {formatCurrency(finalPrice)} <span className="text-[9px] sm:text-[10px] font-semibold text-slate-500">VND</span>
                 </span>
               </div>
               

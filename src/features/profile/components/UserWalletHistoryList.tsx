@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { getUserWalletTransactionsAction } from '@/actions/user/revenue-share.actions'
 import { Loader2, ArrowUpRight, ArrowDownRight } from 'lucide-react'
+import { formatCurrency } from '@/lib/utils'
 
 export function UserWalletHistoryList() {
   const [transactions, setTransactions] = useState<any[]>([])
@@ -112,12 +113,12 @@ export function UserWalletHistoryList() {
                           <ArrowDownRight className="h-3.5 w-3.5 text-red-500 shrink-0" />
                         )}
                         <strong className={`font-mono font-bold ${isCredit ? 'text-emerald-600' : 'text-red-500'}`}>
-                          {isCredit ? '+' : ''}{tx.amount.toLocaleString('vi-VN')}đ
+                          {isCredit ? '+' : ''}{formatCurrency(tx.amount)}
                         </strong>
                       </span>
                     </td>
-                    <td className="p-4 font-mono text-slate-500">{tx.balance_before.toLocaleString('vi-VN')}đ</td>
-                    <td className="p-4 font-mono font-bold text-slate-700">{tx.balance_after.toLocaleString('vi-VN')}đ</td>
+                    <td className="p-4 font-mono text-slate-500">{formatCurrency(tx.balance_before)}</td>
+                    <td className="p-4 font-mono font-bold text-slate-700">{formatCurrency(tx.balance_after)}</td>
                     <td className="p-4 text-slate-600 max-w-xs truncate" title={tx.note}>{tx.note || '-'}</td>
                   </tr>
                 )

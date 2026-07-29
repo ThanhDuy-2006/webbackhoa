@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { FileText, ArrowRight, PackageX } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { formatCurrency } from '@/lib/utils'
 
 interface Order {
   id: string
@@ -81,7 +82,7 @@ export function RecentOrders({ orders }: RecentOrdersProps) {
                   <td className="px-6 py-4 text-slate-600">{new Date(order.created_at).toLocaleDateString('vi-VN')}</td>
                   <td className="px-6 py-4">{getStatusBadge(order.status)}</td>
                   <td className="px-6 py-4 text-slate-600 capitalize">{order.payment_method === 'cod' ? 'Tiền mặt (COD)' : order.payment_method === 'wallet' ? 'Ví nội bộ' : order.payment_method}</td>
-                  <td className="px-6 py-4 text-right font-semibold text-slate-900">{order.total_amount.toLocaleString('vi-VN')} VND</td>
+                  <td className="px-6 py-4 text-right font-semibold text-slate-900">{formatCurrency(order.total_amount)}</td>
                   <td className="px-6 py-4 text-right">
                     <Link href={`/tai-khoan/don-hang/${order.id}`}>
                       <Button variant="outline" size="sm" className="rounded-lg text-emerald-600 border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700">

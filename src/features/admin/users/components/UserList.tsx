@@ -26,6 +26,7 @@ import { Search, ShieldAlert, ShieldCheck, Lock, Unlock } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
+import { formatCurrency } from '@/lib/utils'
 
 interface UserListProps {
   initialData: UserProfile[]
@@ -172,7 +173,7 @@ export function UserList({ initialData, total }: UserListProps) {
                     </div>
                   </TableCell>
                   <TableCell className="font-medium text-emerald-600">
-                    {user.balance.toLocaleString('vi-VN')} VND
+                    {formatCurrency(user.balance)}
                   </TableCell>
                   <TableCell>
                     {user.role === 'admin' ? (

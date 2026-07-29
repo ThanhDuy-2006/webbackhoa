@@ -9,6 +9,7 @@ import { Product } from '@/types/product.type'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
 import { SmartImage } from '@/components/ui/smart-image'
+import { formatCurrency } from '@/lib/utils'
 
 export function StorefrontSearch() {
   const router = useRouter()
@@ -128,11 +129,11 @@ export function StorefrontSearch() {
                         <p className="text-sm font-medium text-slate-900 truncate">{product.name}</p>
                         <div className="flex items-center gap-2 mt-0.5">
                           <span className="text-sm font-bold text-emerald-600">
-                            {(product.sale_price || product.price).toLocaleString('vi-VN')}đ
+                            {formatCurrency((product.sale_price || product.price))}
                           </span>
                           {product.sale_price && (
                             <span className="text-xs text-slate-400 line-through">
-                              {product.price.toLocaleString('vi-VN')}đ
+                              {formatCurrency(product.price)}
                             </span>
                           )}
                         </div>

@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts'
 import { MoreHorizontal } from 'lucide-react'
 import { useState, useEffect } from 'react'
+import { formatCurrency } from '@/lib/utils'
 
 interface ChartProps {
   revenueData: {
@@ -56,7 +57,7 @@ export function AdminDashboardCharts({ revenueData, statusData }: ChartProps) {
         <div className="bg-white p-3 rounded-xl shadow-lg border border-slate-100">
           <p className="font-medium text-slate-800 mb-1">{label}</p>
           <p className="text-blue-600 font-bold">
-            {Number(payload[0].value).toLocaleString('vi-VN')} VND
+            {formatCurrency(Number(payload[0].value))}
           </p>
         </div>
       )
@@ -81,7 +82,7 @@ export function AdminDashboardCharts({ revenueData, statusData }: ChartProps) {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold mb-6 text-slate-800">
-            {revenueData.reduce((acc, curr) => acc + curr.revenue, 0).toLocaleString('vi-VN')} VND
+            {formatCurrency(revenueData.reduce((acc, curr) => acc + curr.revenue, 0))}
           </div>
           <div className="h-[280px] w-full">
             <ResponsiveContainer width="100%" height="100%">

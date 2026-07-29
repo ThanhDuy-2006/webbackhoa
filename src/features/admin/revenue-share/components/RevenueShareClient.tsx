@@ -18,6 +18,7 @@ import {
   RotateCcw, AlertTriangle, FileText, ArrowRight, UserPlus
 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
+import { formatCurrency } from '@/lib/utils'
 
 interface Category {
   id: string
@@ -492,7 +493,7 @@ export function RevenueShareClient({ products, categories, variants, users }: Pr
           <td>${h.product_name_snapshot}</td>
           <td>${h.recipient_name_snapshot}</td>
           <td style="text-align: right; font-weight: bold; color: ${h.amount < 0 ? '#ef4444' : '#10b981'}">
-            ${h.amount.toLocaleString('vi-VN')}đ
+            ${formatCurrency(h.amount)}
           </td>
           <td>${h.percentage ? h.percentage + '%' : '-'}</td>
           <td><span style="padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; background: ${h.status === 'completed' ? '#ecfdf5; color: #047857' : '#fef2f2; color: #b91c1c'}">${h.status === 'completed' ? 'THÀNH CÔNG' : 'THU HỒI'}</span></td>
@@ -517,7 +518,7 @@ export function RevenueShareClient({ products, categories, variants, users }: Pr
 </head>
 <body onload="window.print(); window.close();">
   <h1>BÁO CÁO CHIA TIỀN SẢN PHẨM</h1>
-  <p>Ngày xuất báo cáo: ${dateStr} | Tổng số giao dịch: ${history.length} | Tổng tiền đã chia: ${stats.totalAmount.toLocaleString('vi-VN')}đ</p>
+  <p>Ngày xuất báo cáo: ${dateStr} | Tổng số giao dịch: ${history.length} | Tổng tiền đã chia: ${formatCurrency(stats.totalAmount)}</p>
   <table>
     <thead>
       <tr>
@@ -638,7 +639,7 @@ export function RevenueShareClient({ products, categories, variants, users }: Pr
                                     className="w-full text-left px-3 py-2.5 rounded-lg hover:bg-emerald-50 text-xs font-bold text-slate-700 hover:text-emerald-700 transition-colors flex items-center justify-between group border border-transparent hover:border-emerald-100"
                                   >
                                     <span className="flex items-center gap-2"><span className="text-sm">📦</span> {p.name}</span>
-                                    <span className="text-emerald-600 group-hover:text-emerald-700">{p.price.toLocaleString('vi-VN')}đ</span>
+                                    <span className="text-emerald-600 group-hover:text-emerald-700">{formatCurrency(p.price)}</span>
                                   </button>
                                   {productVariants.length > 0 && productVariants.map(v => (
                                     <button
@@ -647,7 +648,7 @@ export function RevenueShareClient({ products, categories, variants, users }: Pr
                                       className="w-full text-left pl-9 pr-3 py-2 rounded-lg hover:bg-emerald-50 text-xs font-medium text-slate-600 hover:text-emerald-700 transition-colors flex items-center justify-between group border border-transparent hover:border-emerald-100"
                                     >
                                       <span className="italic flex items-center gap-1.5"><span className="text-slate-400">↳</span> Phân loại: {v.name}</span>
-                                      <span className="text-emerald-600 group-hover:text-emerald-700">{v.price ? v.price.toLocaleString('vi-VN') : p.price.toLocaleString('vi-VN')}đ</span>
+                                      <span className="text-emerald-600 group-hover:text-emerald-700">{formatCurrency(v.price ? v.price : p.price)}</span>
                                     </button>
                                   ))}
                                 </div>
@@ -712,7 +713,7 @@ export function RevenueShareClient({ products, categories, variants, users }: Pr
 
                   <div className="flex justify-between items-center text-xs font-black text-slate-700 pt-2 border-t border-dashed">
                     <span>TỔNG CHI PHÍ GỐC:</span>
-                    <span className="text-emerald-700 font-mono text-sm">{totalNetAmount.toLocaleString('vi-VN')}đ</span>
+                    <span className="text-emerald-700 font-mono text-sm">{formatCurrency(totalNetAmount)}</span>
                   </div>
                 </div>
               )}
@@ -815,13 +816,13 @@ export function RevenueShareClient({ products, categories, variants, users }: Pr
                   <div className="bg-emerald-50/50 p-4 rounded-2xl border border-emerald-100 text-xs text-emerald-800 space-y-2">
                     <div className="flex justify-between font-bold items-center border-b pb-2 border-emerald-100">
                       <span>Xem trước phân chia khấu trừ ví thành viên:</span>
-                      <span className="font-mono">-{preview.totalShared.toLocaleString('vi-VN')}đ ({preview.totalPercentage}%)</span>
+                      <span className="font-mono">-{formatCurrency(preview.totalShared)} ({preview.totalPercentage}%)</span>
                     </div>
                     <div className="text-[10px] text-slate-500 leading-relaxed pt-1 space-y-0.5">
                       {preview.results.map((res) => (
                         <div key={res.userId} className="flex justify-between">
                           <span>{res.name} ({res.percentage}):</span>
-                          <strong className="text-red-600">-{res.amount.toLocaleString('vi-VN')}đ</strong>
+                          <strong className="text-red-600">-{formatCurrency(res.amount)}</strong>
                         </div>
                       ))}
                     </div>
@@ -1049,7 +1050,7 @@ export function RevenueShareClient({ products, categories, variants, users }: Pr
                             </td>
                             <td className="py-3.5">
                               <strong className={`font-mono font-black ${isRefund ? 'text-emerald-600' : isRevokedOriginal ? 'text-slate-400 line-through' : 'text-red-500'}`}>
-                                {isRefund ? '+' : ''}{item.totalAmount.toLocaleString('vi-VN')}đ
+                                {isRefund ? '+' : ''}{formatCurrency(item.totalAmount)}
                               </strong>
                             </td>
                             <td className="py-3.5 text-slate-500">

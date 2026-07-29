@@ -45,7 +45,6 @@ export async function processCheckout(
 
     // Call atomic C2C checkout RPC (17 steps automated in single Postgres transaction)
     const { data: orderId, error: rpcError } = await supabase.rpc('atomic_c2c_checkout', {
-      p_buyer_id: userId,
       p_idempotency_key: idempotencyKey,
       p_request_hash: requestHash,
       p_items: rpcItemsPayload,

@@ -49,7 +49,6 @@ export async function createSellerProductAction(rawInput: unknown) {
       images: validated.images || [],
       is_active: (validated.listing_status || 'active') === 'active',
       is_featured: false, // Sellers cannot feature their own products
-      is_deleted: false,
       image_source: 'manual',
       image_status: 'valid'
     }
@@ -61,6 +60,7 @@ export async function createSellerProductAction(rawInput: unknown) {
       .single()
 
     if (error || !newProduct) {
+      console.error('DEBUG CREATE SELLER PRODUCT ERROR:', error)
       throw new Error(`Không thể đăng bán sản phẩm: ${error?.message || ''}`)
     }
 
@@ -258,5 +258,90 @@ export async function getSellerProductsAction(page: number = 1, limit: number = 
   } catch (err: unknown) {
     const error = err as Error
     return { success: false, error: error.message, data: [], count: 0 }
+  }
+}
+
+export async function bulkCreateSellerProductsAction(rawInput: unknown[]) {
+  try {
+    const { user, supabase } = await authenticateSeller()
+
+    if (!Array.isArray(rawInput) || rawInput.length === 0) {
+      throw new Error('Dữ liệu không hợp lệ hoặc trống.')
+    }
+
+    const validatedItems = rawInput.map(item => sanitizeSellerProductInput(item))
+
+    const productPayloads = validatedItems.map(validated => {
+      const slug = generateCollisionSafeSlug(validated.name)
+      return {
+        seller_id: user.id,
+        product_source: 'seller',
+        listing_status: validated.listing_status || 'active',
+        name: validated.name,
+        slug,
+        description: validated.description || null,
+        category_id: validated.category_id,
+        price: validated.price,
+        sale_price: validated.sale_price || null,
+        stock: validated.stock,
+        image_url: validated.image_url || null,
+        images: validated.images || [],
+        is_active: (validated.listing_status || 'active') === 'active',
+        is_featured: false,
+        image_source: 'manual',
+        image_status: 'valid'
+      }
+    })
+
+    const { data: newProducts, error } = await supabase
+      .from('products')
+      .insert(productPayloads)
+      .select()
+
+    if (error || !newProducts) {
+      console.error('DEBUG BULK CREATE SELLER PRODUCT ERROR:', error)
+      throw new Error(`Lỗi khi tạo hàng loạt sản phẩm: ${error?.message || ''}`)
+    }
+
+    // Insert variants if any
+    const variantPayloads: any[] = []
+    validatedItems.forEach((validated, index) => {
+      if (validated.variants && validated.variants.length > 0) {
+        const productId = newProducts[index].id
+        validated.variants.forEach(v => {
+          variantPayloads.push({
+            product_id: productId,
+            name: v.name,
+            sku: v.sku || null,
+            price: v.price || null,
+            stock: v.stock,
+            is_active: v.is_active !== false,
+          })
+        })
+      }
+    })
+
+    if (variantPayloads.length > 0) {
+      await supabase.from('product_variants').insert(variantPayloads)
+    }
+
+    // Audit logs
+    const auditPayloads = newProducts.map(p => ({
+      actor_id: user.id,
+      action: 'bulk_create_seller_product',
+      target_table: 'products',
+      target_id: p.id,
+      payload: { name: p.name, price: p.price }
+    }))
+    await supabase.from('audit_logs').insert(auditPayloads)
+
+    revalidatePath('/')
+    revalidatePath('/san-pham')
+    revalidatePath('/tai-khoan/san-pham-cua-toi')
+
+    return { success: true, count: newProducts.length }
+  } catch (err: unknown) {
+    const error = err as Error
+    return { success: false, error: error.message || 'Lỗi khi tạo hàng loạt sản phẩm' }
   }
 }

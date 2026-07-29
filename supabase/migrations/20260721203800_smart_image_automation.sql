@@ -29,7 +29,7 @@ ALTER TABLE public.product_image_cache ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Only authenticated admins can manage product image cache" ON public.product_image_cache
     FOR ALL
     TO authenticated
-    USING ( (auth.jwt() ->> 'role' = 'admin') OR (EXISTS (SELECT 1 FROM public.users WHERE users.id = auth.uid() AND users.role = 'admin')) );
+    USING ( (auth.jwt() ->> 'role' = 'admin') OR (EXISTS (SELECT 1 FROM public.profiles WHERE profiles.id = auth.uid() AND profiles.role = 'admin')) );
 
 -- Create an index on normalized_product_name for fast lookups
 CREATE INDEX idx_product_image_cache_normalized_name ON public.product_image_cache (normalized_product_name);

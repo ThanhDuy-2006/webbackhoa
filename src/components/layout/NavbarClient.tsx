@@ -25,6 +25,7 @@ import { useTheme } from 'next-themes'
 
 import { useState, useEffect } from 'react'
 import { User } from '@supabase/supabase-js'
+import { formatCurrency } from '@/lib/utils'
 
 interface NavbarClientProps {
   user: User | null
@@ -113,7 +114,7 @@ export function NavbarClient({ user, profile }: NavbarClientProps) {
               style={{ minHeight: '44px' }}
             >
               <Wallet className="w-4 h-4" />
-              <span>{balance.toLocaleString('vi-VN')}đ</span>
+              <span>{formatCurrency(balance)}</span>
             </Link>
           )}
 
@@ -157,7 +158,7 @@ export function NavbarClient({ user, profile }: NavbarClientProps) {
                     {(profile?.full_name as string) || user?.email?.split('@')[0] || 'Tài khoản'}
                   </span>
                   <span className={`text-xs font-medium mt-1.5 leading-none ${Number(profile?.balance || 0) < 0 ? 'text-red-600' : 'text-emerald-600'}`}>
-                    {Number(profile?.balance || 0).toLocaleString('vi-VN')} VND
+                    {formatCurrency(Number(profile?.balance || 0))}
                   </span>
                 </div>
               </DropdownMenuTrigger>
@@ -166,7 +167,7 @@ export function NavbarClient({ user, profile }: NavbarClientProps) {
                   <DropdownMenuLabel>
                     <div className="flex flex-col space-y-1">
                       <p className="text-sm font-medium leading-none">{(profile?.full_name as string) || user?.email || 'Người dùng'}</p>
-                      <p className="text-xs leading-none text-muted-foreground mt-1">Ví: {Number(profile?.balance || 0).toLocaleString('vi-VN')} VND</p>
+                      <p className="text-xs leading-none text-muted-foreground mt-1">Ví: {formatCurrency(Number(profile?.balance || 0))}</p>
                     </div>
                   </DropdownMenuLabel>
                 </DropdownMenuGroup>

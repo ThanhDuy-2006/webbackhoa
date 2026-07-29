@@ -18,7 +18,7 @@ export default async function AdminDashboardPage() {
   const { stats, recentOrders } = await DashboardService.getDashboardData()
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount)
+    return new Intl.NumberFormat('vi-VN').format(amount) + ' VND'
   }
 
   // Get status badge colors
@@ -110,7 +110,7 @@ export default async function AdminDashboardPage() {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-slate-500 mb-1">Tổng doanh thu</p>
-                  <h3 className="text-2xl font-bold text-slate-800">{stats.totalRevenue.toLocaleString('vi-VN')} VND</h3>
+                  <h3 className="text-2xl font-bold text-slate-800">{formatCurrency(stats.totalRevenue)}</h3>
                 </div>
               </div>
               <button className="text-slate-400 hover:text-slate-600">
@@ -209,7 +209,7 @@ export default async function AdminDashboardPage() {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-slate-500 mb-1">User nạp trong tháng</p>
-                  <h3 className="text-2xl font-bold text-slate-800">{(stats.monthlyTopup || 0).toLocaleString('vi-VN')} VND</h3>
+                  <h3 className="text-2xl font-bold text-slate-800">{formatCurrency(stats.monthlyTopup || 0)}</h3>
                 </div>
               </div>
             </div>
@@ -229,7 +229,7 @@ export default async function AdminDashboardPage() {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-slate-500 mb-1">Tiền nhập SP trong tháng</p>
-                  <h3 className="text-2xl font-bold text-slate-800">{(stats.monthlyImportCost || 0).toLocaleString('vi-VN')} VND</h3>
+                  <h3 className="text-2xl font-bold text-slate-800">{formatCurrency(stats.monthlyImportCost || 0)}</h3>
                 </div>
               </div>
             </div>
@@ -249,7 +249,7 @@ export default async function AdminDashboardPage() {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-slate-500 mb-1">Tổng tiền giao dịch</p>
-                  <h3 className="text-2xl font-bold text-slate-800">{(stats.totalTransactions || 0).toLocaleString('vi-VN')} VND</h3>
+                  <h3 className="text-2xl font-bold text-slate-800">{formatCurrency(stats.totalTransactions || 0)}</h3>
                 </div>
               </div>
             </div>

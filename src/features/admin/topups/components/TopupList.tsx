@@ -35,6 +35,7 @@ import { Search, CheckCircle, XCircle, Image as ImageIcon } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
+import { formatCurrency } from '@/lib/utils'
 
 interface TopupListProps {
   initialData: TopupRequest[]
@@ -178,7 +179,7 @@ export function TopupList({ initialData, total }: TopupListProps) {
                     </div>
                   </TableCell>
                   <TableCell className="font-medium text-emerald-600">
-                    +{topup.amount.toLocaleString('vi-VN')} VND
+                    +{formatCurrency(topup.amount)}
                   </TableCell>
                   <TableCell>
                     <code className="text-xs bg-slate-100 px-1.5 py-0.5 rounded text-pink-600">

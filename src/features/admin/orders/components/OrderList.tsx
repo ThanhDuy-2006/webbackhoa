@@ -36,6 +36,7 @@ import { Badge } from '@/components/ui/badge'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { OrderDetailDialog } from './OrderDetailDialog'
+import { formatCurrency } from '@/lib/utils'
 
 interface OrderListProps {
   initialData: Order[]
@@ -164,7 +165,7 @@ export function OrderList({ initialData, total }: OrderListProps) {
                     </div>
                   </TableCell>
                   <TableCell>
-                    {order.final_amount.toLocaleString('vi-VN')} VND
+                    {formatCurrency(order.final_amount)}
                   </TableCell>
                   <TableCell>
                     <span className={`text-sm font-medium ${PAYMENT_STATUS_MAP[order.payment_status]?.color}`}>

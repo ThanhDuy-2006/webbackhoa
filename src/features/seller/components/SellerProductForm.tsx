@@ -45,9 +45,9 @@ export function SellerProductForm({ categories, initialData }: SellerProductForm
       name: initialData?.name || '',
       description: initialData?.description || '',
       category_id: initialData?.category_id || (categories[0]?.id || ''),
-      price: initialData?.price || 50000,
+      price: initialData?.price || ('' as any),
       sale_price: initialData?.sale_price || null,
-      stock: initialData?.stock ?? 10,
+      stock: initialData?.stock ?? ('' as any),
       image_url: initialData?.image_url || '',
       images: initialData?.images || [],
       listing_status: (initialData?.listing_status as any) || 'active',
@@ -225,7 +225,7 @@ export function SellerProductForm({ categories, initialData }: SellerProductForm
               <Input
                 id="price"
                 type="number"
-                {...register('price', { valueAsNumber: true })}
+                {...register('price', { setValueAs: v => v === '' ? undefined : Number(v) })}
                 placeholder="100000"
                 className="rounded-xl"
               />
@@ -237,7 +237,7 @@ export function SellerProductForm({ categories, initialData }: SellerProductForm
               <Input
                 id="sale_price"
                 type="number"
-                {...register('sale_price', { valueAsNumber: true, setValueAs: v => v === '' || isNaN(v) ? null : Number(v) })}
+                {...register('sale_price', { setValueAs: v => v === '' || isNaN(v) ? null : Number(v) })}
                 placeholder="80000"
                 className="rounded-xl"
               />
@@ -249,7 +249,7 @@ export function SellerProductForm({ categories, initialData }: SellerProductForm
               <Input
                 id="stock"
                 type="number"
-                {...register('stock', { valueAsNumber: true })}
+                {...register('stock', { setValueAs: v => v === '' ? undefined : Number(v) })}
                 placeholder="10"
                 className="rounded-xl"
               />

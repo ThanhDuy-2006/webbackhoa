@@ -12,6 +12,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
+import { formatCurrency } from '@/lib/utils'
 
 interface UserTopupListProps {
   data: TopupRequest[]
@@ -55,7 +56,7 @@ export function UserTopupList({ data }: UserTopupListProps) {
                   </code>
                 </TableCell>
                 <TableCell className="font-medium text-emerald-600">
-                  +{req.amount.toLocaleString('vi-VN')} VND
+                  +{formatCurrency(req.amount)}
                 </TableCell>
                 <TableCell>
                   <Badge variant="outline" className={STATUS_MAP[req.status]?.color}>

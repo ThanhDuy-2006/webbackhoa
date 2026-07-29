@@ -10,6 +10,7 @@ import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { StorefrontProductSummary, QuickViewProduct } from '@/types/product.type'
 import { getProductQuickViewAction } from '@/actions/product-public.actions'
+import { formatCurrency } from '@/lib/utils'
 
 interface QuickViewSheetProps {
   product: StorefrontProductSummary | null
@@ -175,11 +176,11 @@ export function QuickViewSheet({ product, isOpen, onClose }: QuickViewSheetProps
                   <div className="flex items-baseline gap-2">
                     {hasDiscount && (
                       <span className="text-sm text-slate-400 line-through">
-                        {price.toLocaleString('vi-VN')} VND
+                        {formatCurrency(price)}
                       </span>
                     )}
                     <span className="text-2xl font-black text-red-600">
-                      {finalPrice.toLocaleString('vi-VN')} <span className="text-sm font-semibold">VND</span>
+                      {formatCurrency(finalPrice)} <span className="text-sm font-semibold">VND</span>
                     </span>
                   </div>
 
@@ -197,7 +198,7 @@ export function QuickViewSheet({ product, isOpen, onClose }: QuickViewSheetProps
                       <div className="flex flex-wrap gap-2">
                         {activeProduct.variants.map((v) => (
                           <span key={v.id} className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-950">
-                            {v.name} {v.price ? `(${v.price.toLocaleString('vi-VN')}đ)` : ''}
+                            {v.name} {v.price ? `(${formatCurrency(v.price)})` : ''}
                           </span>
                         ))}
                       </div>

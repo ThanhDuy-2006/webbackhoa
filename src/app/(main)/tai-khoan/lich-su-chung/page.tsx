@@ -2,6 +2,7 @@ import { Metadata } from 'next'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { ShoppingBag, CreditCard, Percent } from 'lucide-react'
 import Link from 'next/link'
+import { formatCurrency } from '@/lib/utils'
 
 export const metadata: Metadata = {
   title: 'Lịch sử chung | Bách Hóa',
@@ -165,7 +166,7 @@ export default async function GlobalHistoryPage() {
                               <span> vừa nạp thành công </span>
                             )}
                             <span className="font-bold text-slate-900">
-                              {event.amount.toLocaleString('vi-VN')} VND
+                              {formatCurrency(event.amount)}
                             </span>
                             {event.type === 'topup' && ' vào ví.'}
                           </>

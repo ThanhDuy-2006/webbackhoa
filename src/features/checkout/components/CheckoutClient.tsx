@@ -13,6 +13,7 @@ import { SmartImage } from '@/components/ui/smart-image'
 import { Loader2, Ticket, MapPin, Phone, User as UserIcon } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
+import { formatCurrency } from '@/lib/utils'
 
 interface CheckoutClientProps {
   user: any
@@ -80,7 +81,7 @@ export function CheckoutClient({ user, profile, settings }: CheckoutClientProps)
       }
       
       if (totalAmount < data.min_order_amount) {
-        toast.error(`Đơn hàng tối thiểu ${data.min_order_amount.toLocaleString('vi-VN')} VND để dùng mã này`)
+        toast.error(`Đơn hàng tối thiểu ${formatCurrency(data.min_order_amount)} để dùng mã này`)
         setCoupon(null)
         return
       }
@@ -213,7 +214,7 @@ export function CheckoutClient({ user, profile, settings }: CheckoutClientProps)
                   {item.variantName && <p className="text-xs text-slate-500">{item.variantName}</p>}
                   <div className="flex justify-between items-center mt-1">
                     <span className="text-slate-500">x{item.quantity}</span>
-                    <span className="font-medium text-red-600">{(item.price * item.quantity).toLocaleString('vi-VN')} VND</span>
+                    <span className="font-medium text-red-600">{formatCurrency((item.price * item.quantity))}</span>
                   </div>
                 </div>
               </div>
@@ -239,17 +240,17 @@ export function CheckoutClient({ user, profile, settings }: CheckoutClientProps)
             <div className="space-y-2 text-sm">
               <div className="flex justify-between text-slate-600">
                 <span>Tạm tính</span>
-                <span>{totalAmount.toLocaleString('vi-VN')} VND</span>
+                <span>{formatCurrency(totalAmount)}</span>
               </div>
               {discountAmount > 0 && (
                 <div className="flex justify-between text-green-600">
                   <span>Giảm giá</span>
-                  <span>-{discountAmount.toLocaleString('vi-VN')} VND</span>
+                  <span>-{formatCurrency(discountAmount)}</span>
                 </div>
               )}
               <div className="flex justify-between font-bold text-lg pt-2 border-t text-slate-900">
                 <span>Tổng cộng</span>
-                <span className="text-red-600">{finalAmount.toLocaleString('vi-VN')} VND</span>
+                <span className="text-red-600">{formatCurrency(finalAmount)}</span>
               </div>
             </div>
             
@@ -257,7 +258,7 @@ export function CheckoutClient({ user, profile, settings }: CheckoutClientProps)
               <div className="flex justify-between text-sm">
                 <span className="text-slate-600">Số dư ví hiện tại:</span>
                 <span className={`font-medium ${profile.balance < 0 ? 'text-red-600' : ''}`}>
-                  {profile.balance?.toLocaleString('vi-VN') || 0} VND
+                  {formatCurrency(profile.balance || 0)}
                 </span>
               </div>
             </div>

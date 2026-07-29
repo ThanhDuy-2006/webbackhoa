@@ -10,6 +10,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
+import { formatCurrency } from '@/lib/utils'
 
 interface OrderDetailDialogProps {
   order: Order | null
@@ -99,11 +100,11 @@ export function OrderDetailDialog({ order, open, onOpenChange }: OrderDetailDial
                   <div className="flex-1">
                     <p className="font-medium text-slate-900">{item.product_name}</p>
                     <p className="text-sm text-slate-500">
-                      {item.product_price.toLocaleString('vi-VN')} VND x {item.quantity}
+                      {formatCurrency(item.product_price)} x {item.quantity}
                     </p>
                   </div>
                   <div className="font-medium text-slate-900">
-                    {item.subtotal.toLocaleString('vi-VN')} VND
+                    {formatCurrency(item.subtotal)}
                   </div>
                 </div>
               ))}
@@ -111,15 +112,15 @@ export function OrderDetailDialog({ order, open, onOpenChange }: OrderDetailDial
               <div className="p-4 bg-slate-50 space-y-2">
                 <div className="flex justify-between text-sm text-slate-600">
                   <span>Tạm tính</span>
-                  <span>{order.total_amount.toLocaleString('vi-VN')} VND</span>
+                  <span>{formatCurrency(order.total_amount)}</span>
                 </div>
                 <div className="flex justify-between text-sm text-slate-600">
                   <span>Giảm giá</span>
-                  <span>- {order.discount_amount.toLocaleString('vi-VN')} VND</span>
+                  <span>- {formatCurrency(order.discount_amount)}</span>
                 </div>
                 <div className="flex justify-between font-bold text-lg text-slate-900 pt-2 border-t mt-2">
                   <span>Tổng tiền</span>
-                  <span className="text-red-600">{order.final_amount.toLocaleString('vi-VN')} VND</span>
+                  <span className="text-red-600">{formatCurrency(order.final_amount)}</span>
                 </div>
               </div>
             </div>

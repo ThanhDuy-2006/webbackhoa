@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
+import { formatCurrency } from '@/lib/utils'
 
 export function AdminRealtimeListener() {
   const router = useRouter()
@@ -19,7 +20,7 @@ export function AdminRealtimeListener() {
         (payload) => {
           const order = payload.new
           toast.success(`Có đơn hàng mới: ${order.order_code}`, {
-            description: `Khách hàng vừa đặt đơn trị giá ${order.final_amount.toLocaleString('vi-VN')}đ`,
+            description: `Khách hàng vừa đặt đơn trị giá ${formatCurrency(order.final_amount)}`,
             action: {
               label: 'Xem ngay',
               onClick: () => router.push(`/admin/orders`)
@@ -34,7 +35,7 @@ export function AdminRealtimeListener() {
         { event: 'INSERT', schema: 'public', table: 'topup_requests' },
         (payload) => {
           toast.info(`Có yêu cầu nạp tiền mới`, {
-            description: `Một khách hàng vừa tạo yêu cầu nạp ${payload.new.amount.toLocaleString('vi-VN')}đ`,
+            description: `Một khách hàng vừa tạo yêu cầu nạp ${formatCurrency(payload.new.amount)}`,
             action: {
               label: 'Xem ngay',
               onClick: () => router.push(`/admin/topups`)

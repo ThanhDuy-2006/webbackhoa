@@ -24,6 +24,7 @@ import { Badge } from '@/components/ui/badge'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { OrderDetailDialog } from '@/features/admin/orders/components/OrderDetailDialog'
+import { formatCurrency } from '@/lib/utils'
 
 interface UserOrderListProps {
   initialData: Order[]
@@ -118,7 +119,7 @@ export function UserOrderList({ initialData, total, shares = [] }: UserOrderList
                         {format(new Date(order.created_at), 'dd/MM/yyyy HH:mm', { locale: vi })}
                       </TableCell>
                       <TableCell className="font-medium">
-                        {order.final_amount.toLocaleString('vi-VN')} VND
+                        {formatCurrency(order.final_amount)}
                       </TableCell>
                       <TableCell>
                         <span className={`text-sm font-medium ${PAYMENT_STATUS_MAP[order.payment_status]?.color}`}>
@@ -164,7 +165,7 @@ export function UserOrderList({ initialData, total, shares = [] }: UserOrderList
                         {format(new Date(share.created_at), 'dd/MM/yyyy HH:mm', { locale: vi })}
                       </TableCell>
                       <TableCell className={`font-medium ${isRefund ? 'text-emerald-600' : isRevokedOriginal ? 'text-slate-400 line-through' : 'text-red-600'}`}>
-                        {share.amount < 0 ? share.amount.toLocaleString('vi-VN') : '+' + share.amount.toLocaleString('vi-VN')} VND
+                        {(share.amount < 0 ? '-' : '+') + formatCurrency(Math.abs(share.amount))}
                       </TableCell>
                       <TableCell>
                         <span className={`text-sm font-medium ${isRefund ? 'text-emerald-600' : isRevokedOriginal ? 'text-slate-400' : 'text-red-600'}`}>

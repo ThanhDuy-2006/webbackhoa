@@ -11,6 +11,7 @@ import { toast } from 'sonner'
 import { addRecentlyViewed } from '@/components/products/RecentlyViewed'
 import { createClient } from '@/lib/supabase/client'
 import { ProductCard } from './ProductCard'
+import { formatCurrency } from '@/lib/utils'
 
 interface ProductDetailClientProps {
   product: any
@@ -200,11 +201,11 @@ export function ProductDetailClient({ product, variants, initialFavorited = fals
           
           <div className="flex items-end gap-3 mb-6">
             <span className="text-2xl md:text-3xl font-bold text-red-600">
-              {Number(finalPrice).toLocaleString('vi-VN')}đ
+              {formatCurrency(Number(finalPrice))}
             </span>
             {hasDiscount && (
               <span className="text-lg md:text-xl text-slate-400 line-through mb-1">
-                {Number(basePrice).toLocaleString('vi-VN')}đ
+                {formatCurrency(Number(basePrice))}
               </span>
             )}
           </div>

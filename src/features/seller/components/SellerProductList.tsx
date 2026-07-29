@@ -107,11 +107,18 @@ export function SellerProductList({
           <h1 className="text-xl font-bold text-slate-900">Sản phẩm của tôi</h1>
           <p className="text-sm text-slate-500 mt-1">Quản lý và đăng bán sản phẩm cá nhân công khai tức thì</p>
         </div>
-        <Link href="/tai-khoan/san-pham-cua-toi/dang-ban">
-          <Button className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold shadow-md shadow-emerald-600/20">
-            <Plus className="w-4 h-4 mr-2" /> Đăng bán sản phẩm mới
-          </Button>
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link href="/tai-khoan/san-pham-cua-toi/import">
+            <Button variant="outline" className="gap-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800">
+              Nhập từ Excel
+            </Button>
+          </Link>
+          <Link href="/tai-khoan/san-pham-cua-toi/dang-ban">
+            <Button className="gap-2 bg-emerald-600 hover:bg-emerald-700 shadow-sm shadow-emerald-200">
+              <Plus className="w-4 h-4" /> Đăng bán mới
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Search & Tabs */}

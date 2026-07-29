@@ -35,6 +35,7 @@ import { toast } from 'sonner'
 import { Input } from '@/components/ui/input'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { formatCurrency } from '@/lib/utils'
 
 interface User {
   id: string
@@ -317,11 +318,11 @@ export function ProductList({ initialProducts, totalCount, currentPage, searchTe
                   <TableCell>
                     {product.sale_price ? (
                       <div>
-                        <div className="text-red-600 font-medium">{product.sale_price.toLocaleString('vi-VN')} VND</div>
-                        <div className="text-xs text-slate-400 line-through">{product.price.toLocaleString('vi-VN')} VND</div>
+                        <div className="text-red-600 font-medium">{formatCurrency(product.sale_price)}</div>
+                        <div className="text-xs text-slate-400 line-through">{formatCurrency(product.price)}</div>
                       </div>
                     ) : (
-                      <div className="font-medium">{product.price.toLocaleString('vi-VN')} VND</div>
+                      <div className="font-medium">{formatCurrency(product.price)}</div>
                     )}
                   </TableCell>
                   <TableCell>
@@ -408,7 +409,7 @@ export function ProductList({ initialProducts, totalCount, currentPage, searchTe
               <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex items-center justify-between">
                 <div>
                   <h4 className="font-medium text-slate-900">{shareProduct.name}</h4>
-                  <p className="text-sm text-slate-500 mt-1">Giá bán: <span className="font-semibold text-emerald-600">{shareProduct.price.toLocaleString('vi-VN')} VND</span></p>
+                  <p className="text-sm text-slate-500 mt-1">Giá bán: <span className="font-semibold text-emerald-600">{formatCurrency(shareProduct.price)}</span></p>
                 </div>
               </div>
 
@@ -445,7 +446,7 @@ export function ProductList({ initialProducts, totalCount, currentPage, searchTe
                       
                       {amount > 0 && (
                         <div className="text-emerald-600 font-semibold text-sm">
-                          -{amount.toLocaleString('vi-VN')} đ
+                          -{formatCurrency(amount)}
                         </div>
                       )}
                       

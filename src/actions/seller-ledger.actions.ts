@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { formatCurrency } from '@/lib/utils'
 
 async function authenticateUser() {
   const supabase = await createClient()
@@ -78,7 +79,7 @@ export async function requestWithdrawalAction(data: {
     }
 
     if (wallet.available_balance < data.amount) {
-      throw new Error(`Số dư khả dụng không đủ. Bạn có ${wallet.available_balance.toLocaleString('vi-VN')}đ nhưng yêu cầu rút ${data.amount.toLocaleString('vi-VN')}đ`)
+      throw new Error(`Số dư khả dụng không đủ. Bạn có ${formatCurrency(wallet.available_balance)} nhưng yêu cầu rút ${formatCurrency(data.amount)}`)
     }
 
     // Move available -> reserved

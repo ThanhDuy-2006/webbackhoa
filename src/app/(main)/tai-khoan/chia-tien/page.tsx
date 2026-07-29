@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { getUserRevenueSharesAction, getRevenueShareDetailAction } from '@/actions/user/revenue-share.actions'
 import { Coins, HelpCircle, ArrowUpRight, ArrowDownRight, Search, X, Loader2 } from 'lucide-react'
+import { formatCurrency } from '@/lib/utils'
 
 export default function UserRevenueSharePage() {
   const [shares, setShares] = useState<any[]>([])
@@ -128,7 +129,7 @@ export default function UserRevenueSharePage() {
                             <ArrowUpRight className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
                           )}
                           <strong className={`font-mono font-bold ${isRefund ? 'text-emerald-600' : isRevokedOriginal ? 'text-slate-400 line-through' : 'text-red-500'}`}>
-                            {isRefund ? '+' : ''}{item.amount.toLocaleString('vi-VN')}đ
+                            {isRefund ? '+' : ''}{formatCurrency(item.amount)}
                           </strong>
                         </span>
                       </td>
@@ -175,7 +176,7 @@ export default function UserRevenueSharePage() {
               <div className="flex justify-between border-b pb-2 border-slate-50">
                 <span className="text-slate-400">Số tiền:</span>
                 <strong className={`font-mono font-black ${selectedShare.amount < 0 ? (selectedShare.status === 'reversed' ? 'text-slate-400 line-through' : 'text-red-500') : 'text-emerald-600'}`}>
-                  {selectedShare.amount > 0 ? '+' : ''}{selectedShare.amount.toLocaleString('vi-VN')} VND
+                  {selectedShare.amount > 0 ? '+' : ''}{formatCurrency(selectedShare.amount)}
                 </strong>
               </div>
               <div className="flex justify-between border-b pb-2 border-slate-50">
@@ -199,7 +200,7 @@ export default function UserRevenueSharePage() {
                       <div key={co.id} className="flex justify-between items-center text-[11px]">
                         <span className="text-slate-500 font-semibold">{co.recipient_name_snapshot}</span>
                         <strong className="text-slate-700 font-mono">
-                          {co.amount >= 0 ? '+' : ''}{co.amount.toLocaleString('vi-VN')}đ {co.percentage ? `(${co.percentage}%)` : ''}
+                          {co.amount >= 0 ? '+' : ''}{formatCurrency(co.amount)} {co.percentage ? `(${co.percentage}%)` : ''}
                         </strong>
                       </div>
                     ))

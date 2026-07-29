@@ -123,7 +123,8 @@ CREATE TABLE IF NOT EXISTS public.seller_ledger_transactions (
   balance_before NUMERIC NOT NULL,
   balance_after NUMERIC NOT NULL,
   description TEXT,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT uq_ledger_tx UNIQUE NULLS NOT DISTINCT (seller_order_id, type)
 );
 
 CREATE INDEX IF NOT EXISTS idx_seller_ledger_seller_id ON public.seller_ledger_transactions(seller_id, created_at DESC);
@@ -187,7 +188,6 @@ CREATE INDEX IF NOT EXISTS idx_audit_logs_actor ON public.audit_logs(actor_id, a
 -- 9. RPC: ATOMIC C2C CHECKOUT (17 STEPS AUTOMATED TRANSACTION)
 -- ============================================================================
 CREATE OR REPLACE FUNCTION public.atomic_c2c_checkout(
-  p_buyer_id UUID,
   p_idempotency_key UUID,
   p_request_hash TEXT,
   p_items JSONB,
@@ -199,20 +199,20 @@ CREATE OR REPLACE FUNCTION public.atomic_c2c_checkout(
 RETURNS UUID
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public, pg_temp
 AS $$
 DECLARE
+  v_buyer_id UUID;
   v_existing_order_id UUID;
+  v_existing_hash TEXT;
   v_fee_bps INTEGER;
   v_buyer_balance NUMERIC;
   v_buyer_blocked BOOLEAN;
   v_total_amount NUMERIC := 0;
   v_order_code TEXT;
   v_parent_order_id UUID;
-  v_item JSONB;
-  v_product_id UUID;
-  v_variant_id UUID;
-  v_quantity INTEGER;
   v_product_price NUMERIC;
+  v_product_sale_price NUMERIC;
   v_product_name TEXT;
   v_seller_id UUID;
   v_product_source TEXT;
@@ -220,31 +220,43 @@ DECLARE
   v_listing_status TEXT;
   v_is_active BOOLEAN;
   v_deleted_at TIMESTAMPTZ;
+  v_variant_price NUMERIC;
+  v_variant_stock INTEGER;
+  v_authoritative_price NUMERIC;
+  v_current_stock INTEGER;
   v_item_subtotal NUMERIC;
   v_item_fee NUMERIC;
   v_item_seller_amount NUMERIC;
   v_seller_record RECORD;
-  v_seller_subtotal NUMERIC;
-  v_seller_fee NUMERIC;
-  v_seller_earnings NUMERIC;
   v_seller_order_id UUID;
   v_prev_pending NUMERIC;
+  v_item_record RECORD;
 BEGIN
-  -- 1. Idempotency Check
-  IF p_idempotency_key IS NOT NULL THEN
-    SELECT id INTO v_existing_order_id
-    FROM public.orders
-    WHERE user_id = p_buyer_id AND idempotency_key = p_idempotency_key;
+  v_buyer_id := auth.uid();
+  IF v_buyer_id IS NULL THEN
+    RAISE EXCEPTION 'Vui lòng đăng nhập để thanh toán';
+  END IF;
 
-    IF v_existing_order_id IS NOT NULL THEN
-      RETURN v_existing_order_id;
+  -- 1. Idempotency Check
+  IF p_idempotency_key IS NULL THEN
+    RAISE EXCEPTION 'Mã chống trùng lặp (idempotency_key) là bắt buộc';
+  END IF;
+
+  SELECT id, request_hash INTO v_existing_order_id, v_existing_hash
+  FROM public.orders
+  WHERE user_id = v_buyer_id AND idempotency_key = p_idempotency_key;
+
+  IF v_existing_order_id IS NOT NULL THEN
+    IF v_existing_hash <> p_request_hash THEN
+      RAISE EXCEPTION 'Idempotency key đã được sử dụng với payload khác';
     END IF;
+    RETURN v_existing_order_id;
   END IF;
 
   -- 2. Lock & Validate Buyer Profile/Wallet
   SELECT balance, is_blocked INTO v_buyer_balance, v_buyer_blocked
   FROM public.profiles
-  WHERE id = p_buyer_id
+  WHERE id = v_buyer_id
   FOR UPDATE;
 
   IF NOT FOUND THEN
@@ -255,39 +267,37 @@ BEGIN
     RAISE EXCEPTION 'Tài khoản người mua đang bị khóa';
   END IF;
 
-  -- 3. Read Admin Platform Fee Setting
-  SELECT platform_fee_bps INTO v_fee_bps
-  FROM public.marketplace_settings
-  WHERE id = 'default';
-  
-  IF v_fee_bps IS NULL THEN
-    v_fee_bps := 0;
-  END IF;
+  -- 2. Check global fee configuration (hardcoded to 3% for now)
+  v_fee_bps := 300;
 
-  -- 4. Calculate total amount & validate items
-  FOR v_item IN SELECT * FROM jsonb_array_elements(p_items)
+  -- 4. Aggregate & Validate Items
+  CREATE TEMP TABLE tmp_cart_items ON COMMIT DROP AS
+  SELECT 
+    (elem->>'product_id')::UUID as product_id,
+    CASE WHEN (elem->>'variant_id') IS NOT NULL AND (elem->>'variant_id') <> '' THEN (elem->>'variant_id')::UUID ELSE NULL END as variant_id,
+    SUM((elem->>'quantity')::INTEGER)::INTEGER as quantity
+  FROM jsonb_array_elements(p_items) elem
+  GROUP BY 1, 2;
+
+  FOR v_item_record IN SELECT * FROM tmp_cart_items ORDER BY product_id, variant_id
   LOOP
-    v_product_id := (v_item->>'product_id')::UUID;
-    v_variant_id := CASE WHEN (v_item->>'variant_id') IS NOT NULL AND (v_item->>'variant_id') <> '' THEN (v_item->>'variant_id')::UUID ELSE NULL END;
-    v_quantity := (v_item->>'quantity')::INTEGER;
-
-    IF v_quantity <= 0 THEN
+    IF v_item_record.quantity <= 0 THEN
       RAISE EXCEPTION 'Số lượng sản phẩm không hợp lệ';
     END IF;
 
     -- Lock product row
-    SELECT name, price, stock, seller_id, product_source, listing_status, is_active, deleted_at
-    INTO v_product_name, v_product_price, v_product_stock, v_seller_id, v_product_source, v_listing_status, v_is_active, v_deleted_at
+    SELECT name, price, sale_price, stock, seller_id, product_source, listing_status, is_active, deleted_at
+    INTO v_product_name, v_product_price, v_product_sale_price, v_product_stock, v_seller_id, v_product_source, v_listing_status, v_is_active, v_deleted_at
     FROM public.products
-    WHERE id = v_product_id
+    WHERE id = v_item_record.product_id
     FOR UPDATE;
 
     IF NOT FOUND THEN
-      RAISE EXCEPTION 'Sản phẩm % không tồn tại', v_product_id;
+      RAISE EXCEPTION 'Sản phẩm % không tồn tại', v_item_record.product_id;
     END IF;
 
     -- Reject self-purchase
-    IF v_seller_id = p_buyer_id THEN
+    IF v_seller_id = v_buyer_id THEN
       RAISE EXCEPTION 'Bạn không thể tự mua sản phẩm do chính mình đăng bán (%)', v_product_name;
     END IF;
 
@@ -296,24 +306,34 @@ BEGIN
       RAISE EXCEPTION 'Sản phẩm "%" hiện không còn mở bán', v_product_name;
     END IF;
 
-    -- Handle variant stock if specified
-    IF v_variant_id IS NOT NULL THEN
-      SELECT price, stock INTO v_product_price, v_product_stock
+    -- Handle variant price and stock if specified
+    IF v_item_record.variant_id IS NOT NULL THEN
+      SELECT price, stock INTO v_variant_price, v_variant_stock
       FROM public.product_variants
-      WHERE id = v_variant_id AND product_id = v_product_id AND is_active = true
+      WHERE id = v_item_record.variant_id AND product_id = v_item_record.product_id AND is_active = true
       FOR UPDATE;
 
       IF NOT FOUND THEN
         RAISE EXCEPTION 'Biến thể sản phẩm không tồn tại hoặc đã ngừng bán';
       END IF;
+
+      v_authoritative_price := COALESCE(v_variant_price, v_product_sale_price, v_product_price);
+      v_current_stock := v_variant_stock;
+    ELSE
+      v_authoritative_price := COALESCE(v_product_sale_price, v_product_price);
+      v_current_stock := v_product_stock;
+    END IF;
+
+    IF v_authoritative_price IS NULL THEN
+      RAISE EXCEPTION 'Không thể xác định giá sản phẩm "%"', v_product_name;
     END IF;
 
     -- Check stock
-    IF v_product_stock < v_quantity THEN
-      RAISE EXCEPTION 'Sản phẩm "%" chỉ còn % sản phẩm trong kho', v_product_name, v_product_stock;
+    IF v_current_stock < v_item_record.quantity THEN
+      RAISE EXCEPTION 'Sản phẩm "%" chỉ còn % sản phẩm trong kho', v_product_name, v_current_stock;
     END IF;
 
-    v_item_subtotal := v_product_price * v_quantity;
+    v_item_subtotal := v_authoritative_price * v_item_record.quantity;
     v_total_amount := v_total_amount + v_item_subtotal;
   END LOOP;
 
@@ -325,56 +345,64 @@ BEGIN
   -- 6. Generate Order Code & Create Parent Order
   v_order_code := 'ORD-' || FLOOR(EXTRACT(EPOCH FROM now()))::TEXT || '-' || FLOOR(RANDOM() * 8999 + 1000)::TEXT;
 
-  INSERT INTO public.orders (
-    user_id, order_code, total_amount, discount_amount, final_amount,
-    status, payment_status, payment_method, receiver_name, receiver_phone, receiver_address, note,
-    idempotency_key, request_hash
-  )
-  VALUES (
-    p_buyer_id, v_order_code, v_total_amount, 0, v_total_amount,
-    'pending', 'paid', 'wallet', p_receiver_name, p_receiver_phone, p_receiver_address, p_note,
-    p_idempotency_key, p_request_hash
-  )
-  RETURNING id INTO v_parent_order_id;
+  BEGIN
+    INSERT INTO public.orders (
+      user_id, order_code, total_amount, discount_amount, final_amount,
+      status, payment_status, payment_method, receiver_name, receiver_phone, receiver_address, note,
+      idempotency_key, request_hash
+    )
+    VALUES (
+      v_buyer_id, v_order_code, v_total_amount, 0, v_total_amount,
+      'completed', 'paid', 'wallet', p_receiver_name, p_receiver_phone, p_receiver_address, p_note,
+      p_idempotency_key, p_request_hash
+    )
+    RETURNING id INTO v_parent_order_id;
+  EXCEPTION WHEN unique_violation THEN
+    -- Concurrency fallback
+    SELECT id INTO v_parent_order_id FROM public.orders WHERE user_id = v_buyer_id AND idempotency_key = p_idempotency_key;
+    IF v_parent_order_id IS NOT NULL THEN
+      RETURN v_parent_order_id;
+    END IF;
+    RAISE EXCEPTION 'Lỗi hệ thống khi tạo đơn hàng, vui lòng thử lại';
+  END;
 
   -- 7. Debit Buyer Wallet & Record Wallet Transaction
   UPDATE public.profiles
   SET balance = balance - v_total_amount
-  WHERE id = p_buyer_id;
+  WHERE id = v_buyer_id;
 
   INSERT INTO public.wallet_transactions (
-    user_id, amount, type, description
+    user_id, amount, type, note, balance_before, balance_after, related_order_id
   )
   VALUES (
-    p_buyer_id, -v_total_amount, 'payment', 'Thanh toán đơn hàng #' || v_order_code
+    v_buyer_id, -v_total_amount, 'payment', 'Thanh toán đơn hàng #' || v_order_code, v_buyer_balance, v_buyer_balance - v_total_amount, v_parent_order_id
   );
 
   -- 8. Group Items by Seller & Create Seller Orders + Order Items + Stock Decrement
-  -- First loop to insert order_items & calculate seller subtotals
-  FOR v_item IN SELECT * FROM jsonb_array_elements(p_items)
+  -- Need to use the raw payload again to match frontend order_items rows, but using authoritative price logic
+  FOR v_item_record IN SELECT * FROM tmp_cart_items ORDER BY product_id, variant_id
   LOOP
-    v_product_id := (v_item->>'product_id')::UUID;
-    v_variant_id := CASE WHEN (v_item->>'variant_id') IS NOT NULL AND (v_item->>'variant_id') <> '' THEN (v_item->>'variant_id')::UUID ELSE NULL END;
-    v_quantity := (v_item->>'quantity')::INTEGER;
+    SELECT name, price, sale_price, seller_id
+    INTO v_product_name, v_product_price, v_product_sale_price, v_seller_id
+    FROM public.products WHERE id = v_item_record.product_id;
 
-    SELECT name, price, seller_id, product_source
-    INTO v_product_name, v_product_price, v_seller_id, v_product_source
-    FROM public.products WHERE id = v_product_id;
-
-    IF v_variant_id IS NOT NULL THEN
-      SELECT price INTO v_product_price
-      FROM public.product_variants WHERE id = v_variant_id;
+    IF v_item_record.variant_id IS NOT NULL THEN
+      SELECT price INTO v_variant_price
+      FROM public.product_variants WHERE id = v_item_record.variant_id;
+      v_authoritative_price := COALESCE(v_variant_price, v_product_sale_price, v_product_price);
+    ELSE
+      v_authoritative_price := COALESCE(v_product_sale_price, v_product_price);
     END IF;
 
-    v_item_subtotal := v_product_price * v_quantity;
+    v_item_subtotal := v_authoritative_price * v_item_record.quantity;
     v_item_fee := FLOOR(v_item_subtotal * v_fee_bps / 10000.0);
     v_item_seller_amount := v_item_subtotal - v_item_fee;
 
     -- Decrement stock
-    IF v_variant_id IS NOT NULL THEN
-      UPDATE public.product_variants SET stock = stock - v_quantity WHERE id = v_variant_id;
+    IF v_item_record.variant_id IS NOT NULL THEN
+      UPDATE public.product_variants SET stock = stock - v_item_record.quantity WHERE id = v_item_record.variant_id;
     ELSE
-      UPDATE public.products SET stock = stock - v_quantity WHERE id = v_product_id;
+      UPDATE public.products SET stock = stock - v_item_record.quantity WHERE id = v_item_record.product_id;
     END IF;
 
     -- Insert order item snapshot
@@ -383,8 +411,8 @@ BEGIN
       seller_id, unit_price, platform_fee_bps, platform_fee, seller_amount, seller_payment_status
     )
     VALUES (
-      v_parent_order_id, v_product_id, v_product_name, v_product_price, v_quantity, v_item_subtotal,
-      v_seller_id, v_product_price, v_fee_bps, v_item_fee, v_item_seller_amount, 'pending'
+      v_parent_order_id, v_item_record.product_id, v_product_name, v_product_price, v_item_record.quantity, v_item_subtotal,
+      v_seller_id, v_authoritative_price, v_fee_bps, v_item_fee, v_item_seller_amount, 'completed'
     );
   END LOOP;
 
@@ -399,9 +427,9 @@ BEGIN
       parent_order_id, seller_id, buyer_id, subtotal, platform_fee_bps, platform_fee, seller_earnings, status, payment_status
     )
     VALUES (
-      v_parent_order_id, v_seller_record.seller_id, p_buyer_id,
+      v_parent_order_id, v_seller_record.seller_id, v_buyer_id,
       v_seller_record.seller_subtotal, v_fee_bps, v_seller_record.seller_fee, v_seller_record.seller_earnings,
-      'pending', 'paid'
+      'completed', 'paid'
     )
     RETURNING id INTO v_seller_order_id;
 
@@ -415,14 +443,14 @@ BEGIN
     VALUES (v_seller_record.seller_id, 0, 0, 0, 0)
     ON CONFLICT (seller_id) DO NOTHING;
 
-    -- Lock seller wallet & credit pending balance
-    SELECT pending_balance INTO v_prev_pending
+    -- Lock seller wallet & credit available balance directly (skipping escrow)
+    SELECT available_balance INTO v_prev_pending
     FROM public.seller_wallets
     WHERE seller_id = v_seller_record.seller_id
     FOR UPDATE;
 
     UPDATE public.seller_wallets
-    SET pending_balance = pending_balance + v_seller_record.seller_earnings,
+    SET available_balance = available_balance + v_seller_record.seller_earnings,
         updated_at = now()
     WHERE seller_id = v_seller_record.seller_id;
 
@@ -431,30 +459,34 @@ BEGIN
       seller_id, seller_order_id, type, amount, platform_fee, balance_before, balance_after, description
     )
     VALUES (
-      v_seller_record.seller_id, v_seller_order_id, 'sale_pending', v_seller_record.seller_earnings, v_seller_record.seller_fee,
-      v_prev_pending, v_prev_pending + v_seller_record.seller_earnings, 'Doanh thu đơn bán #' || v_order_code || ' (Chờ hoàn tất)'
+      v_seller_record.seller_id, v_seller_order_id, 'sale_completed', v_seller_record.seller_earnings, v_seller_record.seller_fee,
+      v_prev_pending, v_prev_pending + v_seller_record.seller_earnings, 'Doanh thu đơn bán #' || v_order_code
     );
   END LOOP;
 
   -- 10. Clear Buyer Cart
-  DELETE FROM public.carts WHERE user_id = p_buyer_id;
+  DELETE FROM public.carts WHERE user_id = v_buyer_id;
 
   RETURN v_parent_order_id;
 END;
 $$;
 
+REVOKE ALL ON FUNCTION public.atomic_c2c_checkout FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.atomic_c2c_checkout TO authenticated;
+
 -- ============================================================================
 -- 10. RPC: COMPLETE SELLER ORDER (UNLOCK PENDING TO AVAILABLE BALANCE)
 -- ============================================================================
 CREATE OR REPLACE FUNCTION public.complete_seller_order(
-  p_seller_order_id UUID,
-  p_actor_id UUID
+  p_seller_order_id UUID
 )
 RETURNS BOOLEAN
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public, pg_temp
 AS $$
 DECLARE
+  v_actor_id UUID;
   v_seller_id UUID;
   v_buyer_id UUID;
   v_earnings NUMERIC;
@@ -464,8 +496,12 @@ DECLARE
   v_prev_pending NUMERIC;
   v_prev_avail NUMERIC;
 BEGIN
-  -- Check actor (must be buyer, or admin)
-  SELECT role INTO v_actor_role FROM public.profiles WHERE id = p_actor_id;
+  v_actor_id := auth.uid();
+  IF v_actor_id IS NULL THEN
+    RAISE EXCEPTION 'Vui lòng đăng nhập';
+  END IF;
+
+  SELECT role INTO v_actor_role FROM public.profiles WHERE id = v_actor_id;
 
   SELECT seller_id, buyer_id, seller_earnings, platform_fee, status
   INTO v_seller_id, v_buyer_id, v_earnings, v_fee, v_status
@@ -478,12 +514,26 @@ BEGIN
   END IF;
 
   IF v_status = 'completed' THEN
-    RETURN true; // Idempotent success
+    RETURN true; -- Idempotent success
+  END IF;
+
+  IF v_status <> 'shipping' THEN
+    RAISE EXCEPTION 'Chỉ có thể hoàn thành đơn hàng đang giao (shipping)';
   END IF;
 
   -- Seller cannot mark completed! Only buyer or admin.
-  IF p_actor_id <> v_buyer_id AND COALESCE(v_actor_role, 'user') <> 'admin' THEN
+  IF v_actor_id <> v_buyer_id AND COALESCE(v_actor_role, 'user') <> 'admin' THEN
     RAISE EXCEPTION 'Chỉ người mua hoặc Admin mới được phép xác nhận hoàn tất đơn hàng';
+  END IF;
+
+  -- Lock seller wallet
+  SELECT pending_balance, available_balance INTO v_prev_pending, v_prev_avail
+  FROM public.seller_wallets
+  WHERE seller_id = v_seller_id
+  FOR UPDATE;
+
+  IF v_prev_pending < v_earnings THEN
+    RAISE EXCEPTION 'Lỗi dữ liệu: Số dư chờ duyệt của người bán không đủ để chốt đơn';
   END IF;
 
   -- Update seller order status
@@ -491,14 +541,8 @@ BEGIN
   SET status = 'completed', updated_at = now()
   WHERE id = p_seller_order_id;
 
-  -- Lock seller wallet & move pending -> available
-  SELECT pending_balance, available_balance INTO v_prev_pending, v_prev_avail
-  FROM public.seller_wallets
-  WHERE seller_id = v_seller_id
-  FOR UPDATE;
-
   UPDATE public.seller_wallets
-  SET pending_balance = GREATEST(0, pending_balance - v_earnings),
+  SET pending_balance = pending_balance - v_earnings,
       available_balance = available_balance + v_earnings,
       updated_at = now()
   WHERE seller_id = v_seller_id;
@@ -521,15 +565,293 @@ BEGIN
 END;
 $$;
 
+REVOKE ALL ON FUNCTION public.complete_seller_order FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.complete_seller_order TO authenticated;
+
 -- ============================================================================
--- 11. ROW LEVEL SECURITY (RLS) POLICIES
+-- 11. RPC: UPDATE SELLER ORDER STATUS
 -- ============================================================================
+CREATE OR REPLACE FUNCTION public.update_seller_order_status(
+  p_seller_order_id UUID,
+  p_new_status TEXT
+)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+  v_seller_id UUID;
+  v_current_status TEXT;
+  v_actor_id UUID;
+BEGIN
+  v_actor_id := auth.uid();
+  IF v_actor_id IS NULL THEN
+    RAISE EXCEPTION 'Vui lòng đăng nhập';
+  END IF;
+
+  IF p_new_status NOT IN ('confirmed', 'shipping') THEN
+    RAISE EXCEPTION 'Trạng thái chuyển đổi không hợp lệ';
+  END IF;
+
+  SELECT seller_id, status INTO v_seller_id, v_current_status
+  FROM public.seller_orders
+  WHERE id = p_seller_order_id
+  FOR UPDATE;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Đơn bán không tồn tại';
+  END IF;
+
+  IF v_seller_id <> v_actor_id THEN
+    RAISE EXCEPTION 'Không có quyền thao tác đơn bán này';
+  END IF;
+
+  IF p_new_status = 'confirmed' AND v_current_status <> 'pending' THEN
+    RAISE EXCEPTION 'Chỉ có thể xác nhận đơn từ trạng thái chờ xử lý (pending)';
+  END IF;
+
+  IF p_new_status = 'shipping' AND v_current_status <> 'confirmed' THEN
+    RAISE EXCEPTION 'Chỉ có thể chuyển trạng thái giao hàng từ đơn đã xác nhận (confirmed)';
+  END IF;
+
+  UPDATE public.seller_orders
+  SET status = p_new_status, updated_at = now()
+  WHERE id = p_seller_order_id;
+
+  RETURN true;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.update_seller_order_status FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.update_seller_order_status TO authenticated;
+
+-- ============================================================================
+-- 12. RPC: REQUEST SELLER WITHDRAWAL
+-- ============================================================================
+CREATE OR REPLACE FUNCTION public.request_seller_withdrawal(
+  p_amount NUMERIC,
+  p_bank_name TEXT,
+  p_account_number TEXT,
+  p_account_name TEXT
+)
+RETURNS UUID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+  v_seller_id UUID;
+  v_available NUMERIC;
+  v_withdrawal_id UUID;
+BEGIN
+  v_seller_id := auth.uid();
+  IF v_seller_id IS NULL THEN
+    RAISE EXCEPTION 'Vui lòng đăng nhập';
+  END IF;
+
+  IF p_amount <= 0 THEN
+    RAISE EXCEPTION 'Số tiền rút không hợp lệ';
+  END IF;
+
+  -- Lock wallet
+  SELECT available_balance INTO v_available
+  FROM public.seller_wallets
+  WHERE seller_id = v_seller_id
+  FOR UPDATE;
+
+  IF v_available IS NULL OR v_available < p_amount THEN
+    RAISE EXCEPTION 'Số dư khả dụng không đủ. Bạn chỉ có thể rút tối đa %', v_available;
+  END IF;
+
+  -- Move available -> reserved
+  UPDATE public.seller_wallets
+  SET available_balance = available_balance - p_amount,
+      reserved_balance = reserved_balance + p_amount,
+      updated_at = now()
+  WHERE seller_id = v_seller_id;
+
+  -- Create withdrawal
+  INSERT INTO public.seller_withdrawals (
+    seller_id, amount, bank_name, account_number, account_name, status
+  )
+  VALUES (
+    v_seller_id, p_amount, p_bank_name, p_account_number, p_account_name, 'pending'
+  )
+  RETURNING id INTO v_withdrawal_id;
+
+  -- Create ledger transaction
+  INSERT INTO public.seller_ledger_transactions (
+    seller_id, type, amount, balance_before, balance_after, description
+  )
+  VALUES (
+    v_seller_id, 'withdrawal_reserved', -p_amount, v_available, v_available - p_amount, 'Yêu cầu rút tiền đang chờ xử lý'
+  );
+
+  RETURN v_withdrawal_id;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.request_seller_withdrawal FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.request_seller_withdrawal TO authenticated;
+
+-- ============================================================================
+-- 13. RPC: PROCESS SELLER PAYOUT (ADMIN ONLY)
+-- ============================================================================
+CREATE OR REPLACE FUNCTION public.process_seller_payout(
+  p_withdrawal_id UUID,
+  p_action TEXT,
+  p_rejection_reason TEXT DEFAULT NULL
+)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+  v_admin_id UUID;
+  v_admin_role TEXT;
+  v_seller_id UUID;
+  v_amount NUMERIC;
+  v_status TEXT;
+  v_reserved NUMERIC;
+BEGIN
+  v_admin_id := auth.uid();
+  IF v_admin_id IS NULL THEN
+    RAISE EXCEPTION 'Vui lòng đăng nhập';
+  END IF;
+
+  SELECT role INTO v_admin_role FROM public.profiles WHERE id = v_admin_id;
+  IF COALESCE(v_admin_role, '') <> 'admin' THEN
+    RAISE EXCEPTION 'Không có quyền thực hiện';
+  END IF;
+
+  IF p_action NOT IN ('approve', 'reject') THEN
+    RAISE EXCEPTION 'Hành động không hợp lệ';
+  END IF;
+
+  -- Lock withdrawal
+  SELECT seller_id, amount, status
+  INTO v_seller_id, v_amount, v_status
+  FROM public.seller_withdrawals
+  WHERE id = p_withdrawal_id
+  FOR UPDATE;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Yêu cầu rút tiền không tồn tại';
+  END IF;
+
+  IF v_status <> 'pending' THEN
+    RAISE EXCEPTION 'Yêu cầu rút tiền này đã được xử lý từ trước';
+  END IF;
+
+  -- Lock wallet
+  SELECT reserved_balance INTO v_reserved
+  FROM public.seller_wallets
+  WHERE seller_id = v_seller_id
+  FOR UPDATE;
+
+  IF v_reserved < v_amount THEN
+    RAISE EXCEPTION 'Lỗi dữ liệu: Số dư đang khóa của người bán không đủ để xử lý';
+  END IF;
+
+  IF p_action = 'approve' THEN
+    UPDATE public.seller_wallets
+    SET reserved_balance = reserved_balance - v_amount,
+        withdrawn_balance = withdrawn_balance + v_amount,
+        updated_at = now()
+    WHERE seller_id = v_seller_id;
+
+    UPDATE public.seller_withdrawals
+    SET status = 'approved', processed_by = v_admin_id, processed_at = now()
+    WHERE id = p_withdrawal_id;
+
+    INSERT INTO public.seller_ledger_transactions (
+      seller_id, type, amount, balance_before, balance_after, description
+    )
+    VALUES (
+      v_seller_id, 'withdrawal_completed', v_amount, v_reserved, v_reserved - v_amount, 'Yêu cầu rút tiền đã được hoàn tất'
+    );
+
+  ELSIF p_action = 'reject' THEN
+    UPDATE public.seller_wallets
+    SET reserved_balance = reserved_balance - v_amount,
+        available_balance = available_balance + v_amount,
+        updated_at = now()
+    WHERE seller_id = v_seller_id;
+
+    UPDATE public.seller_withdrawals
+    SET status = 'rejected', rejection_reason = p_rejection_reason, processed_by = v_admin_id, processed_at = now()
+    WHERE id = p_withdrawal_id;
+
+    INSERT INTO public.seller_ledger_transactions (
+      seller_id, type, amount, balance_before, balance_after, description
+    )
+    VALUES (
+      v_seller_id, 'withdrawal_rejected', v_amount, v_reserved, v_reserved - v_amount, 'Yêu cầu rút tiền bị từ chối: ' || COALESCE(p_rejection_reason, '')
+    );
+  END IF;
+
+  RETURN true;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.process_seller_payout FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.process_seller_payout TO authenticated;
+
+-- ============================================================================
+-- 14. ROW LEVEL SECURITY (RLS) POLICIES
+-- ============================================================================
+ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.product_variants ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketplace_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.seller_orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.seller_wallets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.seller_ledger_transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.seller_withdrawals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.product_reports ENABLE ROW LEVEL SECURITY;
+
+-- products & product_variants
+CREATE POLICY "Public read active products" ON public.products
+  FOR SELECT TO authenticated, anon
+  USING (is_active = true AND deleted_at IS NULL AND (listing_status = 'active' OR product_source = 'platform'));
+
+CREATE POLICY "Sellers can manage their own products" ON public.products
+  FOR ALL TO authenticated
+  USING (seller_id = auth.uid())
+  WITH CHECK (seller_id = auth.uid());
+
+CREATE POLICY "Admin can manage all products" ON public.products
+  FOR ALL TO authenticated
+  USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'))
+  WITH CHECK (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+CREATE POLICY "Public read active variants" ON public.product_variants
+  FOR SELECT TO authenticated, anon
+  USING (
+    is_active = true 
+    AND EXISTS (
+      SELECT 1 FROM public.products p 
+      WHERE p.id = product_variants.product_id 
+      AND p.is_active = true 
+      AND p.deleted_at IS NULL 
+      AND (p.listing_status = 'active' OR p.product_source = 'platform')
+    )
+  );
+
+CREATE POLICY "Sellers can manage their own variants" ON public.product_variants
+  FOR ALL TO authenticated
+  USING (
+    EXISTS (SELECT 1 FROM public.products p WHERE p.id = product_variants.product_id AND p.seller_id = auth.uid())
+  )
+  WITH CHECK (
+    EXISTS (SELECT 1 FROM public.products p WHERE p.id = product_variants.product_id AND p.seller_id = auth.uid())
+  );
+
+CREATE POLICY "Admin can manage all variants" ON public.product_variants
+  FOR ALL TO authenticated
+  USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'))
+  WITH CHECK (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
 
 -- marketplace_settings
 CREATE POLICY "Public read marketplace settings" ON public.marketplace_settings
@@ -545,10 +867,7 @@ CREATE POLICY "Seller or Buyer read seller_orders" ON public.seller_orders
   FOR SELECT TO authenticated
   USING (seller_id = auth.uid() OR buyer_id = auth.uid() OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
 
-CREATE POLICY "Seller update seller_orders status" ON public.seller_orders
-  FOR UPDATE TO authenticated
-  USING (seller_id = auth.uid())
-  WITH CHECK (seller_id = auth.uid() AND status IN ('confirmed', 'shipping'));
+-- Revoked direct UPDATE. Everything must go through RPCs now.
 
 -- seller_wallets
 CREATE POLICY "Seller read own wallet" ON public.seller_wallets
@@ -564,7 +883,3 @@ CREATE POLICY "Seller read own ledger" ON public.seller_ledger_transactions
 CREATE POLICY "Seller create and read own withdrawals" ON public.seller_withdrawals
   FOR SELECT TO authenticated
   USING (seller_id = auth.uid() OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
-
-CREATE POLICY "Seller insert own withdrawal" ON public.seller_withdrawals
-  FOR INSERT TO authenticated
-  WITH CHECK (seller_id = auth.uid());

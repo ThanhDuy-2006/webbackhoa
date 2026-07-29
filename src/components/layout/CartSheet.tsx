@@ -45,23 +45,28 @@ export function CartSheet({ user, profile }: CartSheetProps) {
     }
 
     setIsSubmitting(true)
-    const result = await processCheckout(
-      user.id,
-      items,
-      formData,
-      null,
-      totalAmount,
-      0,
-      totalAmount
-    )
+    try {
+      const result = await processCheckout(
+        user.id,
+        items,
+        formData,
+        null,
+        totalAmount,
+        0,
+        totalAmount
+      )
 
-    if (result.success) {
-      toast.success('Thanh toán thành công!')
-      clearCart()
-      setIsOpen(false)
-      router.push('/tai-khoan/don-hang')
-    } else {
-      toast.error(result.error || 'Có lỗi xảy ra khi thanh toán')
+      if (result.success) {
+        toast.success('Thanh toán thành công!')
+        clearCart()
+        setIsOpen(false)
+        router.push('/tai-khoan/don-hang')
+      } else {
+        toast.error(result.error || 'Có lỗi xảy ra khi thanh toán')
+        setIsSubmitting(false)
+      }
+    } catch (e) {
+      toast.error('Lỗi kết nối hoặc máy chủ không phản hồi')
       setIsSubmitting(false)
     }
   }
