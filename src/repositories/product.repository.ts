@@ -116,10 +116,10 @@ export const ProductRepository = {
       .select('*, variants:product_variants(*)')
       .eq('id', id)
       .is('deleted_at', null)
-      .single()
+      .maybeSingle()
 
     if (error) throw error
-    return data as Product
+    return data as Product | null
   },
 
   async getProductBySlug(slug: string) {
@@ -129,7 +129,7 @@ export const ProductRepository = {
       .select('*, categories(name), variants:product_variants(*)')
       .eq('slug', slug)
       .is('deleted_at', null)
-      .single()
+      .maybeSingle()
 
     if (error) throw error
     return data
@@ -195,8 +195,10 @@ export const ProductRepository = {
   async updateProduct(id: string, productData: Partial<Product>, variantsData: Partial<ProductVariant>[], adminId: string) {
     const supabase = createAdminClient()
     
-    // Check old product for inventory logging
     const oldProduct = await this.getProductById(id)
+    if (!oldProduct) {
+      throw new Error('Sản phẩm không tồn tại hoặc đã bị xóa')
+    }
 
     // 1. Update Product
     const { data: product, error: productError } = await supabase
