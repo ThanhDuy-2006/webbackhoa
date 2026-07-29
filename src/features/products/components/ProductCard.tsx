@@ -10,19 +10,10 @@ import { useState } from 'react'
 import { motion, Variants } from 'framer-motion'
 import { QuickViewSheet } from '@/components/products/QuickViewSheet'
 import { SmartImage } from '@/components/ui/smart-image'
+import { StorefrontProductSummary } from '@/types/product.type'
 
 interface ProductCardProps {
-  product: {
-    id: string
-    name: string
-    slug: string
-    price: number
-    sale_price: number | null
-    images: string[]
-    image_url?: string | null
-    stock: number
-    description?: string | null
-  }
+  product: StorefrontProductSummary
   index?: number
   priority?: boolean
 }
@@ -36,9 +27,10 @@ export function ProductCard({ product, index = 0, priority = false }: ProductCar
   const { addItem } = useCartStore()
   const [isQuickViewOpen, setIsQuickViewOpen] = useState(false)
   const isOutOfStock = product.stock <= 0
-  const finalPrice = product.sale_price || product.price
-  const hasDiscount = product.sale_price !== null && product.sale_price < product.price
-  const images = product.images || [product.image_url]
+  const price = Number(product.price)
+  const finalPrice = product.sale_price ? Number(product.sale_price) : price
+  const hasDiscount = product.sale_price !== null && Number(product.sale_price) < price
+  const displayImage = product.image_url || '/images/product-placeholder.png'
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault()
@@ -48,7 +40,7 @@ export function ProductCard({ product, index = 0, priority = false }: ProductCar
       id: product.id,
       name: product.name,
       price: finalPrice,
-      image: images[0] || '',
+      image: displayImage,
       quantity: 1,
       stock: product.stock
     })
@@ -60,101 +52,101 @@ export function ProductCard({ product, index = 0, priority = false }: ProductCar
       <motion.div variants={itemVariants} className="h-full">
         <Card className="group overflow-hidden rounded-2xl border-transparent shadow-[0_2px_12px_rgba(0,0,0,0.04)] bg-white dark:bg-slate-900 transition-all duration-300 hover:shadow-[0_12px_32px_rgba(0,0,0,0.12)] hover:-translate-y-1.5 flex flex-col h-full relative z-0 hover:z-10">
           <Link href={`/san-pham/${product.slug}`} className="block relative">
-          <div className="relative aspect-[4/3] sm:aspect-square overflow-hidden bg-white dark:bg-slate-950 p-6">
-            <SmartImage
-              productId={product.id}
-              src={images[0]}
-              alt={product.name}
-              fill
-              priority={priority}
-              sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 20vw"
-              className="object-contain transition-transform duration-700 ease-out group-hover:scale-105"
-            />
-            {hasDiscount && (
-              <div className="absolute left-3 top-3 rounded bg-red-500 px-2 py-1 text-xs font-bold text-white shadow-sm z-10">
-                -{Math.round((1 - finalPrice / product.price) * 100)}%
+            <div className="relative aspect-[4/3] sm:aspect-square overflow-hidden bg-white dark:bg-slate-950 p-6">
+              <SmartImage
+                productId={product.id}
+                src={displayImage}
+                alt={product.name}
+                fill
+                priority={priority}
+                sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 20vw"
+                className="object-contain transition-transform duration-700 ease-out group-hover:scale-105"
+              />
+              {hasDiscount && (
+                <div className="absolute left-3 top-3 rounded bg-red-500 px-2 py-1 text-xs font-bold text-white shadow-sm z-10">
+                  -{Math.round((1 - finalPrice / price) * 100)}%
+                </div>
+              )}
+              {isOutOfStock && (
+                <div className="absolute inset-0 bg-white/60 dark:bg-slate-950/60 backdrop-blur-[2px] flex items-center justify-center z-10">
+                  <span className="bg-slate-900/80 text-white px-3 py-1.5 rounded-full font-medium text-xs backdrop-blur-md">
+                    Hết hàng
+                  </span>
+                </div>
+              )}
+              {/* Desktop Quick View Hover Overlay */}
+              <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity hidden md:flex items-center justify-center z-25">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="bg-white/95 text-slate-800 font-bold rounded-full shadow-md hover:bg-emerald-50 hover:text-emerald-700 cursor-pointer h-9 px-4"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    setIsQuickViewOpen(true)
+                  }}
+                >
+                  <Eye className="w-4 h-4 mr-1.5" />
+                  Xem nhanh
+                </Button>
               </div>
-            )}
-            {isOutOfStock && (
-              <div className="absolute inset-0 bg-white/60 dark:bg-slate-950/60 backdrop-blur-[2px] flex items-center justify-center z-10">
-                <span className="bg-slate-900/80 text-white px-3 py-1.5 rounded-full font-medium text-xs backdrop-blur-md">
-                  Hết hàng
-                </span>
-              </div>
-            )}
-            {/* Desktop Quick View Hover Overlay */}
-            <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity hidden md:flex items-center justify-center z-25">
-              <Button
-                variant="secondary"
-                size="sm"
-                className="bg-white/95 text-slate-800 font-bold rounded-full shadow-md hover:bg-emerald-50 hover:text-emerald-700 cursor-pointer h-9 px-4"
-                onClick={(e) => {
-                  e.preventDefault()
-                  e.stopPropagation()
-                  setIsQuickViewOpen(true)
-                }}
-              >
-                <Eye className="w-4 h-4 mr-1.5" />
-                Xem nhanh
-              </Button>
             </div>
-          </div>
-        </Link>
-        
-        <div className="p-3 sm:p-4 flex flex-col justify-between flex-1 dark:bg-slate-900">
-          <Link href={`/san-pham/${product.slug}`} className="block">
-            <h3 className="line-clamp-2 text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200 transition-colors group-hover:text-emerald-600 leading-snug min-h-[2.5rem]">
-              {product.name}
-            </h3>
           </Link>
           
-          <div className="mt-3 flex items-end justify-between gap-1.5">
-            <div className="flex flex-col min-w-0">
-              {hasDiscount && (
-                <span className="text-[10px] sm:text-xs text-slate-400 line-through mb-0.5 truncate">
-                  {Number(product.price).toLocaleString('vi-VN')} <span className="text-[8px] sm:text-[9px]">VND</span>
-                </span>
-              )}
-              <span className="text-xs sm:text-sm md:text-base font-black text-slate-900 dark:text-slate-100 leading-none truncate">
-                {Number(finalPrice).toLocaleString('vi-VN')} <span className="text-[9px] sm:text-[10px] font-semibold text-slate-500">VND</span>
-              </span>
-            </div>
+          <div className="p-3 sm:p-4 flex flex-col justify-between flex-1 dark:bg-slate-900">
+            <Link href={`/san-pham/${product.slug}`} className="block">
+              <h3 className="line-clamp-2 text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200 transition-colors group-hover:text-emerald-600 leading-snug min-h-[2.5rem]">
+                {product.name}
+              </h3>
+            </Link>
             
-            <div className="flex items-center gap-1.5 shrink-0">
-              {/* Mobile Quick View Action Button */}
-              <Button
-                size="icon"
-                variant="outline"
-                className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer flex items-center justify-center md:hidden bg-white dark:bg-slate-950"
-                onClick={(e) => {
-                  e.preventDefault()
-                  e.stopPropagation()
-                  setIsQuickViewOpen(true)
-                }}
-                style={{ minWidth: '32px', minHeight: '32px' }}
-                aria-label="Xem nhanh"
-              >
-                <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-slate-600 dark:text-slate-400" />
-              </Button>
+            <div className="mt-3 flex items-end justify-between gap-1.5">
+              <div className="flex flex-col min-w-0">
+                {hasDiscount && (
+                  <span className="text-[10px] sm:text-xs text-slate-400 line-through mb-0.5 truncate">
+                    {price.toLocaleString('vi-VN')} <span className="text-[8px] sm:text-[9px]">VND</span>
+                  </span>
+                )}
+                <span className="text-xs sm:text-sm md:text-base font-black text-slate-900 dark:text-slate-100 leading-none truncate">
+                  {finalPrice.toLocaleString('vi-VN')} <span className="text-[9px] sm:text-[10px] font-semibold text-slate-500">VND</span>
+                </span>
+              </div>
+              
+              <div className="flex items-center gap-1.5 shrink-0">
+                {/* Mobile Quick View Action Button */}
+                <Button
+                  size="icon"
+                  variant="outline"
+                  className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer flex items-center justify-center md:hidden bg-white dark:bg-slate-950"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    setIsQuickViewOpen(true)
+                  }}
+                  style={{ minWidth: '32px', minHeight: '32px' }}
+                  aria-label="Xem nhanh"
+                >
+                  <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-slate-600 dark:text-slate-400" />
+                </Button>
 
-              <Button 
-                size="icon"
-                className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl bg-emerald-600 hover:bg-emerald-700 transition-colors shadow-sm shrink-0 cursor-pointer" 
-                disabled={isOutOfStock}
-                aria-label="Thêm vào giỏ hàng"
-                onClick={handleAddToCart}
-                style={{ minWidth: '32px', minHeight: '32px' }}
-              >
-                <ShoppingCart className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-white" />
-              </Button>
+                <Button 
+                  size="icon"
+                  className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl bg-emerald-600 hover:bg-emerald-700 transition-colors shadow-sm shrink-0 cursor-pointer" 
+                  disabled={isOutOfStock}
+                  aria-label="Thêm vào giỏ hàng"
+                  onClick={handleAddToCart}
+                  style={{ minWidth: '32px', minHeight: '32px' }}
+                >
+                  <ShoppingCart className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-white" />
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
-      </Card>
+        </Card>
       </motion.div>
 
       <QuickViewSheet
-        product={product as any}
+        product={product}
         isOpen={isQuickViewOpen}
         onClose={() => setIsQuickViewOpen(false)}
       />

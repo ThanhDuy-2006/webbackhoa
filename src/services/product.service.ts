@@ -15,17 +15,6 @@ const getStorefrontProductsCached = unstable_cache(
   }
 )
 
-const getFeaturedProductsCached = unstable_cache(
-  async (limit: number = 10) => {
-    return await ProductRepository.getFeaturedProducts(limit)
-  },
-  ['featured-products-v1'],
-  {
-    tags: [CACHE_TAGS.FEATURED_PRODUCTS],
-    revalidate: 60,
-  }
-)
-
 export const ProductService = {
   async generateUniqueSlug(baseSlug: string, currentProductId?: string): Promise<string> {
     const supabase = createAdminClient()
@@ -54,10 +43,6 @@ export const ProductService = {
 
   async getStorefrontProducts(params: { categorySlug?: string; search?: string; sort?: string; page?: number; pageSize?: number }) {
     return await getStorefrontProductsCached(params)
-  },
-
-  async getFeaturedProducts(limit: number = 10) {
-    return await getFeaturedProductsCached(limit)
   },
 
   async getProductQuickViewById(id: string) {

@@ -15,15 +15,19 @@ export default async function ProductsPage({
   const search = typeof params.q === 'string' ? params.q : ''
   const sort = typeof params.sort === 'string' ? params.sort : 'newest'
   
+  const rawPage = parseInt(typeof params.page === 'string' ? params.page : '1', 10)
+  const page = isNaN(rawPage) || rawPage < 1 ? 1 : rawPage
+  const pageSize = 12
+
   // Parallelize category and product queries for maximum speed
-  const [categories, { data: products }] = await Promise.all([
+  const [categories, { data: products, count: totalCount }] = await Promise.all([
     CategoryService.getStorefrontCategories(),
     ProductService.getStorefrontProducts({
       categorySlug,
       search,
       sort,
-      page: 1,
-      pageSize: 20
+      page,
+      pageSize
     })
   ])
 
@@ -34,7 +38,13 @@ export default async function ProductsPage({
         <p className="mt-2 text-slate-600 dark:text-slate-400">Khám phá các sản phẩm thực phẩm tươi sạch, an toàn mỗi ngày với giá tốt nhất.</p>
       </div>
       
-      <ProductListClient initialProducts={products} categories={categories} />
+      <ProductListClient 
+        initialProducts={products} 
+        categories={categories} 
+        page={page}
+        pageSize={pageSize}
+        totalCount={totalCount}
+      />
     </div>
   )
 }

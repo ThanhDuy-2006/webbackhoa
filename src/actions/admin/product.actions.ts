@@ -19,7 +19,6 @@ export async function createProductAction(data: ProductFormData) {
     const product = await ProductService.createProduct(data, adminId)
     revalidatePath('/admin/products')
     revalidateTag(CACHE_TAGS.STOREFRONT_PRODUCTS, 'max')
-    revalidateTag(CACHE_TAGS.FEATURED_PRODUCTS, 'max')
     return { success: true, data: product }
   } catch (err: unknown) {
     const error = err as any;
@@ -30,14 +29,21 @@ export async function createProductAction(data: ProductFormData) {
   }
 }
 
-export async function updateProductAction(id: string, data: ProductFormData) {
+export async function updateProductAction(id: string, data: ProductFormData, oldSlug?: string) {
   try {
     const adminId = await getAdminId()
     const product = await ProductService.updateProduct(id, data, adminId)
     revalidatePath('/admin/products')
-    revalidatePath(`/san-pham/${data.slug}`)
+    revalidatePath(`/admin/products/${id}`)
+    
+    if (oldSlug && oldSlug !== product.slug) {
+      revalidatePath(`/san-pham/${oldSlug}`)
+    }
+    if (product?.slug) {
+      revalidatePath(`/san-pham/${product.slug}`)
+    }
+
     revalidateTag(CACHE_TAGS.STOREFRONT_PRODUCTS, 'max')
-    revalidateTag(CACHE_TAGS.FEATURED_PRODUCTS, 'max')
     return { success: true, data: product }
   } catch (err: unknown) {
     const error = err as any;
@@ -53,7 +59,6 @@ export async function deleteProductAction(id: string) {
     await ProductService.deleteProduct(id)
     revalidatePath('/admin/products')
     revalidateTag(CACHE_TAGS.STOREFRONT_PRODUCTS, 'max')
-    revalidateTag(CACHE_TAGS.FEATURED_PRODUCTS, 'max')
     return { success: true }
   } catch (err: unknown) {
     const error = err as any;
@@ -66,7 +71,6 @@ export async function bulkDeleteProductsAction(ids: string[]) {
     await ProductService.bulkDeleteProducts(ids)
     revalidatePath('/admin/products')
     revalidateTag(CACHE_TAGS.STOREFRONT_PRODUCTS, 'max')
-    revalidateTag(CACHE_TAGS.FEATURED_PRODUCTS, 'max')
     return { success: true }
   } catch (err: unknown) {
     const error = err as any;
@@ -114,7 +118,6 @@ export async function bulkCreateProductsAction(productsData: ProductFormData[]) 
 
     revalidatePath('/admin/products')
     revalidateTag(CACHE_TAGS.STOREFRONT_PRODUCTS, 'max')
-    revalidateTag(CACHE_TAGS.FEATURED_PRODUCTS, 'max')
     
     return { success: true, results }
   } catch (err: unknown) {

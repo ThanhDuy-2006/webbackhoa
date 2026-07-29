@@ -1,16 +1,18 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, ShoppingCart, Plus, Minus } from 'lucide-react'
+import { X, ShoppingCart, Plus, Minus, Loader2 } from 'lucide-react'
 import { SmartImage } from '@/components/ui/smart-image'
 import { Button } from '@/components/ui/button'
 import { useCartStore } from '@/store/useCartStore'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { StorefrontProductSummary, QuickViewProduct } from '@/types/product.type'
+import { getProductQuickViewAction } from '@/actions/product-public.actions'
 
 interface QuickViewSheetProps {
-  product: any
+  product: StorefrontProductSummary | null
   isOpen: boolean
   onClose: () => void
 }
@@ -19,35 +21,56 @@ export function QuickViewSheet({ product, isOpen, onClose }: QuickViewSheetProps
   const { addItem, setIsOpen: setCartOpen } = useCartStore()
   const [quantity, setQuantity] = useState(1)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
-  const [fullProduct, setFullProduct] = useState<any>(null)
+  const [fullProduct, setFullProduct] = useState<QuickViewProduct | null>(null)
   const [loading, setLoading] = useState(false)
 
-  React.useEffect(() => {
-    if (isOpen && product?.id) {
-      if (!product.images || !product.description) {
-        setLoading(true)
-        import('@/services/product.service').then(({ ProductService }) => {
-          ProductService.getProductQuickViewById(product.id)
-            .then(data => {
-              if (data) setFullProduct(data)
-            })
-            .catch(console.error)
-            .finally(() => setLoading(false))
-        })
-      } else {
-        setFullProduct(product)
-      }
+  // Reset quantity, image index & fetch full product on product change / modal open
+  useEffect(() => {
+    if (!isOpen || !product?.id) {
+      setFullProduct(null)
+      return
     }
-  }, [isOpen, product])
+
+    setQuantity(1)
+    setCurrentImageIndex(0)
+    setLoading(true)
+
+    let isCurrent = true
+
+    getProductQuickViewAction(product.id)
+      .then((data) => {
+        if (isCurrent) {
+          setFullProduct(data)
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to load quick view data:', err)
+      })
+      .finally(() => {
+        if (isCurrent) {
+          setLoading(false)
+        }
+      })
+
+    return () => {
+      isCurrent = false
+    }
+  }, [isOpen, product?.id])
 
   if (!product) return null
 
-  const activeProduct = fullProduct || product
+  const activeProduct = fullProduct || {
+    ...product,
+    images: product.image_url ? [product.image_url] : [],
+    description: null,
+    variants: []
+  }
+
   const price = Number(activeProduct.price)
   const finalPrice = activeProduct.sale_price ? Number(activeProduct.sale_price) : price
   const hasDiscount = activeProduct.sale_price && price > finalPrice
   const isOutOfStock = activeProduct.stock <= 0
-  const images = activeProduct.images || (activeProduct.image_url ? [activeProduct.image_url] : [])
+  const images = activeProduct.images.length > 0 ? activeProduct.images : (activeProduct.image_url ? [activeProduct.image_url] : [])
 
   const handleAddToCart = () => {
     addItem({
@@ -101,7 +124,10 @@ export function QuickViewSheet({ product, isOpen, onClose }: QuickViewSheetProps
 
             {/* Header */}
             <div className="flex items-center justify-between px-6 pb-3 border-b border-slate-100 dark:border-slate-800 shrink-0">
-              <h2 className="text-lg font-extrabold text-slate-900 dark:text-slate-100">Xem nhanh sản phẩm</h2>
+              <h2 className="text-lg font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                Xem nhanh sản phẩm
+                {loading && <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />}
+              </h2>
               <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
@@ -115,7 +141,7 @@ export function QuickViewSheet({ product, isOpen, onClose }: QuickViewSheetProps
                   <div className="relative aspect-square rounded-2xl overflow-hidden bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800">
                     <SmartImage
                       productId={product.id}
-                      src={images[currentImageIndex]}
+                      src={images[currentImageIndex] || ''}
                       alt={product.name}
                       fill
                       className="object-contain"
@@ -157,10 +183,24 @@ export function QuickViewSheet({ product, isOpen, onClose }: QuickViewSheetProps
                     </span>
                   </div>
 
-                  {product.description && (
+                  {activeProduct.description && (
                     <div className="space-y-1.5">
                       <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Mô tả sản phẩm</h3>
-                      <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed line-clamp-4">{product.description}</p>
+                      <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed line-clamp-4">{activeProduct.description}</p>
+                    </div>
+                  )}
+
+                  {/* Active Variants List */}
+                  {activeProduct.variants && activeProduct.variants.length > 0 && (
+                    <div className="space-y-2">
+                      <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Phân loại</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {activeProduct.variants.map((v) => (
+                          <span key={v.id} className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-950">
+                            {v.name} {v.price ? `(${v.price.toLocaleString('vi-VN')}đ)` : ''}
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   )}
 

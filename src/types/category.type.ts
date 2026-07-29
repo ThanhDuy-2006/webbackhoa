@@ -10,3 +10,11 @@ export interface Category {
   updated_at: string
   deleted_at: string | null
 }
+
+export interface StorefrontCategorySummary {
+  id: string
+  name: string
+  slug: string
+  image_url: string | null
+  description: string | null
+}

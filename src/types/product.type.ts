@@ -51,6 +51,25 @@ export interface StorefrontProductSummary {
   image_url: string | null
   category_id: string | null
   is_featured: boolean
-  categories?: { slug: string; name?: string } | null
+  categories?: { slug: string; name?: string } | { slug: string }[] | null
 }
 
+export interface QuickViewProduct {
+  id: string
+  name: string
+  slug: string
+  price: number
+  sale_price: number | null
+  stock: number
+  image_url: string | null
+  images: string[]
+  description: string | null
+  category_id: string | null
+  variants: {
+    id: string
+    name: string
+    price: number | null
+    stock: number
+    is_active: boolean
+  }[]
+}

@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { ImageService } from '@/lib/images/image-service';
+import { revalidateTag } from 'next/cache';
+import { CACHE_TAGS } from '@/lib/cache-tags';
 
-// In-memory rate limiting (simple version for serverless, ideally use Redis or Upstash)
 const rateLimitMap = new Map<string, number>();
 
 export async function POST(request: Request) {
@@ -14,7 +15,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid product ID' }, { status: 400 });
     }
 
-    // Basic Rate Limiting (e.g. 1 report per product per hour)
     const now = Date.now();
     const lastReport = rateLimitMap.get(productId);
     if (lastReport && (now - lastReport < 60 * 60 * 1000)) {
@@ -22,7 +22,6 @@ export async function POST(request: Request) {
     }
     rateLimitMap.set(productId, now);
     
-    // Periodically clean up the map to prevent memory leaks in long-running instances
     if (rateLimitMap.size > 10000) {
        rateLimitMap.clear();
     }
@@ -40,7 +39,6 @@ export async function POST(request: Request) {
     }
 
     if (product.image_source === 'manual') {
-      // Just mark as needs_review, don't auto-replace
       await supabase.from('products').update({
         image_status: 'needs_review',
         image_last_checked_at: new Date().toISOString()
@@ -48,13 +46,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, status: 'manual_flagged' });
     }
 
-    // Cooldown check
     const lastChecked = product.image_last_checked_at ? new Date(product.image_last_checked_at).getTime() : 0;
     if (now - lastChecked < 6 * 60 * 60 * 1000 && product.image_retry_count > 0) {
       return NextResponse.json({ success: true, status: 'cooldown' });
     }
 
-    // Atomic update to lock the row and ensure no race conditions
     const originalImageUrl = product.image_url;
     const originalRetryCount = product.image_retry_count;
 
@@ -80,14 +76,14 @@ export async function POST(request: Request) {
     await ImageService.markProductAsFailed(product.id, originalImageUrl, originalRetryCount + 1, product.image_failed_urls || [], supabase);
 
     if (originalRetryCount < 3) {
-      // Try to recover synchronously up to a point, since Vercel kills background tasks when request ends.
-      // But we must return quickly. We will just await the generation, it should take ~2-4s.
-      // Alternatively, we could push to a queue, but we don't have one here.
-      await ImageService.generateProductImage({
+      const res = await ImageService.generateProductImage({
          productName: product.name,
          productId: product.id,
          bypassCache: true
       });
+      if (res.status === 'auto_selected') {
+        revalidateTag(CACHE_TAGS.STOREFRONT_PRODUCTS, 'max');
+      }
     }
 
     return NextResponse.json({ success: true });

@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ProductCard } from './ProductCard'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Search, SlidersHorizontal } from 'lucide-react'
+import { Search, SlidersHorizontal, ChevronLeft, ChevronRight } from 'lucide-react'
 import {
   Select,
   SelectContent,
@@ -15,9 +15,9 @@ import {
 } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 import { PullToRefresh } from '@/components/ui/PullToRefresh'
-import { ProductSkeleton } from '@/components/ui/ProductSkeleton'
-import { createClient } from '@/lib/supabase/client'
 import { motion } from 'framer-motion'
+import { StorefrontProductSummary } from '@/types/product.type'
+import { StorefrontCategorySummary } from '@/types/category.type'
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -28,27 +28,31 @@ const containerVariants = {
 }
 
 interface ProductListClientProps {
-  initialProducts: any[]
-  categories: any[]
+  initialProducts: StorefrontProductSummary[]
+  categories: StorefrontCategorySummary[]
+  page?: number
+  pageSize?: number
+  totalCount?: number
 }
 
-export function ProductListClient({ initialProducts, categories }: ProductListClientProps) {
+export function ProductListClient({ 
+  initialProducts, 
+  categories,
+  page = 1,
+  pageSize = 12,
+  totalCount = 0
+}: ProductListClientProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
-  
-  const [products, setProducts] = useState(initialProducts)
-  const [isLoadingMore, setIsLoadingMore] = useState(false)
-  const [hasMore, setHasMore] = useState(initialProducts.length >= 8)
-  const loaderRef = useRef<HTMLDivElement>(null)
+  const [products, setProducts] = useState<StorefrontProductSummary[]>(initialProducts)
 
-  // Reset list when server-side initialProducts changes (due to filter changes)
   useEffect(() => {
     setProducts(initialProducts)
-    setHasMore(initialProducts.length >= 8)
   }, [initialProducts])
 
   const currentCategory = searchParams.get('category') || 'all'
   const currentSort = searchParams.get('sort') || 'newest'
+  const totalPages = Math.ceil(totalCount / pageSize) || 1
 
   const updateFilters = (key: string, value: string | null) => {
     const params = new URLSearchParams(searchParams.toString())
@@ -57,116 +61,24 @@ export function ProductListClient({ initialProducts, categories }: ProductListCl
     } else {
       params.delete(key)
     }
+
+    // Reset page to 1 whenever a non-page filter changes
+    if (key !== 'page') {
+      params.set('page', '1')
+    }
+
     router.push(`?${params.toString()}`)
   }
 
-  // Cursor-based pagination fetch
-  const fetchMoreProducts = async () => {
-    if (isLoadingMore || !hasMore || products.length === 0) return
-    setIsLoadingMore(true)
-
-    const lastItem = products[products.length - 1]
-    const supabase = createClient()
-
-    let query = supabase
-      .from('products')
-      .select('*')
-      .eq('is_active', true)
-
-    // Category filter
-    if (currentCategory !== 'all') {
-      const cat = categories.find(c => c.slug === currentCategory)
-      if (cat) {
-        query = query.eq('category_id', cat.id)
-      }
-    }
-
-    // Search query filter
-    const searchVal = searchParams.get('q')
-    if (searchVal) {
-      query = query.ilike('name', `%${searchVal}%`)
-    }
-
-    // Cursor pagination depending on Sort order
-    if (currentSort === 'price_asc') {
-      query = query
-        .or(`price.gt.${lastItem.price},and(price.eq.${lastItem.price},id.gt.${lastItem.id})`)
-        .order('price', { ascending: true })
-        .order('id', { ascending: true })
-    } else if (currentSort === 'price_desc') {
-      query = query
-        .or(`price.lt.${lastItem.price},and(price.eq.${lastItem.price},id.lt.${lastItem.id})`)
-        .order('price', { ascending: false })
-        .order('id', { ascending: false })
-    } else if (currentSort === 'name_asc') {
-      query = query
-        .or(`name.gt.${lastItem.name},and(name.eq.${lastItem.name},id.gt.${lastItem.id})`)
-        .order('name', { ascending: true })
-        .order('id', { ascending: true })
-    } else {
-      // default: newest (created_at desc)
-      query = query
-        .or(`created_at.lt.${lastItem.created_at},and(created_at.eq.${lastItem.created_at},id.lt.${lastItem.id})`)
-        .order('created_at', { ascending: false })
-        .order('id', { ascending: false })
-    }
-
-    // Limit to page size
-    const PAGE_SIZE = 8
-    query = query.limit(PAGE_SIZE)
-
-    try {
-      const { data, error } = await query
-      if (error) throw error
-
-      if (data) {
-        if (data.length < PAGE_SIZE) {
-          setHasMore(false)
-        }
-        setProducts(prev => {
-          // Avoid duplicates
-          const existingIds = new Set(prev.map(p => p.id))
-          const newItems = data.filter(p => !existingIds.has(p.id))
-          return [...prev, ...newItems]
-        })
-      }
-    } catch (err) {
-      console.error('Error fetching more products:', err)
-    } finally {
-      setIsLoadingMore(false)
-    }
+  const goToPage = (newPage: number) => {
+    const clamped = Math.max(1, Math.min(newPage, totalPages))
+    updateFilters('page', String(clamped))
   }
 
-  // Pull to refresh callback
   const handleRefresh = async () => {
     router.refresh()
     await new Promise((resolve) => setTimeout(resolve, 800))
   }
-
-  // IntersectionObserver trigger
-  useEffect(() => {
-    if (!hasMore || isLoadingMore) return
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting) {
-          fetchMoreProducts()
-        }
-      },
-      { threshold: 0.2, rootMargin: '100px' }
-    )
-
-    const currentLoader = loaderRef.current
-    if (currentLoader) {
-      observer.observe(currentLoader)
-    }
-
-    return () => {
-      if (currentLoader) {
-        observer.unobserve(currentLoader)
-      }
-    }
-  }, [hasMore, isLoadingMore, products])
 
   return (
     <PullToRefresh onRefresh={handleRefresh}>
@@ -261,23 +173,76 @@ export function ProductListClient({ initialProducts, categories }: ProductListCl
               <p className="text-slate-500">Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm</p>
             </div>
           ) : (
-            <motion.div 
-              variants={containerVariants}
-              initial="hidden"
-              animate="show"
-              className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6"
-            >
-              {products.map((product, idx) => (
-                <ProductCard key={product.id} product={product} index={idx} priority={idx === 0} />
-              ))}
-            </motion.div>
-          )}
+            <>
+              <motion.div 
+                variants={containerVariants}
+                initial="hidden"
+                animate="show"
+                className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6"
+              >
+                {products.map((product, idx) => (
+                  <ProductCard key={product.id} product={product} index={idx} priority={idx === 0} />
+                ))}
+              </motion.div>
 
-          {/* Loading Indicator for Infinite Scroll */}
-          {hasMore && (
-            <div ref={loaderRef} className="pt-6 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6">
-              <ProductSkeleton count={4} />
-            </div>
+              {/* Working Server-Side Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-slate-200 dark:border-slate-800">
+                  <span className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+                    Trang <strong className="text-slate-900 dark:text-slate-100">{page}</strong> / <strong>{totalPages}</strong> ({totalCount} sản phẩm)
+                  </span>
+
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => goToPage(page - 1)}
+                      disabled={page <= 1}
+                      className="h-9 px-3 rounded-xl border-slate-200 dark:border-slate-800 cursor-pointer disabled:opacity-50"
+                    >
+                      <ChevronLeft className="h-4 w-4 mr-1" />
+                      Trước
+                    </Button>
+
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: totalPages }, (_, i) => i + 1)
+                        .filter(p => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
+                        .map((p, idx, arr) => {
+                          const showEllipsis = idx > 0 && p - arr[idx - 1] > 1
+                          return (
+                            <div key={p} className="flex items-center gap-1">
+                              {showEllipsis && <span className="px-1 text-slate-400 text-xs">...</span>}
+                              <Button
+                                variant={p === page ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => goToPage(p)}
+                                className={`h-9 w-9 rounded-xl font-bold cursor-pointer ${
+                                  p === page 
+                                    ? "bg-emerald-600 hover:bg-emerald-700 text-white" 
+                                    : "border-slate-200 dark:border-slate-800"
+                                }`}
+                              >
+                                {p}
+                              </Button>
+                            </div>
+                          )
+                        })}
+                    </div>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => goToPage(page + 1)}
+                      disabled={page >= totalPages}
+                      className="h-9 px-3 rounded-xl border-slate-200 dark:border-slate-800 cursor-pointer disabled:opacity-50"
+                    >
+                      Sau
+                      <ChevronRight className="h-4 w-4 ml-1" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </main>
       </div>

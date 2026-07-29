@@ -5,7 +5,8 @@ import { CandidateSessionService } from '@/lib/images/candidate-session-service'
 import { validateImageUrl } from '@/lib/images/image-validator'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, revalidateTag } from 'next/cache'
+import { CACHE_TAGS } from '@/lib/cache-tags'
 
 async function getAdminId() {
   const supabase = await createClient()
@@ -48,6 +49,7 @@ export async function generateProductImageAction(
     if (productId && result.status === 'auto_selected') {
       revalidatePath('/admin/products')
       revalidatePath(`/admin/products/${productId}`)
+      revalidateTag(CACHE_TAGS.STOREFRONT_PRODUCTS, 'max')
     }
 
     return result;
@@ -75,7 +77,6 @@ export async function selectManualCandidateAction({
   try {
     const adminId = await getAdminId();
 
-    // 1. Verify candidate session and resolve trusted candidate URL
     const { url: trustedUrl, sessionId } = await CandidateSessionService.verifyAndResolveCandidate({
       candidateSessionId,
       candidateId,
@@ -84,13 +85,11 @@ export async function selectManualCandidateAction({
       formSessionId,
     });
 
-    // 2. Revalidate URL server-side before persisting
     const isValid = await validateImageUrl(trustedUrl);
     if (!isValid) {
       return { success: false, error: 'Đường dẫn ảnh đã chọn không còn khả dụng.' };
     }
 
-    // 3. Conditional database update if saving directly for an existing product
     if (productId) {
       const supabaseAdmin = createAdminClient();
 
@@ -125,12 +124,11 @@ export async function selectManualCandidateAction({
 
       revalidatePath('/admin/products');
       revalidatePath(`/admin/products/${productId}`);
+      revalidateTag(CACHE_TAGS.STOREFRONT_PRODUCTS, 'max')
     }
 
-    // 4. Mark candidate session as consumed
     await CandidateSessionService.markSessionConsumed(sessionId);
 
-    // Note: Manual candidate selection is NEVER saved to automatic search cache
     return { success: true, url: trustedUrl };
   } catch (err: any) {
     console.error('[SelectManualCandidateAction] Error:', err);
