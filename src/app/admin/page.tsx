@@ -1,10 +1,16 @@
+import dynamic from 'next/dynamic'
 import { DashboardService } from '@/services/dashboard.service'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { DollarSign, Users, ShoppingBag, Package, TrendingUp, MoreHorizontal, CheckCircle2, Clock, Truck, XCircle, FileEdit, UserPlus, CreditCard, Receipt, ArrowLeftRight } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/server'
-import { AdminDashboardCharts } from '@/features/admin/dashboard/components/AdminDashboardCharts'
+
+// Dynamic import for Recharts to split JS bundle
+const AdminDashboardCharts = dynamic(
+  () => import('@/features/admin/dashboard/components/AdminDashboardCharts').then(mod => mod.AdminDashboardCharts),
+  { loading: () => <div className="h-96 w-full animate-pulse bg-slate-100 rounded-xl" /> }
+)
 
 export const revalidate = 0
 

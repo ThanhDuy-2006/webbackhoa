@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, CSSProperties, useEffect } from 'react'
+import Image from 'next/image'
 
 export type SmartImageProps = {
   productId?: string | null;
@@ -41,9 +42,6 @@ export function SmartImage({
   const fallbackSrc = '/images/product-placeholder.png';
   const effectiveSrc = hasError || !src ? fallbackSrc : src;
 
-  // Ensure priority maps to eager fetching
-  const effectiveLoading = priority ? 'eager' : (loading || 'lazy');
-  
   const handleError = () => {
     // If the fallback itself fails, do nothing to prevent infinite loops
     if (effectiveSrc === fallbackSrc) return;
@@ -62,35 +60,23 @@ export function SmartImage({
     }
   }
 
-  // Handle fill prop
-  const style: CSSProperties = {};
-  
-  if (fill) {
-    style.position = 'absolute';
-    style.top = 0;
-    style.left = 0;
-    style.width = '100%';
-    style.height = '100%';
-    style.color = 'transparent';
-  } else {
-    if (width) style.width = width;
-    if (height) style.height = height;
-  }
-
-  if (objectFit) {
-    style.objectFit = objectFit;
-  }
+  // Determine width/height parsing
+  const numericWidth = width ? parseInt(String(width), 10) || 500 : 500;
+  const numericHeight = height ? parseInt(String(height), 10) || 500 : 500;
 
   return (
-    <img
+    <Image
       src={effectiveSrc}
       alt={alt}
       className={className}
       sizes={sizes}
-      style={style}
-      loading={effectiveLoading}
-      fetchPriority={priority ? 'high' : 'auto'}
+      style={objectFit ? { objectFit } : undefined}
+      priority={priority}
+      loading={priority ? undefined : (loading || 'lazy')}
       onError={handleError}
+      fill={fill}
+      width={fill ? undefined : numericWidth}
+      height={fill ? undefined : numericHeight}
     />
   )
 }
