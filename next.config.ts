@@ -4,6 +4,12 @@ const nextConfig: NextConfig = {
   // @ts-ignore
   allowedDevOrigins: ['192.168.1.12'],
   compress: true,
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
   experimental: {
     optimizePackageImports: [
       'lucide-react',

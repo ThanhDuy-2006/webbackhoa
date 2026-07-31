@@ -252,9 +252,9 @@ export function SellerProductForm({ categories, initialData }: SellerProductForm
                 className="rounded-xl"
               />
               {errors.price?.message && <p className="text-xs text-rose-600 font-medium">{String(errors.price.message)}</p>}
-              {priceMode === 'total' && watch('price') > 0 && watch('stock') > 0 && (
-                <p className="text-xs text-emerald-600 font-medium mt-1">
-                  =&gt; Giá 1 SP: <span className="font-bold">{new Intl.NumberFormat('vi-VN').format(Math.round(watch('price') / watch('stock')))}đ</span>
+              {priceMode === 'total' && Number(watch('price')) > 0 && Number(watch('stock')) > 0 && (
+                <p className="text-xs text-blue-600 font-medium">
+                  =&gt; Giá 1 SP: <span className="font-bold">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(watch('price')) / Number(watch('stock')))}</span>
                 </p>
               )}
             </div>

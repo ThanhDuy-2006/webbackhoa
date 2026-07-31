@@ -336,9 +336,9 @@ export function ProductForm({ initialData, categories }: Props) {
                   </Label>
                   <Input id="price" type="number" {...register('price', { setValueAs: v => v === '' ? undefined : Number(v) })} />
                   {errors.price && <span className="text-sm text-red-500">{errors.price.message}</span>}
-                  {priceMode === 'total' && watch('price') > 0 && watch('stock') > 0 && (
+                  {priceMode === 'total' && Number(watch('price')) > 0 && Number(watch('stock')) > 0 && (
                     <p className="text-xs text-blue-600 font-medium">
-                      =&gt; Giá 1 SP: <span className="font-bold">{new Intl.NumberFormat('vi-VN').format(Math.round(watch('price') / watch('stock')))}đ</span>
+                      =&gt; Giá 1 SP: <span className="font-bold">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(watch('price')) / Number(watch('stock')))}</span>
                     </p>
                   )}
                 </div>
