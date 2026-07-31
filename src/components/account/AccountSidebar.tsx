@@ -12,6 +12,7 @@ const sidebarLinks = [
   { name: 'Sản phẩm của tôi', href: '/tai-khoan/san-pham-cua-toi', icon: Store },
   { name: 'Đơn bán', href: '/tai-khoan/don-ban', icon: PackageCheck },
   { name: 'Ví của tôi', href: '/tai-khoan/nap-tien', icon: CreditCard },
+  { name: 'Lịch sử giao dịch', href: '/tai-khoan/lich-su-giao-dich', icon: DollarSign },
   { name: 'Lịch sử chung', href: '/tai-khoan/lich-su-chung', icon: Activity },
   { name: 'Mật khẩu', href: '/tai-khoan/mat-khau', icon: Lock },
 ]
