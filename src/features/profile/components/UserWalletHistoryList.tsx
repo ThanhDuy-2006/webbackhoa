@@ -2,10 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Skeleton } from '@/components/ui/skeleton'
-'use client'
 
-import { useState, useEffect } from 'react'
-import { Skeleton } from '@/components/ui/skeleton'
 import { getUserWalletTransactionsAction } from '@/actions/user/revenue-share.actions'
 import { Loader2, ArrowUpRight, ArrowDownRight } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
