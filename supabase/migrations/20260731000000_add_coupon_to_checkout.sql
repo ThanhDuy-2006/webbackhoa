@@ -85,8 +85,8 @@ BEGIN
     RAISE EXCEPTION 'Tài khoản người mua đang bị khóa';
   END IF;
 
-  -- 3. Check global fee configuration (hardcoded to 3% for now)
-  v_fee_bps := 300;
+  -- 3. Check global fee configuration (Set to 0% as requested)
+  v_fee_bps := 0;
 
   -- 4. Aggregate & Validate Items
   CREATE TEMP TABLE tmp_cart_items ON COMMIT DROP AS
@@ -114,10 +114,10 @@ BEGIN
       RAISE EXCEPTION 'Sản phẩm % không tồn tại', v_item_record.product_id;
     END IF;
 
-    -- Reject self-purchase
-    IF v_seller_id = v_buyer_id THEN
-      RAISE EXCEPTION 'Bạn không thể tự mua sản phẩm do chính mình đăng bán (%)', v_product_name;
-    END IF;
+    -- Allow self-purchase (User requested that they can buy their own products)
+    -- IF v_seller_id = v_buyer_id THEN
+    --   RAISE EXCEPTION 'Bạn không thể tự mua sản phẩm do chính mình đăng bán (%)', v_product_name;
+    -- END IF;
 
     -- Validate listing active state
     IF v_listing_status <> 'active' OR NOT v_is_active OR v_deleted_at IS NOT NULL THEN
@@ -301,22 +301,18 @@ BEGIN
     SET seller_order_id = v_seller_order_id
     WHERE order_id = v_parent_order_id AND seller_id = v_seller_record.seller_id;
 
-    -- Init seller_wallet if not exists
-    INSERT INTO public.seller_wallets (seller_id, pending_balance, available_balance, reserved_balance, withdrawn_balance)
-    VALUES (v_seller_record.seller_id, 0, 0, 0, 0)
-    ON CONFLICT (seller_id) DO NOTHING;
-
-    -- Lock seller wallet & credit available balance directly (skipping escrow)
-    SELECT available_balance INTO v_prev_pending
-    FROM public.seller_wallets
-    WHERE seller_id = v_seller_record.seller_id
+    -- Lock seller profiles.balance directly (wallet balance)
+    SELECT balance INTO v_prev_pending
+    FROM public.profiles
+    WHERE id = v_seller_record.seller_id
     FOR UPDATE;
 
-    UPDATE public.seller_wallets
-    SET available_balance = available_balance + v_seller_record.seller_earnings
-    WHERE seller_id = v_seller_record.seller_id;
+    -- Credit seller wallet directly
+    UPDATE public.profiles
+    SET balance = balance + v_seller_record.seller_earnings
+    WHERE id = v_seller_record.seller_id;
 
-    -- Record wallet transaction for seller
+    -- Record wallet transaction for seller (in main wallet)
     INSERT INTO public.wallet_transactions (
       user_id, amount, type, note, balance_before, balance_after, related_order_id
     )

@@ -11,9 +11,7 @@ const sidebarLinks = [
   { name: 'Đơn mua', href: '/tai-khoan/don-hang', icon: ShoppingBag },
   { name: 'Sản phẩm của tôi', href: '/tai-khoan/san-pham-cua-toi', icon: Store },
   { name: 'Đơn bán', href: '/tai-khoan/don-ban', icon: PackageCheck },
-  { name: 'Doanh thu', href: '/tai-khoan/doanh-thu', icon: DollarSign },
   { name: 'Ví của tôi', href: '/tai-khoan/nap-tien', icon: CreditCard },
-  { name: 'Khấu trừ chi phí', href: '/tai-khoan/chia-tien', icon: Percent },
   { name: 'Lịch sử chung', href: '/tai-khoan/lich-su-chung', icon: Activity },
   { name: 'Mật khẩu', href: '/tai-khoan/mat-khau', icon: Lock },
 ]
