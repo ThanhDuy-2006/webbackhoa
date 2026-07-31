@@ -51,7 +51,8 @@ export async function processCheckout(
       p_receiver_name: form.receiver_name,
       p_receiver_phone: form.receiver_phone,
       p_receiver_address: form.receiver_address,
-      p_note: form.note || ''
+      p_note: form.note || '',
+      p_coupon_code: couponCode || null
     })
 
     if (rpcError) {
@@ -68,3 +69,4 @@ export async function processCheckout(
     return { success: false, error: error?.message || 'Có lỗi xảy ra khi xử lý thanh toán' }
   }
 }
+

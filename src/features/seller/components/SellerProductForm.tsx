@@ -29,6 +29,7 @@ export function SellerProductForm({ categories, initialData }: SellerProductForm
   const [submitting, setSubmitting] = useState(false)
   const [uploadingImage, setUploadingImage] = useState(false)
   const [autoSearchingImage, setAutoSearchingImage] = useState(false)
+  const [priceMode, setPriceMode] = useState<'unit' | 'total'>('unit')
 
   const isEdit = Boolean(initialData)
 
@@ -115,8 +116,16 @@ export function SellerProductForm({ categories, initialData }: SellerProductForm
   const onSubmit = async (data: SellerProductInput) => {
     setSubmitting(true)
     try {
+      const submissionData = { ...data }
+      if (priceMode === 'total' && submissionData.stock > 0) {
+        submissionData.price = Math.round(submissionData.price / submissionData.stock)
+        if (submissionData.sale_price) {
+          submissionData.sale_price = Math.round(submissionData.sale_price / submissionData.stock)
+        }
+      }
+
       if (isEdit && initialData) {
-        const res = await updateSellerProductAction(initialData.id, data)
+        const res = await updateSellerProductAction(initialData.id, submissionData)
         if (res.success) {
           toast.success('Đã cập nhật sản phẩm thành công!')
           router.push('/tai-khoan/san-pham-cua-toi')
@@ -125,7 +134,7 @@ export function SellerProductForm({ categories, initialData }: SellerProductForm
           toast.error(res.error || 'Không thể cập nhật sản phẩm')
         }
       } else {
-        const res = await createSellerProductAction(data)
+        const res = await createSellerProductAction(submissionData)
         if (res.success) {
           toast.success('Đã đăng bán sản phẩm thành công!')
           router.push('/tai-khoan/san-pham-cua-toi')
@@ -220,8 +229,21 @@ export function SellerProductForm({ categories, initialData }: SellerProductForm
           <h2 className="text-base font-bold text-slate-900 border-b border-slate-100 pb-3">Giá bán & Tồn kho</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2 md:col-span-3 mb-2 flex gap-4 bg-slate-50 p-3 rounded-xl border border-slate-100">
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <input type="radio" name="priceMode" value="unit" checked={priceMode === 'unit'} onChange={() => setPriceMode('unit')} className="text-emerald-600 focus:ring-emerald-500 w-4 h-4" />
+                <span className="font-semibold text-slate-700">Giá bán 1 sản phẩm (Giá gốc)</span>
+              </label>
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <input type="radio" name="priceMode" value="total" checked={priceMode === 'total'} onChange={() => setPriceMode('total')} className="text-emerald-600 focus:ring-emerald-500 w-4 h-4" />
+                <span className="font-semibold text-slate-700">Tổng giá lô hàng (Giá chia)</span>
+              </label>
+            </div>
+
             <div className="space-y-2">
-              <Label htmlFor="price" className="font-semibold text-slate-700">Giá bán (VNĐ) *</Label>
+              <Label htmlFor="price" className="font-semibold text-slate-700">
+                {priceMode === 'unit' ? 'Giá bán (VNĐ) *' : 'Tổng giá bán (VNĐ) *'}
+              </Label>
               <Input
                 id="price"
                 type="number"
@@ -230,10 +252,17 @@ export function SellerProductForm({ categories, initialData }: SellerProductForm
                 className="rounded-xl"
               />
               {errors.price?.message && <p className="text-xs text-rose-600 font-medium">{String(errors.price.message)}</p>}
+              {priceMode === 'total' && watch('price') > 0 && watch('stock') > 0 && (
+                <p className="text-xs text-emerald-600 font-medium mt-1">
+                  =&gt; Giá 1 SP: <span className="font-bold">{new Intl.NumberFormat('vi-VN').format(Math.round(watch('price') / watch('stock')))}đ</span>
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="sale_price" className="font-semibold text-slate-700">Giá khuyến mãi (Nếu có)</Label>
+              <Label htmlFor="sale_price" className="font-semibold text-slate-700">
+                {priceMode === 'unit' ? 'Giá khuyến mãi (Nếu có)' : 'Tổng KM (Nếu có)'}
+              </Label>
               <Input
                 id="sale_price"
                 type="number"
@@ -242,6 +271,11 @@ export function SellerProductForm({ categories, initialData }: SellerProductForm
                 className="rounded-xl"
               />
               {errors.sale_price?.message && <p className="text-xs text-rose-600 font-medium">{String(errors.sale_price.message)}</p>}
+              {priceMode === 'total' && watch('sale_price') > 0 && watch('stock') > 0 && (
+                <p className="text-xs text-emerald-600 font-medium mt-1">
+                  =&gt; KM 1 SP: <span className="font-bold">{new Intl.NumberFormat('vi-VN').format(Math.round(watch('sale_price') / watch('stock')))}đ</span>
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">

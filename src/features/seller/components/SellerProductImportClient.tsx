@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Category } from '@/types/category.type'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -45,6 +45,9 @@ export interface EditableImportProduct extends ProductFormData {
   candidates?: ImageCandidate[]
   isSearchingImage?: boolean
   imageError?: string | null
+  raw_price?: number
+  raw_sale_price?: number | null
+  price_mode?: 'unit' | 'total'
 }
 
 export function SellerProductImportClient({ categories }: Props) {
@@ -54,6 +57,23 @@ export function SellerProductImportClient({ categories }: Props) {
   const [autoSearchProgress, setAutoSearchProgress] = useState({ current: 0, total: 0 })
   const [importData, setImportData] = useState<EditableImportProduct[]>([])
   const [rawText, setRawText] = useState('')
+  const [globalPriceMode, setGlobalPriceMode] = useState<'unit' | 'total'>('unit')
+
+  // Recalculate prices when globalPriceMode changes
+  useEffect(() => {
+    if (importData.length === 0) return
+    setImportData(prev => prev.map(item => {
+      const rp = item.raw_price ?? item.price
+      const rsp = item.raw_sale_price ?? item.sale_price
+      const stock = item.stock || 1
+      return {
+        ...item,
+        price_mode: globalPriceMode,
+        price: globalPriceMode === 'total' && stock > 0 ? Math.round(rp / stock) : rp,
+        sale_price: globalPriceMode === 'total' && stock > 0 && rsp ? Math.round(rsp / stock) : rsp
+      }
+    }))
+  }, [globalPriceMode])
 
   // Dialog state for candidate selection on an individual row
   const [selectedRowForImage, setSelectedRowForImage] = useState<EditableImportProduct | null>(null)
@@ -119,8 +139,11 @@ export function SellerProductImportClient({ categories }: Props) {
           slug: '',
           category_id,
           description: row['Mô tả'] ? String(row['Mô tả']) : '',
-          price,
-          sale_price,
+          price: globalPriceMode === 'total' && stock > 0 ? Math.round(price / stock) : price,
+          sale_price: globalPriceMode === 'total' && stock > 0 && sale_price ? Math.round(sale_price / stock) : (sale_price || null),
+          raw_price: price,
+          raw_sale_price: sale_price || null,
+          price_mode: globalPriceMode,
           stock,
           image_url: imageUrl,
           image_source: imageUrl ? 'manual' : 'auto',
@@ -249,6 +272,27 @@ export function SellerProductImportClient({ categories }: Props) {
           if (field === 'image_url') {
             updated.images = value ? [value] : []
             updated.image_source = 'manual'
+            updated.image_status = 'valid'
+          }
+          const mode = updated.price_mode || globalPriceMode
+          if (field === 'price') {
+            updated.raw_price = mode === 'total' && updated.stock > 0 ? value * updated.stock : value;
+          }
+          if (field === 'sale_price') {
+            updated.raw_sale_price = mode === 'total' && updated.stock > 0 && value ? value * updated.stock : (value || null);
+          }
+          if (field === 'stock' && mode === 'total' && value > 0) {
+            const rp = updated.raw_price ?? updated.price
+            const rsp = updated.raw_sale_price ?? updated.sale_price
+            updated.price = Math.round(rp / value)
+            if (rsp) updated.sale_price = Math.round(rsp / value)
+          }
+          if (field === 'price_mode') {
+            const rp = updated.raw_price ?? updated.price
+            const rsp = updated.raw_sale_price ?? updated.sale_price
+            const stock = updated.stock || 1
+            updated.price = value === 'total' && stock > 0 ? Math.round(rp / stock) : rp
+            updated.sale_price = value === 'total' && stock > 0 && rsp ? Math.round(rsp / stock) : rsp
           }
           return updated
         }
@@ -271,6 +315,9 @@ export function SellerProductImportClient({ categories }: Props) {
       description: '',
       price: 0,
       sale_price: null,
+      raw_price: 0,
+      raw_sale_price: null,
+      price_mode: globalPriceMode,
       stock: 10,
       image_url: null,
       image_source: 'auto',
@@ -442,12 +489,30 @@ export function SellerProductImportClient({ categories }: Props) {
                 Bạn có thể sửa tên, giá, danh mục, đổi/tìm lại ảnh hoặc xóa bớt hàng trước khi lưu vào CSDL.
               </p>
             </div>
+            
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              <div className="flex bg-slate-200/50 p-1 rounded-lg border border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => setGlobalPriceMode('unit')}
+                  className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${globalPriceMode === 'unit' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                >
+                  Giá gốc (1 SP)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setGlobalPriceMode('total')}
+                  className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${globalPriceMode === 'total' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                >
+                  Giá chia (Tổng T.Kho)
+                </button>
+              </div>
 
-            <div className="flex flex-wrap items-center gap-2">
-              <Button 
-                type="button" 
-                variant="outline" 
-                size="sm" 
+              <div className="flex flex-wrap items-center gap-2">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm" 
                 onClick={handleAddBlankRow}
                 className="text-xs border-dashed"
               >
@@ -474,6 +539,7 @@ export function SellerProductImportClient({ categories }: Props) {
                 {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CheckCircle2 className="w-4 h-4 mr-2" />}
                 {loading ? 'Đang lưu CSDL...' : 'Xác nhận nhập vào Database'}
               </Button>
+            </div>
             </div>
           </CardHeader>
 
@@ -573,12 +639,26 @@ export function SellerProductImportClient({ categories }: Props) {
 
                       {/* Price */}
                       <TableCell>
-                        <Input
-                          type="number"
-                          value={prod.price || 0}
-                          onChange={(e) => handleUpdateRow(prod.tempId, 'price', Number(e.target.value))}
-                          className="h-8 text-xs font-mono"
-                        />
+                        <div className="flex flex-col gap-1.5">
+                          <Input
+                            type="number"
+                            value={prod.price || 0}
+                            onChange={(e) => handleUpdateRow(prod.tempId, 'price', Number(e.target.value))}
+                            className="h-8 text-xs font-mono"
+                          />
+                          <div className="flex bg-slate-100 p-0.5 rounded text-[10px]">
+                            <button 
+                              type="button"
+                              onClick={() => handleUpdateRow(prod.tempId, 'price_mode', 'unit')}
+                              className={`flex-1 rounded-sm py-0.5 ${(prod.price_mode || 'unit') === 'unit' ? 'bg-white shadow-sm font-semibold text-emerald-700' : 'text-slate-500 hover:bg-slate-200'}`}
+                            >Gốc</button>
+                            <button 
+                              type="button"
+                              onClick={() => handleUpdateRow(prod.tempId, 'price_mode', 'total')}
+                              className={`flex-1 rounded-sm py-0.5 ${(prod.price_mode || 'unit') === 'total' ? 'bg-white shadow-sm font-semibold text-emerald-700' : 'text-slate-500 hover:bg-slate-200'}`}
+                            >Chia</button>
+                          </div>
+                        </div>
                       </TableCell>
 
                       {/* Sale Price */}

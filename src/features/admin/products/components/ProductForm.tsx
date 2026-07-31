@@ -29,6 +29,7 @@ export function ProductForm({ initialData, categories }: Props) {
   const [loading, setLoading] = useState(false)
   const [isGeneratingImage, setIsGeneratingImage] = useState(false)
   const [imageError, setImageError] = useState<string | null>(null)
+  const [priceMode, setPriceMode] = useState<'unit' | 'total'>('unit')
   
   // Candidates UI state
   const [candidateSessionId, setCandidateSessionId] = useState<string | null>(null)
@@ -58,9 +59,9 @@ export function ProductForm({ initialData, categories }: Props) {
       slug: '',
       category_id: '',
       description: '',
-      price: 0,
+      price: '' as any,
       sale_price: null,
-      stock: 0,
+      stock: '' as any,
       image_url: '',
       image_source: 'auto',
       image_status: 'unchecked',
@@ -239,11 +240,19 @@ export function ProductForm({ initialData, categories }: Props) {
   const onSubmit = async (data: ProductFormData) => {
     setLoading(true)
     try {
+      const submissionData = { ...data }
+      if (priceMode === 'total' && submissionData.stock > 0) {
+        submissionData.price = Math.round(submissionData.price / submissionData.stock)
+        if (submissionData.sale_price) {
+          submissionData.sale_price = Math.round(submissionData.sale_price / submissionData.stock)
+        }
+      }
+
       let result
       if (initialData) {
-        result = await updateProductAction(initialData.id, data, initialData.slug)
+        result = await updateProductAction(initialData.id, submissionData, initialData.slug)
       } else {
-        result = await createProductAction(data)
+        result = await createProductAction(submissionData)
       }
 
       setLoading(false)
@@ -309,20 +318,45 @@ export function ProductForm({ initialData, categories }: Props) {
               <CardTitle>Giá và Kho</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div className="flex gap-4 bg-slate-50 p-3 rounded-xl border border-slate-100 mb-2">
+                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <input type="radio" name="priceMode" value="unit" checked={priceMode === 'unit'} onChange={() => setPriceMode('unit')} className="text-blue-600 focus:ring-blue-500 w-4 h-4" />
+                  <span className="font-semibold text-slate-700">Giá bán 1 sản phẩm (Giá gốc)</span>
+                </label>
+                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <input type="radio" name="priceMode" value="total" checked={priceMode === 'total'} onChange={() => setPriceMode('total')} className="text-blue-600 focus:ring-blue-500 w-4 h-4" />
+                  <span className="font-semibold text-slate-700">Tổng giá lô hàng (Giá chia)</span>
+                </label>
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="price">Giá bán (VNĐ) <span className="text-red-500">*</span></Label>
-                  <Input id="price" type="number" {...register('price')} />
+                  <Label htmlFor="price">
+                    {priceMode === 'unit' ? 'Giá bán (VNĐ) *' : 'Tổng giá bán (VNĐ) *'}
+                  </Label>
+                  <Input id="price" type="number" {...register('price', { setValueAs: v => v === '' ? undefined : Number(v) })} />
                   {errors.price && <span className="text-sm text-red-500">{errors.price.message}</span>}
+                  {priceMode === 'total' && watch('price') > 0 && watch('stock') > 0 && (
+                    <p className="text-xs text-blue-600 font-medium">
+                      =&gt; Giá 1 SP: <span className="font-bold">{new Intl.NumberFormat('vi-VN').format(Math.round(watch('price') / watch('stock')))}đ</span>
+                    </p>
+                  )}
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="sale_price">Giá khuyến mãi (VNĐ)</Label>
-                  <Input id="sale_price" type="number" {...register('sale_price')} />
+                  <Label htmlFor="sale_price">
+                    {priceMode === 'unit' ? 'Giá khuyến mãi (VNĐ)' : 'Tổng KM (VNĐ)'}
+                  </Label>
+                  <Input id="sale_price" type="number" {...register('sale_price', { setValueAs: v => v === '' || isNaN(v) ? null : Number(v) })} />
+                  {priceMode === 'total' && watch('sale_price') > 0 && watch('stock') > 0 && (
+                    <p className="text-xs text-blue-600 font-medium">
+                      =&gt; KM 1 SP: <span className="font-bold">{new Intl.NumberFormat('vi-VN').format(Math.round(watch('sale_price') / watch('stock')))}đ</span>
+                    </p>
+                  )}
                 </div>
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="stock">Tồn kho chung (Nếu không dùng phân loại) <span className="text-red-500">*</span></Label>
-                <Input id="stock" type="number" {...register('stock')} />
+                <Input id="stock" type="number" {...register('stock', { setValueAs: v => v === '' ? undefined : Number(v) })} />
                 {errors.stock && <span className="text-sm text-red-500">{errors.stock.message}</span>}
               </div>
             </CardContent>

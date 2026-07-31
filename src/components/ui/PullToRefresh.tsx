@@ -16,6 +16,9 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
   const startYRef = useRef(0)
   const isPullingRef = useRef(false)
 
+  const pullDistanceRef = useRef(0)
+  const refreshingRef = useRef(false)
+
   const handleTouchStart = (e: TouchEvent) => {
     if (window.scrollY === 0) {
       startYRef.current = e.touches[0].clientY
@@ -24,7 +27,7 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
   }
 
   const handleTouchMove = (e: TouchEvent) => {
-    if (!isPullingRef.current || refreshing) return
+    if (!isPullingRef.current || refreshingRef.current) return
     
     const clientY = e.touches[0].clientY
     const deltaY = clientY - startYRef.current
@@ -32,6 +35,7 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
     if (deltaY > 0) {
       // Apply a resistance factor
       const pull = Math.min(80, deltaY * 0.4)
+      pullDistanceRef.current = pull
       setPullDistance(pull)
       
       if (e.cancelable) {
@@ -39,16 +43,20 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
       }
     } else {
       isPullingRef.current = false
+      pullDistanceRef.current = 0
       setPullDistance(0)
     }
   }
 
   const handleTouchEnd = async () => {
-    if (!isPullingRef.current || refreshing) return
+    if (!isPullingRef.current || refreshingRef.current) return
     isPullingRef.current = false
 
-    if (pullDistance >= 60) {
+    if (pullDistanceRef.current >= 60) {
+      refreshingRef.current = true
       setRefreshing(true)
+      
+      pullDistanceRef.current = 40
       setPullDistance(40)
       
       try {
@@ -56,10 +64,14 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
       } catch (err) {
         console.error("Refresh failed", err)
       } finally {
+        refreshingRef.current = false
         setRefreshing(false)
+        
+        pullDistanceRef.current = 0
         setPullDistance(0)
       }
     } else {
+      pullDistanceRef.current = 0
       setPullDistance(0)
     }
   }
@@ -77,8 +89,7 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
       container.removeEventListener('touchmove', handleTouchMove)
       container.removeEventListener('touchend', handleTouchEnd)
     }
-  }, [pullDistance, refreshing])
-
+  }, []) // Empty dependency array prevents listener rebinding loop
   return (
     <div ref={containerRef} className="relative w-full">
       {/* Pull indicator */}

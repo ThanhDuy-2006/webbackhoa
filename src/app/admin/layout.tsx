@@ -5,17 +5,8 @@ import { Button } from '@/components/ui/button'
 import { createClient } from '@/lib/supabase/server'
 import { AdminMobileMenu } from '@/components/admin/AdminMobileMenu'
 import { AdminRealtimeListener } from '@/components/admin/AdminRealtimeListener'
+import { AdminSidebarNav } from '@/components/admin/AdminSidebarNav'
 import { PageTransition } from '@/components/ui/PageTransition'
-
-const sidebarLinks = [
-  { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
-  { name: 'Sản phẩm', href: '/admin/products', icon: Package },
-  { name: 'Danh mục', href: '/admin/categories', icon: Tags },
-  { name: 'Đơn hàng', href: '/admin/orders', icon: ShoppingBag },
-  { name: 'Khách hàng', href: '/admin/users', icon: Users },
-  { name: 'Duyệt nạp tiền', href: '/admin/topups', icon: CreditCard },
-  { name: 'Chia tiền sản phẩm', href: '/admin/revenue-share', icon: Percent },
-]
 
 const mobileSidebarLinks: { name: string; href: string; iconName: 'LayoutDashboard' | 'Package' | 'Tags' | 'ShoppingBag' | 'Users' | 'CreditCard' | 'Percent' }[] = [
   { name: 'Dashboard', href: '/admin', iconName: 'LayoutDashboard' },
@@ -56,28 +47,7 @@ export default async function AdminLayout({
           <span className="font-extrabold text-lg tracking-tight bg-gradient-to-r from-emerald-700 to-teal-600 bg-clip-text text-transparent">Bách Hóa Admin</span>
         </div>
         <nav className="flex-1 py-4 overflow-y-auto custom-scrollbar">
-          <ul className="space-y-1 px-4">
-            {sidebarLinks.map((link) => {
-              const Icon = link.icon
-              // Simple active state check (can be improved with usePathname)
-              const isActive = link.href === '/admin' // mockup active state
-              return (
-                <li key={link.href}>
-                  <Link
-                    href={link.href}
-                    className={`flex items-center px-4 py-3 rounded-2xl transition-all duration-300 group ${
-                      isActive 
-                        ? 'bg-blue-50 text-blue-600 font-medium' 
-                        : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'
-                    }`}
-                  >
-                    <Icon className={`h-5 w-5 mr-3 transition-colors ${isActive ? 'text-blue-600' : 'text-slate-400 group-hover:text-slate-600'}`} />
-                    <span className="text-sm">{link.name}</span>
-                  </Link>
-                </li>
-              )
-            })}
-          </ul>
+          <AdminSidebarNav />
         </nav>
 
 
