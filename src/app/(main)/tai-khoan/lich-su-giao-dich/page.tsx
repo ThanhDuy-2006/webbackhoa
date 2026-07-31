@@ -18,7 +18,7 @@ export default async function UserTransactionHistoryPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Lịch sử giao dịch (Sổ cái)</h1>
+        <h1 className="text-2xl font-bold text-slate-900">Lịch sử giao dịch</h1>
         <p className="text-slate-500">Theo dõi chi tiết biến động số dư, lịch sử nạp tiền, mua hàng và nhận tiền bán hàng của bạn.</p>
       </div>
 

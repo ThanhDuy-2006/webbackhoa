@@ -2,6 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import { Skeleton } from '@/components/ui/skeleton'
+'use client'
+
+import { useState, useEffect } from 'react'
+import { Skeleton } from '@/components/ui/skeleton'
 import { getUserWalletTransactionsAction } from '@/actions/user/revenue-share.actions'
 import { Loader2, ArrowUpRight, ArrowDownRight } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
@@ -10,6 +14,7 @@ export function UserWalletHistoryList() {
   const [transactions, setTransactions] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [filterType, setFilterType] = useState<string>('all')
+  const [selectedTx, setSelectedTx] = useState<any | null>(null)
 
   const loadTransactions = async () => {
     setLoading(true)
@@ -70,6 +75,7 @@ export function UserWalletHistoryList() {
                 <th className="p-4 font-bold">Số dư trước</th>
                 <th className="p-4 font-bold">Số dư sau</th>
                 <th className="p-4 font-bold">Nội dung chi tiết</th>
+                <th className="p-4 font-bold text-center">Hành động</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
@@ -120,6 +126,14 @@ export function UserWalletHistoryList() {
                     <td className="p-4 font-mono text-slate-500">{formatCurrency(tx.balance_before)}</td>
                     <td className="p-4 font-mono font-bold text-slate-700">{formatCurrency(tx.balance_after)}</td>
                     <td className="p-4 text-slate-600 max-w-xs truncate" title={tx.note}>{tx.note || '-'}</td>
+                    <td className="p-4 text-center">
+                      <button 
+                        onClick={() => setSelectedTx(tx)}
+                        className="text-[11px] font-bold text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-lg transition-colors"
+                      >
+                        Chi tiết
+                      </button>
+                    </td>
                   </tr>
                 )
               })}
@@ -127,6 +141,70 @@ export function UserWalletHistoryList() {
           </table>
         )}
       </div>
+
+      {/* Detail Modal */}
+      {selectedTx && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-[24px] max-w-md w-full p-6 space-y-5 shadow-2xl border">
+            <div className="flex items-center justify-between border-b pb-3 border-slate-100">
+              <h3 className="font-extrabold text-slate-800 text-sm">Chi tiết giao dịch sổ cái</h3>
+              <button onClick={() => setSelectedTx(null)} className="p-1 hover:bg-slate-100 rounded-full cursor-pointer transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-500"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div className="flex justify-between border-b pb-2 border-slate-50">
+                <span className="text-slate-400">Mã giao dịch:</span>
+                <strong className="text-slate-800 font-mono text-[10px] sm:text-xs">{selectedTx.id}</strong>
+              </div>
+              <div className="flex justify-between border-b pb-2 border-slate-50">
+                <span className="text-slate-400">Thời gian:</span>
+                <strong className="text-slate-700">{new Date(selectedTx.created_at).toLocaleString('vi-VN')}</strong>
+              </div>
+              <div className="flex justify-between border-b pb-2 border-slate-50">
+                <span className="text-slate-400">Loại nguồn:</span>
+                <strong className="text-slate-700">{selectedTx.type}</strong>
+              </div>
+              <div className="flex justify-between border-b pb-2 border-slate-50">
+                <span className="text-slate-400">Biến động:</span>
+                <strong className={`font-mono font-black ${Number(selectedTx.amount) >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                  {Number(selectedTx.amount) >= 0 ? '+' : ''}{formatCurrency(selectedTx.amount)}
+                </strong>
+              </div>
+              <div className="flex justify-between border-b pb-2 border-slate-50">
+                <span className="text-slate-400">Số dư trước:</span>
+                <strong className="text-slate-600 font-mono">{formatCurrency(selectedTx.balance_before)}</strong>
+              </div>
+              <div className="flex justify-between border-b pb-2 border-slate-50">
+                <span className="text-slate-400">Số dư sau:</span>
+                <strong className="text-slate-800 font-mono">{formatCurrency(selectedTx.balance_after)}</strong>
+              </div>
+              
+              {selectedTx.related_order_id && (
+                <div className="flex justify-between border-b pb-2 border-slate-50">
+                  <span className="text-slate-400">Mã đơn hàng liên kết:</span>
+                  <strong className="text-slate-600 font-mono text-[10px]">{selectedTx.related_order_id}</strong>
+                </div>
+              )}
+
+              <div className="flex flex-col gap-1 pt-1">
+                <span className="text-slate-400">Nội dung:</span>
+                <p className="text-slate-700 font-medium bg-slate-50 p-3 rounded-xl border border-slate-100">{selectedTx.note || 'Không có mô tả'}</p>
+              </div>
+            </div>
+            
+            <div className="flex justify-end pt-2 border-t border-slate-100">
+              <button 
+                onClick={() => setSelectedTx(null)}
+                className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer"
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
