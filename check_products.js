@@ -7,15 +7,19 @@ const supabase = createClient(
 );
 
 async function checkProducts() {
-  const { data, error } = await supabase.from('products').select('*');
-  if (error) {
-    console.error('Error fetching products:', error);
-  } else {
-    console.log('Total products:', data.length);
-    if (data.length > 0) {
-      console.log('Sample product:', data[0]);
+  try {
+    const { data, error } = await supabase.from('products').select('*');
+    if (error) {
+      console.error('Error fetching products:', error);
+    } else {
+      console.log('Total products:', data.length);
+      if (data.length > 0) {
+        console.log('Sample product:', data[0]);
+      }
     }
+  } catch (err) {
+    console.error('Unexpected error:', err);
   }
 }
 
-checkProducts();
+checkProducts().catch(err => console.error('Unhandled promise rejection:', err));
