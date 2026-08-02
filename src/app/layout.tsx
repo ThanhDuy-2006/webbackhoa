@@ -9,6 +9,7 @@ import { OfflineAlert } from '@/components/pwa/OfflineAlert'
 import { Suspense } from 'react'
 import { NavigationProgressBar } from '@/components/layout/NavigationProgressBar'
 import { ScrollToTopButton } from '@/components/layout/ScrollToTopButton'
+import { RefreshOnFocus } from '@/components/layout/RefreshOnFocus'
 
 const inter = Inter({ subsets: ['latin', 'vietnamese'] })
 
@@ -45,6 +46,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
+          <RefreshOnFocus />
           <Suspense fallback={null}>
             <NavigationProgressBar />
           </Suspense>
