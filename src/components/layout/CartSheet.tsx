@@ -75,7 +75,7 @@ export function CartSheet({ user, profile }: CartSheetProps) {
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetContent 
         side="bottom" 
-        className="w-full h-[85vh] sm:h-full sm:inset-y-0 sm:right-0 sm:left-auto sm:top-0 sm:w-[440px] sm:max-w-md flex flex-col p-0 rounded-t-[24px] sm:rounded-t-none sm:border-l bg-white border-t"
+        className="w-full !h-[85vh] sm:!h-full sm:inset-y-0 sm:right-0 sm:left-auto sm:top-0 sm:w-[440px] sm:max-w-md flex flex-col p-0 rounded-t-[24px] sm:rounded-t-none sm:border-l bg-white border-t"
       >
         {/* Drag handle indicator on mobile bottom sheet */}
         <div className="mx-auto w-12 h-1.5 rounded-full bg-slate-200 mt-3 sm:hidden shrink-0" />
