@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { useForm, useFieldArray } from 'react-hook-form'
+import { useForm, useFieldArray, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { productSchema, ProductFormData } from '@/schemas/product.schema'
 import { Product } from '@/types/product.type'
@@ -334,7 +334,25 @@ export function ProductForm({ initialData, categories }: Props) {
                   <Label htmlFor="price">
                     {priceMode === 'unit' ? 'Giá bán (VNĐ) *' : 'Tổng giá bán (VNĐ) *'}
                   </Label>
-                  <Input id="price" type="number" {...register('price', { setValueAs: v => v === '' ? undefined : Number(v) })} />
+                  <Controller
+                    control={control}
+                    name="price"
+                    render={({ field: { onChange, onBlur, value, ref } }) => (
+                      <Input
+                        id="price"
+                        type="text"
+                        value={value ? value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") : ''}
+                        onChange={(e) => {
+                          const rawValue = e.target.value.replace(/\./g, '')
+                          if (/^\d*$/.test(rawValue)) {
+                            onChange(rawValue ? Number(rawValue) : undefined)
+                          }
+                        }}
+                        onBlur={onBlur}
+                        ref={ref}
+                      />
+                    )}
+                  />
                   {errors.price && <span className="text-sm text-red-500">{errors.price.message}</span>}
                   {priceMode === 'total' && Number(watch('price')) > 0 && Number(watch('stock')) > 0 && (
                     <p className="text-xs text-blue-600 font-medium">
@@ -346,7 +364,25 @@ export function ProductForm({ initialData, categories }: Props) {
                   <Label htmlFor="sale_price">
                     {priceMode === 'unit' ? 'Giá khuyến mãi (VNĐ)' : 'Tổng KM (VNĐ)'}
                   </Label>
-                  <Input id="sale_price" type="number" {...register('sale_price', { setValueAs: v => v === '' || isNaN(v) ? null : Number(v) })} />
+                  <Controller
+                    control={control}
+                    name="sale_price"
+                    render={({ field: { onChange, onBlur, value, ref } }) => (
+                      <Input
+                        id="sale_price"
+                        type="text"
+                        value={value ? value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") : ''}
+                        onChange={(e) => {
+                          const rawValue = e.target.value.replace(/\./g, '')
+                          if (/^\d*$/.test(rawValue)) {
+                            onChange(rawValue ? Number(rawValue) : null)
+                          }
+                        }}
+                        onBlur={onBlur}
+                        ref={ref}
+                      />
+                    )}
+                  />
                   {priceMode === 'total' && watch('sale_price') > 0 && watch('stock') > 0 && (
                     <p className="text-xs text-blue-600 font-medium">
                       =&gt; KM 1 SP: <span className="font-bold">{new Intl.NumberFormat('vi-VN').format(Math.round(watch('sale_price') / watch('stock')))}đ</span>
@@ -390,7 +426,24 @@ export function ProductForm({ initialData, categories }: Props) {
                         </div>
                         <div className="grid gap-2">
                           <Label>Giá riêng (Bỏ trống = Giá chung)</Label>
-                          <Input type="number" {...register(`variants.${index}.price` as const)} />
+                          <Controller
+                            control={control}
+                            name={`variants.${index}.price` as const}
+                            render={({ field: { onChange, onBlur, value, ref } }) => (
+                              <Input
+                                type="text"
+                                value={value ? value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") : ''}
+                                onChange={(e) => {
+                                  const rawValue = e.target.value.replace(/\./g, '')
+                                  if (/^\d*$/.test(rawValue)) {
+                                    onChange(rawValue ? Number(rawValue) : null)
+                                  }
+                                }}
+                                onBlur={onBlur}
+                                ref={ref}
+                              />
+                            )}
+                          />
                         </div>
                         <div className="grid gap-2">
                           <Label>Tồn kho</Label>

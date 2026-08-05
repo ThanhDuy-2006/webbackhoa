@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { useForm, useFieldArray } from 'react-hook-form'
+import { useForm, useFieldArray, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { ArrowLeft, Upload, Plus, Trash2, Loader2, Image as ImageIcon, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -244,12 +244,26 @@ export function SellerProductForm({ categories, initialData }: SellerProductForm
               <Label htmlFor="price" className="font-semibold text-slate-700">
                 {priceMode === 'unit' ? 'Giá bán (VNĐ) *' : 'Tổng giá bán (VNĐ) *'}
               </Label>
-              <Input
-                id="price"
-                type="number"
-                {...register('price', { setValueAs: v => v === '' ? undefined : Number(v) })}
-                placeholder="100000"
-                className="rounded-xl"
+              <Controller
+                control={control}
+                name="price"
+                render={({ field: { onChange, onBlur, value, ref } }) => (
+                  <Input
+                    id="price"
+                    type="text"
+                    placeholder="100.000"
+                    className="rounded-xl"
+                    value={value ? value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") : ''}
+                    onChange={(e) => {
+                      const rawValue = e.target.value.replace(/\./g, '')
+                      if (/^\d*$/.test(rawValue)) {
+                        onChange(rawValue ? Number(rawValue) : undefined)
+                      }
+                    }}
+                    onBlur={onBlur}
+                    ref={ref}
+                  />
+                )}
               />
               {errors.price?.message && <p className="text-xs text-rose-600 font-medium">{String(errors.price.message)}</p>}
               {priceMode === 'total' && Number(watch('price')) > 0 && Number(watch('stock')) > 0 && (
@@ -263,12 +277,26 @@ export function SellerProductForm({ categories, initialData }: SellerProductForm
               <Label htmlFor="sale_price" className="font-semibold text-slate-700">
                 {priceMode === 'unit' ? 'Giá khuyến mãi (Nếu có)' : 'Tổng KM (Nếu có)'}
               </Label>
-              <Input
-                id="sale_price"
-                type="number"
-                {...register('sale_price', { setValueAs: v => v === '' || isNaN(v) ? null : Number(v) })}
-                placeholder="80000"
-                className="rounded-xl"
+              <Controller
+                control={control}
+                name="sale_price"
+                render={({ field: { onChange, onBlur, value, ref } }) => (
+                  <Input
+                    id="sale_price"
+                    type="text"
+                    placeholder="80.000"
+                    className="rounded-xl"
+                    value={value ? value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") : ''}
+                    onChange={(e) => {
+                      const rawValue = e.target.value.replace(/\./g, '')
+                      if (/^\d*$/.test(rawValue)) {
+                        onChange(rawValue ? Number(rawValue) : null)
+                      }
+                    }}
+                    onBlur={onBlur}
+                    ref={ref}
+                  />
+                )}
               />
               {errors.sale_price?.message && <p className="text-xs text-rose-600 font-medium">{String(errors.sale_price.message)}</p>}
               {priceMode === 'total' && watch('sale_price') > 0 && watch('stock') > 0 && (
@@ -384,11 +412,25 @@ export function SellerProductForm({ categories, initialData }: SellerProductForm
                     />
                   </div>
                   <div className="w-28">
-                    <Input
-                      type="number"
-                      {...register(`variants.${index}.price`, { valueAsNumber: true, setValueAs: v => v === '' || isNaN(v) ? null : Number(v) })}
-                      placeholder="Giá riêng"
-                      className="rounded-lg text-xs bg-white"
+                    <Controller
+                      control={control}
+                      name={`variants.${index}.price`}
+                      render={({ field: { onChange, onBlur, value, ref } }) => (
+                        <Input
+                          type="text"
+                          placeholder="Giá riêng"
+                          className="rounded-lg text-xs bg-white"
+                          value={value ? value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") : ''}
+                          onChange={(e) => {
+                            const rawValue = e.target.value.replace(/\./g, '')
+                            if (/^\d*$/.test(rawValue)) {
+                              onChange(rawValue ? Number(rawValue) : null)
+                            }
+                          }}
+                          onBlur={onBlur}
+                          ref={ref}
+                        />
+                      )}
                     />
                   </div>
                   <div className="w-24">
