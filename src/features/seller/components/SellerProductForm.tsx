@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useForm, useFieldArray, Controller } from 'react-hook-form'
@@ -112,6 +112,32 @@ export function SellerProductForm({ categories, initialData }: SellerProductForm
       setAutoSearchingImage(false)
     }
   }
+
+  // Auto-fetch image when product name changes (debounced)
+  useEffect(() => {
+    if (!productName || productName.trim().length < 2) return
+    
+    // Only auto-fetch if there's no image or if the current image is already from Pexels
+    // This prevents overwriting a manually uploaded image
+    if (currentImageUrl && !currentImageUrl.includes('pexels.com')) return
+
+    const timer = setTimeout(async () => {
+      setAutoSearchingImage(true)
+      try {
+        const pexelsUrl = await searchPexelsImagesPublicAction(productName)
+        if (pexelsUrl) {
+          setValue('image_url', pexelsUrl, { shouldValidate: true })
+        }
+      } catch (e) {
+        console.error(e)
+      } finally {
+        setAutoSearchingImage(false)
+      }
+    }, 1000)
+
+    return () => clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [productName, setValue])
 
   const onSubmit = async (data: SellerProductInput) => {
     setSubmitting(true)
