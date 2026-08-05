@@ -641,9 +641,14 @@ export function SellerProductImportClient({ categories }: Props) {
                       <TableCell>
                         <div className="flex flex-col gap-1.5">
                           <Input
-                            type="number"
-                            value={prod.price || 0}
-                            onChange={(e) => handleUpdateRow(prod.tempId, 'price', Number(e.target.value))}
+                            type="text"
+                            value={prod.price ? prod.price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") : ''}
+                            onChange={(e) => {
+                              const rawValue = e.target.value.replace(/\./g, '')
+                              if (/^\d*$/.test(rawValue)) {
+                                handleUpdateRow(prod.tempId, 'price', rawValue ? Number(rawValue) : 0)
+                              }
+                            }}
                             className="h-8 text-xs font-mono"
                           />
                           <div className="flex bg-slate-100 p-0.5 rounded text-[10px]">
@@ -664,9 +669,14 @@ export function SellerProductImportClient({ categories }: Props) {
                       {/* Sale Price */}
                       <TableCell>
                         <Input
-                          type="number"
-                          value={prod.sale_price ?? ''}
-                          onChange={(e) => handleUpdateRow(prod.tempId, 'sale_price', e.target.value ? Number(e.target.value) : null)}
+                          type="text"
+                          value={prod.sale_price ? prod.sale_price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") : ''}
+                          onChange={(e) => {
+                            const rawValue = e.target.value.replace(/\./g, '')
+                            if (/^\d*$/.test(rawValue)) {
+                              handleUpdateRow(prod.tempId, 'sale_price', rawValue ? Number(rawValue) : null)
+                            }
+                          }}
                           placeholder="Không KM"
                           className="h-8 text-xs font-mono"
                         />
