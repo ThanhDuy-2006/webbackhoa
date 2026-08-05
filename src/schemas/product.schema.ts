@@ -27,6 +27,14 @@ export const productSchema = z.object({
   // Smart Image Automation Fields (Optional in input form, handled internally)
   image_source: z.enum(['auto', 'manual']).default('auto'),
   image_status: z.enum(['unchecked', 'searching', 'valid', 'invalid', 'needs_review']).default('unchecked'),
+}).refine((data) => {
+  if (data.sale_price != null && data.price != null) {
+    return data.sale_price < data.price;
+  }
+  return true;
+}, {
+  message: "Giá khuyến mãi phải nhỏ hơn giá gốc",
+  path: ["sale_price"]
 })
 
 export type ProductFormData = z.infer<typeof productSchema>

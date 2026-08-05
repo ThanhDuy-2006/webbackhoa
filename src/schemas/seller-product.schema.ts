@@ -20,6 +20,14 @@ export const sellerProductSchema = z.object({
       is_active: z.boolean().default(true),
     })
   ).optional().default([]),
+}).refine((data) => {
+  if (data.sale_price != null && data.price != null) {
+    return data.sale_price < data.price;
+  }
+  return true;
+}, {
+  message: "Giá khuyến mãi phải nhỏ hơn giá gốc",
+  path: ["sale_price"]
 })
 
 export type SellerProductInput = z.infer<typeof sellerProductSchema>
