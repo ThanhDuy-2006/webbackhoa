@@ -45,7 +45,7 @@ export function SellerProductForm({ categories, initialData }: SellerProductForm
     defaultValues: {
       name: initialData?.name || '',
       description: initialData?.description || '',
-      category_id: initialData?.category_id || (categories[0]?.id || ''),
+      category_id: initialData?.category_id || '',
       price: initialData?.price || ('' as any),
       sale_price: initialData?.sale_price || null,
       stock: initialData?.stock ?? ('' as any),
@@ -217,7 +217,8 @@ export function SellerProductForm({ categories, initialData }: SellerProductForm
                 {...register('category_id')}
                 className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
               >
-                {categories.map((c) => (
+                <option value="">-- Chọn danh mục --</option>
+                {categories?.map((c) => (
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>
