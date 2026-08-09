@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Plus, Search, Edit3, PauseCircle, PlayCircle, Trash2, AlertTriangle, Package, ExternalLink } from 'lucide-react'
+import { Plus, Search, Edit3, PauseCircle, PlayCircle, Trash2, AlertTriangle, Package, ExternalLink, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Product } from '@/types/product.type'
@@ -36,6 +36,7 @@ export function SellerProductList({
     const params = new URLSearchParams()
     if (search) params.set('search', search)
     if (currentStatus !== 'all') params.set('status', currentStatus)
+    params.set('page', '1')
     router.push(`/tai-khoan/san-pham-cua-toi?${params.toString()}`)
   }
 
@@ -43,6 +44,18 @@ export function SellerProductList({
     const params = new URLSearchParams()
     if (currentSearch) params.set('search', currentSearch)
     if (status !== 'all') params.set('status', status)
+    params.set('page', '1')
+    router.push(`/tai-khoan/san-pham-cua-toi?${params.toString()}`)
+  }
+
+  const totalPages = Math.ceil(totalCount / 10)
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage < 1 || newPage > totalPages) return
+    const params = new URLSearchParams()
+    if (currentSearch) params.set('search', currentSearch)
+    if (currentStatus !== 'all') params.set('status', currentStatus)
+    params.set('page', newPage.toString())
     router.push(`/tai-khoan/san-pham-cua-toi?${params.toString()}`)
   }
 
@@ -251,6 +264,38 @@ export function SellerProductList({
               </div>
             </div>
           ))}
+          
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between border-t border-slate-100 bg-white px-4 py-3 sm:px-6 rounded-b-2xl">
+              <p className="text-sm text-slate-700 hidden sm:block">
+                Hiển thị <span className="font-semibold">{(currentPage - 1) * 10 + 1}</span> - <span className="font-semibold">{Math.min(currentPage * 10, totalCount)}</span> trong tổng <span className="font-semibold">{totalCount}</span>
+              </p>
+              <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="rounded-xl"
+                >
+                  <ChevronLeft className="w-4 h-4 mr-1" /> Trước
+                </Button>
+                <span className="text-sm font-medium text-slate-700 mx-2">
+                  {currentPage} / {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="rounded-xl"
+                >
+                  Sau <ChevronRight className="w-4 h-4 ml-1" />
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
