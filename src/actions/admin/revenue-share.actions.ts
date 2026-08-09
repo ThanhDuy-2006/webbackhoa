@@ -909,19 +909,33 @@ export async function executeDirectCostSplitAction(data: {
       })
     }
 
-    // Xóa (ẩn) các sản phẩm đã chia tiền để không còn hiển thị trên web
-    const productIdsToDelete = Array.from(
-      new Set(data.products.map(p => p.product_id).filter((id): id is string => !!id))
-    )
-    
-    if (productIdsToDelete.length > 0) {
-      const { error: delError } = await supabase
-        .from('products')
-        .update({ deleted_at: new Date().toISOString() })
-        .in('id', productIdsToDelete)
-
-      if (delError) {
-        console.error('Lỗi khi ẩn sản phẩm sau khi chia tiền:', delError)
+    // Cập nhật tồn kho hoặc ẩn sản phẩm
+    for (const p of data.products) {
+      if (p.variant_id) {
+        const { data: v } = await supabase.from('product_variants').select('stock').eq('id', p.variant_id).single()
+        if (v) {
+          const newStock = Math.max(0, (v.stock || 0) - p.quantity)
+          await supabase.from('product_variants').update({ stock: newStock }).eq('id', p.variant_id)
+        }
+      } else if (p.product_id) {
+        const { data: prod } = await supabase.from('products').select('stock').eq('id', p.product_id).single()
+        if (prod) {
+          const newStock = Math.max(0, (prod.stock || 0) - p.quantity)
+          if (newStock > 0) {
+            await supabase.from('products').update({ stock: newStock }).eq('id', p.product_id)
+          } else {
+            await supabase
+              .from('products')
+              .update({ 
+                stock: 0,
+                listing_status: 'deleted', 
+                is_deleted: true, 
+                is_active: false, 
+                deleted_at: new Date().toISOString() 
+              })
+              .eq('id', p.product_id)
+          }
+        }
       }
     }
 
