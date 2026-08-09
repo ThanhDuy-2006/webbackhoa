@@ -261,6 +261,85 @@ export async function getSellerProductsAction(page: number = 1, limit: number = 
   }
 }
 
+export async function splitSellerProductAction(productId: string, splitAmount: number) {
+  try {
+    const { user, supabase } = await authenticateSeller()
+
+    if (!splitAmount || splitAmount <= 0) {
+      throw new Error('Số lượng tách phải lớn hơn 0')
+    }
+
+    // Lấy thông tin sản phẩm gốc
+    const { data: originalProduct, error: fetchError } = await supabase
+      .from('products')
+      .select('*, variants:product_variants(id)')
+      .eq('id', productId)
+      .eq('seller_id', user.id)
+      .single()
+
+    if (fetchError || !originalProduct) {
+      throw new Error('Không tìm thấy sản phẩm hoặc bạn không có quyền')
+    }
+
+    if (originalProduct.variants && originalProduct.variants.length > 0) {
+      throw new Error('Không thể tách sản phẩm đang có biến thể. Vui lòng chỉnh sửa tồn kho của từng biến thể trực tiếp.')
+    }
+
+    if (originalProduct.stock < 2) {
+      throw new Error('Sản phẩm phải có tồn kho lớn hơn 1 để tách')
+    }
+
+    if (splitAmount >= originalProduct.stock) {
+      throw new Error('Số lượng tách phải nhỏ hơn tồn kho hiện tại')
+    }
+
+    const remainingStock = originalProduct.stock - splitAmount
+
+    // Tạo slug mới cho sản phẩm tách
+    const newSlug = generateCollisionSafeSlug(originalProduct.name)
+
+    // Tạo dữ liệu cho sản phẩm mới
+    const newProductData = {
+      ...originalProduct,
+      slug: newSlug,
+      stock: splitAmount,
+    }
+    
+    delete newProductData.id
+    delete newProductData.created_at
+    delete newProductData.updated_at
+    delete newProductData.variants
+
+    // Thực hiện 2 câu lệnh
+    // 1. Giảm tồn kho sản phẩm gốc
+    const { error: updateError } = await supabase
+      .from('products')
+      .update({ stock: remainingStock })
+      .eq('id', productId)
+
+    if (updateError) throw new Error('Lỗi khi cập nhật tồn kho sản phẩm gốc')
+
+    // 2. Tạo sản phẩm mới
+    const { error: insertError } = await supabase
+      .from('products')
+      .insert(newProductData)
+
+    if (insertError) {
+      // Rollback
+      await supabase.from('products').update({ stock: originalProduct.stock }).eq('id', productId)
+      throw new Error('Lỗi khi tạo sản phẩm tách mới')
+    }
+
+    revalidatePath('/')
+    revalidatePath('/san-pham')
+    revalidatePath('/tai-khoan/san-pham-cua-toi')
+    return { success: true }
+  } catch (err: unknown) {
+    const error = err as Error
+    return { success: false, error: error.message }
+  }
+}
+
 export async function bulkCreateSellerProductsAction(rawInput: unknown[]) {
   try {
     const { user, supabase } = await authenticateSeller()

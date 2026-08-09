@@ -3,14 +3,23 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Plus, Search, Edit3, PauseCircle, PlayCircle, Trash2, AlertTriangle, Package, ExternalLink, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Plus, Search, Edit3, PauseCircle, PlayCircle, Trash2, AlertTriangle, Package, ExternalLink, ChevronLeft, ChevronRight, Split } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Product } from '@/types/product.type'
 import { formatCurrency } from '@/lib/utils'
 import { toast } from 'sonner'
-import { pauseSellerProductAction, activateSellerProductAction, softDeleteSellerProductAction } from '@/actions/seller-product.actions'
+import { pauseSellerProductAction, activateSellerProductAction, softDeleteSellerProductAction, splitSellerProductAction } from '@/actions/seller-product.actions'
 import { SmartImage } from '@/components/ui/smart-image'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Label } from '@/components/ui/label'
 
 interface SellerProductListProps {
   products: Product[]
@@ -30,6 +39,9 @@ export function SellerProductList({
   const router = useRouter()
   const [search, setSearch] = useState(currentSearch)
   const [loadingId, setLoadingId] = useState<string | null>(null)
+  const [splitProduct, setSplitProduct] = useState<Product | null>(null)
+  const [splitAmount, setSplitAmount] = useState<string>('')
+  const [isSplitting, setIsSplitting] = useState(false)
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -109,6 +121,32 @@ export function SellerProductList({
         )
       default:
         return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">Hoạt động</span>
+    }
+  }
+
+  const handleSplitSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!splitProduct) return
+
+    const amount = parseInt(splitAmount, 10)
+    if (isNaN(amount) || amount <= 0 || amount >= splitProduct.stock) {
+      toast.error('Số lượng tách không hợp lệ')
+      return
+    }
+
+    setIsSplitting(true)
+    try {
+      const res = await splitSellerProductAction(splitProduct.id, amount)
+      if (res.success) {
+        toast.success('Đã tách sản phẩm thành công')
+        setSplitProduct(null)
+        setSplitAmount('')
+        router.refresh()
+      } else {
+        toast.error(res.error || 'Lỗi khi tách sản phẩm')
+      }
+    } finally {
+      setIsSplitting(false)
     }
   }
 
@@ -231,6 +269,22 @@ export function SellerProductList({
                       </Button>
                     </Link>
 
+                    {product.stock >= 2 && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={loadingId === product.id}
+                        onClick={() => {
+                          setSplitProduct(product)
+                          setSplitAmount('')
+                        }}
+                        className="rounded-lg h-9 text-xs text-indigo-600 border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700"
+                        title="Tách sản phẩm ra làm 2"
+                      >
+                        <Split className="w-3.5 h-3.5 mr-1" /> Tách
+                      </Button>
+                    )}
+
                     <Button
                       variant="outline"
                       size="sm"
@@ -298,6 +352,76 @@ export function SellerProductList({
           )}
         </div>
       )}
+
+      {/* Split Product Dialog */}
+      <Dialog open={!!splitProduct} onOpenChange={(open) => !open && setSplitProduct(null)}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Tách sản phẩm</DialogTitle>
+            <DialogDescription>
+              Tạo ra một sản phẩm mới giống hệt bản gốc và chia sẻ số lượng tồn kho.
+            </DialogDescription>
+          </DialogHeader>
+          {splitProduct && (
+            <form onSubmit={handleSplitSubmit} className="space-y-6 pt-4">
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-sm space-y-2">
+                <div className="font-semibold text-slate-800 line-clamp-1">{splitProduct.name}</div>
+                <div className="flex justify-between text-slate-600">
+                  <span>Tồn kho hiện tại:</span>
+                  <span className="font-bold text-slate-900">{splitProduct.stock}</span>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <Label htmlFor="split_amount" className="font-medium text-slate-700">
+                  Tồn kho chuyển sang sản phẩm MỚI
+                </Label>
+                <Input
+                  id="split_amount"
+                  type="number"
+                  min="1"
+                  max={splitProduct.stock - 1}
+                  value={splitAmount}
+                  onChange={(e) => setSplitAmount(e.target.value)}
+                  placeholder="Nhập số lượng..."
+                  className="rounded-xl"
+                  required
+                />
+                
+                {splitAmount && !isNaN(parseInt(splitAmount)) && parseInt(splitAmount) > 0 && parseInt(splitAmount) < splitProduct.stock && (
+                  <p className="text-sm text-emerald-600 bg-emerald-50 p-2.5 rounded-lg border border-emerald-100 font-medium">
+                    Sản phẩm GỐC sẽ còn lại: {splitProduct.stock - parseInt(splitAmount)}
+                  </p>
+                )}
+                {splitAmount && (isNaN(parseInt(splitAmount)) || parseInt(splitAmount) <= 0 || parseInt(splitAmount) >= splitProduct.stock) && (
+                  <p className="text-sm text-rose-600 bg-rose-50 p-2.5 rounded-lg border border-rose-100 font-medium">
+                    Số lượng tách không hợp lệ. Phải từ 1 đến {splitProduct.stock - 1}.
+                  </p>
+                )}
+              </div>
+
+              <DialogFooter>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => setSplitProduct(null)}
+                  disabled={isSplitting}
+                  className="rounded-xl"
+                >
+                  Hủy
+                </Button>
+                <Button 
+                  type="submit" 
+                  className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white"
+                  disabled={isSplitting || !splitAmount || isNaN(parseInt(splitAmount)) || parseInt(splitAmount) <= 0 || parseInt(splitAmount) >= splitProduct.stock}
+                >
+                  {isSplitting ? 'Đang tách...' : 'Xác nhận tách'}
+                </Button>
+              </DialogFooter>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
