@@ -99,6 +99,11 @@ export function ProductCard({ product, index = 0, priority = false }: ProductCar
               <h3 className="line-clamp-2 text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200 transition-colors group-hover:text-emerald-600 leading-snug min-h-[2.5rem]">
                 {product.name}
               </h3>
+              {!isOutOfStock && (
+                <div className="mt-1 text-[10px] sm:text-[11px] text-slate-500">
+                  Kho: <span className="font-semibold text-slate-700 dark:text-slate-300">{product.stock}</span>
+                </div>
+              )}
             </Link>
             
             <div className="mt-3 flex items-end justify-between gap-1.5">
