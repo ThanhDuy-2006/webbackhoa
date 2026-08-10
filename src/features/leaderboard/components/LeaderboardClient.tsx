@@ -212,7 +212,7 @@ export function LeaderboardClient() {
               </div>
 
               {/* 4th to 20th */}
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden pb-16 md:pb-0">
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden pb-32 md:pb-0 mb-32 md:mb-0">
                 {leaderboardData.slice(3).map((entry) => (
                   <div key={entry.user_id} className="flex items-center gap-4 p-4 border-b border-slate-50 last:border-0 hover:bg-slate-50 transition-colors">
                     <div className="w-8 text-center font-bold text-slate-400">{entry.rank}</div>
