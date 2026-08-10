@@ -6,7 +6,7 @@ RETURNS TABLE (
     avatar_url text,
     total_amount numeric,
     rank bigint
-) AS $$
+) AS $func$
 BEGIN
     RETURN QUERY
     WITH UserTotals AS (
@@ -30,7 +30,7 @@ BEGIN
     ORDER BY total_amount DESC
     LIMIT p_limit;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$func$ LANGUAGE plpgsql SECURITY DEFINER;
 
 
 -- get_my_topup_rank
@@ -41,7 +41,7 @@ RETURNS TABLE (
     avatar_url text,
     total_amount numeric,
     rank bigint
-) AS $$
+) AS $func$
 BEGIN
     RETURN QUERY
     WITH UserTotals AS (
@@ -71,7 +71,7 @@ BEGIN
     JOIN profiles u ON ru.uid = u.id
     WHERE ru.uid = auth.uid();
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$func$ LANGUAGE plpgsql SECURITY DEFINER;
 
 
 -- get_consumption_leaderboard
@@ -82,7 +82,7 @@ RETURNS TABLE (
     avatar_url text,
     total_amount numeric,
     rank bigint
-) AS $$
+) AS $func$
 BEGIN
     RETURN QUERY
     WITH UserTotals AS (
@@ -107,7 +107,7 @@ BEGIN
     ORDER BY total_amount DESC
     LIMIT p_limit;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$func$ LANGUAGE plpgsql SECURITY DEFINER;
 
 
 -- get_my_consumption_rank
@@ -118,7 +118,7 @@ RETURNS TABLE (
     avatar_url text,
     total_amount numeric,
     rank bigint
-) AS $$
+) AS $func$
 BEGIN
     RETURN QUERY
     WITH UserTotals AS (
@@ -149,4 +149,4 @@ BEGIN
     JOIN profiles u ON ru.uid = u.id
     WHERE ru.uid = auth.uid();
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$func$ LANGUAGE plpgsql SECURITY DEFINER;
