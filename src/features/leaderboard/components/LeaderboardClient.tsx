@@ -181,10 +181,10 @@ export function LeaderboardClient() {
               className="space-y-3"
             >
               {/* Top 3 display logic */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 pt-6">
+              <div className="flex flex-col md:flex-row justify-center items-stretch gap-8 md:gap-4 mb-8 pt-6">
                 {/* 2nd Place */}
                 {leaderboardData[1] && (
-                  <Card className="order-2 md:order-1 relative p-4 flex flex-col items-center justify-center bg-gradient-to-b from-slate-50 to-slate-100/50 border-slate-200 shadow-sm md:translate-y-4">
+                  <Card className="flex-1 w-full max-w-xs mx-auto md:mx-0 order-2 md:order-1 relative p-4 flex flex-col items-center justify-center bg-gradient-to-b from-slate-50 to-slate-100/50 border-slate-200 shadow-sm md:translate-y-4">
                     <div className="absolute -top-5">{renderRankIcon(2)}</div>
                     {renderAvatar(leaderboardData[1].avatar_url, leaderboardData[1].full_name, 2)}
                     <p className="font-bold text-slate-700 mt-3 truncate w-full text-center">{leaderboardData[1].full_name || 'Người dùng ẩn danh'}</p>
@@ -193,7 +193,7 @@ export function LeaderboardClient() {
                 )}
                 {/* 1st Place */}
                 {leaderboardData[0] && (
-                  <Card className="order-1 md:order-2 relative p-6 flex flex-col items-center justify-center bg-gradient-to-b from-yellow-50 to-yellow-100/30 border-yellow-200 shadow-md transform md:-translate-y-2">
+                  <Card className="flex-1 w-full max-w-xs mx-auto md:mx-0 order-1 md:order-2 relative p-6 flex flex-col items-center justify-center bg-gradient-to-b from-yellow-50 to-yellow-100/30 border-yellow-200 shadow-md transform md:-translate-y-2">
                     <div className="absolute -top-7">{renderRankIcon(1)}</div>
                     {renderAvatar(leaderboardData[0].avatar_url, leaderboardData[0].full_name, 1)}
                     <p className="font-black text-slate-800 mt-4 text-lg truncate w-full text-center">{leaderboardData[0].full_name || 'Người dùng ẩn danh'}</p>
@@ -202,7 +202,7 @@ export function LeaderboardClient() {
                 )}
                 {/* 3rd Place */}
                 {leaderboardData[2] && (
-                  <Card className="order-3 relative p-4 flex flex-col items-center justify-center bg-gradient-to-b from-amber-50/50 to-amber-100/30 border-amber-200/60 shadow-sm md:translate-y-6">
+                  <Card className="flex-1 w-full max-w-xs mx-auto md:mx-0 order-3 relative p-4 flex flex-col items-center justify-center bg-gradient-to-b from-amber-50/50 to-amber-100/30 border-amber-200/60 shadow-sm md:translate-y-6">
                     <div className="absolute -top-5">{renderRankIcon(3)}</div>
                     {renderAvatar(leaderboardData[2].avatar_url, leaderboardData[2].full_name, 3)}
                     <p className="font-bold text-slate-700 mt-3 truncate w-full text-center">{leaderboardData[2].full_name || 'Người dùng ẩn danh'}</p>
