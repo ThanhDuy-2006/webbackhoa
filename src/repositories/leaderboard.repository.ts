@@ -3,7 +3,7 @@ import { LeaderboardEntry } from '@/types/leaderboard.type'
 
 export class LeaderboardRepository {
   static async getTopupLeaderboard(month: number, year: number, limit: number = 20): Promise<LeaderboardEntry[]> {
-    const supabase = createClient()
+    const supabase = await createClient()
     const { data, error } = await supabase.rpc('get_topup_leaderboard', {
       p_month: month,
       p_year: year,
@@ -19,7 +19,7 @@ export class LeaderboardRepository {
   }
 
   static async getMyTopupRank(month: number, year: number): Promise<LeaderboardEntry | null> {
-    const supabase = createClient()
+    const supabase = await createClient()
     const { data, error } = await supabase.rpc('get_my_topup_rank', {
       p_month: month,
       p_year: year
@@ -33,7 +33,7 @@ export class LeaderboardRepository {
   }
 
   static async getConsumptionLeaderboard(month: number, year: number, limit: number = 20): Promise<LeaderboardEntry[]> {
-    const supabase = createClient()
+    const supabase = await createClient()
     const { data, error } = await supabase.rpc('get_consumption_leaderboard', {
       p_month: month,
       p_year: year,
@@ -49,7 +49,7 @@ export class LeaderboardRepository {
   }
 
   static async getMyConsumptionRank(month: number, year: number): Promise<LeaderboardEntry | null> {
-    const supabase = createClient()
+    const supabase = await createClient()
     const { data, error } = await supabase.rpc('get_my_consumption_rank', {
       p_month: month,
       p_year: year
