@@ -188,7 +188,7 @@ export function LeaderboardClient() {
                     <div className="absolute -top-5">{renderRankIcon(2)}</div>
                     {renderAvatar(leaderboardData[1].avatar_url, leaderboardData[1].full_name, 2)}
                     <p className="font-bold text-slate-700 mt-3 truncate w-full text-center">{leaderboardData[1].full_name || 'Người dùng ẩn danh'}</p>
-                    <p className="text-sm font-bold text-slate-500 mt-1">{formatCurrency(leaderboardData[1].total_amount)} đ</p>
+                    <p className="text-sm font-bold text-slate-500 mt-1">{formatCurrency(leaderboardData[1].total_amount)}</p>
                   </Card>
                 )}
                 {/* 1st Place */}
@@ -197,7 +197,7 @@ export function LeaderboardClient() {
                     <div className="absolute -top-7">{renderRankIcon(1)}</div>
                     {renderAvatar(leaderboardData[0].avatar_url, leaderboardData[0].full_name, 1)}
                     <p className="font-black text-slate-800 mt-4 text-lg truncate w-full text-center">{leaderboardData[0].full_name || 'Người dùng ẩn danh'}</p>
-                    <p className="text-base font-black text-yellow-600 mt-1">{formatCurrency(leaderboardData[0].total_amount)} đ</p>
+                    <p className="text-base font-black text-yellow-600 mt-1">{formatCurrency(leaderboardData[0].total_amount)}</p>
                   </Card>
                 )}
                 {/* 3rd Place */}
@@ -206,13 +206,13 @@ export function LeaderboardClient() {
                     <div className="absolute -top-5">{renderRankIcon(3)}</div>
                     {renderAvatar(leaderboardData[2].avatar_url, leaderboardData[2].full_name, 3)}
                     <p className="font-bold text-slate-700 mt-3 truncate w-full text-center">{leaderboardData[2].full_name || 'Người dùng ẩn danh'}</p>
-                    <p className="text-sm font-bold text-amber-700/70 mt-1">{formatCurrency(leaderboardData[2].total_amount)} đ</p>
+                    <p className="text-sm font-bold text-amber-700/70 mt-1">{formatCurrency(leaderboardData[2].total_amount)}</p>
                   </Card>
                 )}
               </div>
 
               {/* 4th to 20th */}
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden pb-16 md:pb-0">
                 {leaderboardData.slice(3).map((entry) => (
                   <div key={entry.user_id} className="flex items-center gap-4 p-4 border-b border-slate-50 last:border-0 hover:bg-slate-50 transition-colors">
                     <div className="w-8 text-center font-bold text-slate-400">{entry.rank}</div>
@@ -221,7 +221,7 @@ export function LeaderboardClient() {
                       <p className="font-semibold text-slate-700 truncate">{entry.full_name || 'Người dùng ẩn danh'}</p>
                     </div>
                     <div className="font-bold text-slate-600">
-                      {formatCurrency(entry.total_amount)} <span className="text-[10px] text-slate-400">VND</span>
+                      {formatCurrency(entry.total_amount)}
                     </div>
                   </div>
                 ))}
@@ -236,10 +236,10 @@ export function LeaderboardClient() {
         <motion.div 
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
-          className="fixed bottom-0 left-0 right-0 p-4 z-50 md:sticky md:bottom-4 pointer-events-none"
+          className="fixed bottom-[80px] left-0 right-0 p-4 z-50 md:sticky md:bottom-4 pointer-events-none"
         >
-          <div className="max-w-2xl mx-auto pointer-events-auto">
-            <Card className="p-4 bg-slate-900/95 backdrop-blur-md text-white border-slate-800 shadow-2xl flex items-center gap-4">
+          <div className="max-w-2xl mx-auto pointer-events-auto shadow-[0_-10px_40px_-10px_rgba(0,0,0,0.2)] rounded-xl">
+            <Card className="p-4 bg-slate-900/95 backdrop-blur-md text-white border-slate-800 flex items-center gap-4">
               <div className="flex items-center justify-center w-10 h-10 rounded-full bg-white/10 font-bold">
                 {myRank.rank <= 20 ? (
                   <Trophy className="w-5 h-5 text-yellow-400" />
@@ -253,7 +253,7 @@ export function LeaderboardClient() {
               </div>
               <div className="text-right">
                 <p className="text-xs text-slate-400">{activeTab === 'topup' ? 'Đã nạp' : 'Đã tiêu'}</p>
-                <p className="font-bold text-emerald-400">{formatCurrency(myRank.total_amount)} đ</p>
+                <p className="font-bold text-emerald-400">{formatCurrency(myRank.total_amount)}</p>
               </div>
             </Card>
           </div>
