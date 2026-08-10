@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { ShoppingCart, User as UserIcon, LogOut, Menu, Package, Settings, Wallet, ShoppingBag, Home, Tag, Sun, Moon, Sprout } from 'lucide-react'
+import { ShoppingCart, User as UserIcon, LogOut, Menu, Package, Settings, Wallet, ShoppingBag, Home, Tag, Sun, Moon, Sprout, Trophy } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -75,6 +75,7 @@ export function NavbarClient({ user, profile }: NavbarClientProps) {
 
   const navItems = [
     { name: 'Sản phẩm', href: '/', icon: Package },
+    { name: 'Bảng xếp hạng', href: '/bang-xep-hang', icon: Trophy },
     { name: 'Giỏ hàng', href: '#cart', icon: ShoppingCart, isCart: true },
     { name: 'Cá nhân', href: user ? '/tai-khoan' : '/login', icon: UserIcon },
   ]
@@ -102,6 +103,7 @@ export function NavbarClient({ user, profile }: NavbarClientProps) {
           </Link>
           <nav className="hidden lg:flex gap-6 text-sm font-medium text-slate-600 dark:text-slate-300">
             <Link href="/" className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">Sản phẩm</Link>
+            <Link href="/bang-xep-hang" className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors flex items-center gap-1"><Trophy className="w-4 h-4" /> Bảng xếp hạng</Link>
           </nav>
         </div>
 
