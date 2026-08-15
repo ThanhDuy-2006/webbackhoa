@@ -809,9 +809,10 @@ export async function executeDirectCostSplitAction(data: {
     checkRevenueManager(adminProfile.revenue_role)
     const supabase = createAdminClient()
 
-    // 1. Calculate total net amount
+    // 1. Calculate total net amount and map sellers
     let totalNetAmount = 0
     const productNamesList: string[] = []
+    const sellerNetMap: Record<string, number> = {}
 
     for (const p of data.products) {
       const net = Math.max(0, (p.amount * p.quantity) - p.discount)
@@ -819,14 +820,27 @@ export async function executeDirectCostSplitAction(data: {
 
       // Lookup product/variant name for snapshotting
       let productName = 'Sản phẩm trực tiếp'
+      let seller_id = null
+      
       if (p.variant_id) {
-        const { data: v } = await supabase.from('product_variants').select('name').eq('id', p.variant_id).single()
-        if (v) productName = v.name
+        const { data: v } = await supabase.from('product_variants').select('name, product_id').eq('id', p.variant_id).single()
+        if (v) {
+          productName = v.name
+          const { data: prod } = await supabase.from('products').select('seller_id').eq('id', v.product_id).single()
+          if (prod) seller_id = prod.seller_id
+        }
       } else if (p.product_id) {
-        const { data: prod } = await supabase.from('products').select('name').eq('id', p.product_id).single()
-        if (prod) productName = prod.name
+        const { data: prod } = await supabase.from('products').select('name, seller_id').eq('id', p.product_id).single()
+        if (prod) {
+          productName = prod.name
+          seller_id = prod.seller_id
+        }
       }
       productNamesList.push(`${productName} (SL: ${p.quantity})`)
+
+      if (seller_id) {
+        sellerNetMap[seller_id] = (sellerNetMap[seller_id] || 0) + net
+      }
     }
 
     const combinedProductNames = productNamesList.join(', ')
@@ -834,6 +848,7 @@ export async function executeDirectCostSplitAction(data: {
     if (recipientCount === 0) throw new Error('Vui lòng chọn ít nhất một người nhận')
 
     // 2. Process each recipient
+    let totalDeducted = 0
     for (const r of data.recipients) {
       let shareAmount = 0
       if (data.sharing_method === 'equal') {
@@ -847,6 +862,8 @@ export async function executeDirectCostSplitAction(data: {
 
       shareAmount = Math.round(shareAmount)
       if (shareAmount <= 0) continue
+      
+      totalDeducted += shareAmount
 
       // Lock recipient wallet balance
       const { data: profile } = await supabase
@@ -907,6 +924,54 @@ export async function executeDirectCostSplitAction(data: {
         type: 'revenue_share',
         link: '/tai-khoan/chia-tien'
       })
+    }
+
+    // 3. Pay the sellers if applicable
+    if (totalDeducted > 0 && totalNetAmount > 0) {
+      for (const [seller_id, net] of Object.entries(sellerNetMap)) {
+        if (net <= 0) continue
+        const sellerShare = Math.round(totalDeducted * (net / totalNetAmount))
+        if (sellerShare <= 0) continue
+
+        const { data: sellerProfile } = await supabase
+          .from('profiles')
+          .select('balance, full_name, email')
+          .eq('id', seller_id)
+          .single()
+
+        if (!sellerProfile) continue
+
+        const currentBalance = sellerProfile.balance || 0
+        const newBalance = currentBalance + sellerShare
+
+        const { error: wError } = await supabase
+          .from('profiles')
+          .update({ balance: newBalance })
+          .eq('id', seller_id)
+
+        if (wError) throw wError
+
+        const { error: txError } = await supabase
+          .from('wallet_transactions')
+          .insert({
+            user_id: seller_id,
+            type: 'revenue_share',
+            amount: sellerShare,
+            balance_before: currentBalance,
+            balance_after: newBalance,
+            note: `Nhận tiền chia sẻ từ sản phẩm: ${combinedProductNames} (+${sellerShare.toLocaleString()}đ)`
+          })
+
+        if (txError) throw txError
+
+        await supabase.from('notifications').insert({
+          user_id: seller_id,
+          title: 'Nhận tiền chia sẻ sản phẩm',
+          message: `Bạn được cộng +${sellerShare.toLocaleString()}đ từ việc chia tiền sản phẩm ${combinedProductNames}`,
+          type: 'revenue_share',
+          link: '/tai-khoan/lich-su-giao-dich'
+        })
+      }
     }
 
     // Cập nhật tồn kho hoặc ẩn sản phẩm
