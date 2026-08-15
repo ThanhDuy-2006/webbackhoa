@@ -105,6 +105,11 @@ export function NavbarClient({ user, profile }: NavbarClientProps) {
           <nav className="hidden lg:flex gap-6 text-sm font-medium text-slate-600 dark:text-slate-300">
             <Link href="/" className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">Sản phẩm</Link>
             <Link href="/bang-xep-hang" className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors flex items-center gap-1"><Trophy className="w-4 h-4" /> Bảng xếp hạng</Link>
+            {user && (
+              <Link href="/tai-khoan/san-pham-cua-toi" className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors flex items-center gap-1">
+                <Package className="w-4 h-4" /> Sản phẩm của tôi
+              </Link>
+            )}
           </nav>
         </div>
 
