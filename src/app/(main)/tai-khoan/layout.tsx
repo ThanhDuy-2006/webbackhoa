@@ -27,7 +27,7 @@ export default async function AccountLayout({
         <AccountSidebar profile={profile} email={user.email} />
         
         {/* Main Content */}
-        <main className="flex-1 min-w-0 px-4 md:px-0 py-6 md:py-0">
+        <main className="flex-1 min-w-0 px-4 md:px-0 pt-6 pb-28 md:py-0">
           <MobileBackButton />
           {children}
         </main>
