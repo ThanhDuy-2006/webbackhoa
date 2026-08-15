@@ -157,7 +157,7 @@ export function ProductList({ initialProducts, totalCount, currentPage, searchTe
 
   const calculateAmount = (recipient: any) => {
     if (!shareProduct) return 0
-    const base = shareProduct.price
+    const base = shareProduct.sale_price || shareProduct.price
     
     if (shareMethod === 'equal') {
       return shareRecipients.length > 0 ? Math.round(base / shareRecipients.length) : 0
@@ -191,7 +191,7 @@ export function ProductList({ initialProducts, totalCount, currentPage, searchTe
     const res = await executeDirectCostSplitAction({
       products: [{
         product_id: shareProduct.id,
-        amount: shareProduct.price, // Or sale_price if you want, let's use price as a base and 0 discount
+        amount: shareProduct.sale_price || shareProduct.price, // Or sale_price if you want, let's use price as a base and 0 discount
         quantity: 1,
         discount: 0
       }],
@@ -409,7 +409,7 @@ export function ProductList({ initialProducts, totalCount, currentPage, searchTe
               <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex items-center justify-between">
                 <div>
                   <h4 className="font-medium text-slate-900">{shareProduct.name}</h4>
-                  <p className="text-sm text-slate-500 mt-1">Giá bán: <span className="font-semibold text-emerald-600">{formatCurrency(shareProduct.price)}</span></p>
+                  <p className="text-sm text-slate-500 mt-1">Giá bán: <span className="font-semibold text-emerald-600">{formatCurrency(shareProduct.sale_price || shareProduct.price)}</span></p>
                 </div>
               </div>
 
