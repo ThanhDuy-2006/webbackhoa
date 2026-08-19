@@ -387,6 +387,7 @@ export function ProductImportClient({ categories }: Props) {
 
   // Final submit to DB
   const handleConfirmImport = async () => {
+    if (loading) return;
     const validItems = importData.filter(p => p.name && p.name.trim().length >= 2)
     if (validItems.length === 0) {
       toast.error('Vui lòng thêm ít nhất 1 sản phẩm hợp lệ có tên trước khi nhập!')
