@@ -3,7 +3,7 @@ import { z } from 'zod'
 export const sellerProductSchema = z.object({
   name: z.string().min(2, 'Tên sản phẩm phải có ít nhất 2 ký tự').max(200, 'Tên sản phẩm tối đa 200 ký tự'),
   description: z.string().nullable().optional(),
-  category_id: z.string().min(1, 'Vui lòng chọn danh mục sản phẩm'),
+  category_id: z.string().min(1, 'Vui lòng chọn danh mục sản phẩm').or(z.literal('')).transform(val => val === '' ? null : val).optional().nullable(),
   price: z.coerce.number().min(0, 'Giá sản phẩm không hợp lệ'),
   sale_price: z.number().nullable().optional(),
   stock: z.coerce.number().int().min(0, 'Tồn kho không được nhỏ hơn 0'),
