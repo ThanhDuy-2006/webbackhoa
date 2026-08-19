@@ -20,22 +20,37 @@ export async function submitTopupRequestAction(data: {
       return { success: false, error: 'Vui lòng nhập nội dung chuyển khoản' }
     }
 
-    const { error } = await supabase
-      .from('topup_requests')
-      .insert({
-        user_id: user.id,
-        amount: data.amount,
-        transfer_content: data.transfer_content,
-        proof_image_url: data.proof_image_url || null,
-        status: 'pending'
-      })
+    let currentTransferContent = data.transfer_content
+    let insertError = null
 
-    if (error) {
-      // Check unique constraint violation for transfer_content
-      if (error.code === '23505') {
-        return { success: false, error: 'Nội dung chuyển khoản này đã được sử dụng. Vui lòng kiểm tra lại.' }
+    for (let i = 0; i < 3; i++) {
+      const { error } = await supabase
+        .from('topup_requests')
+        .insert({
+          user_id: user.id,
+          amount: data.amount,
+          transfer_content: currentTransferContent,
+          proof_image_url: data.proof_image_url || null,
+          status: 'pending'
+        })
+      
+      insertError = error
+
+      if (!error) {
+        break // Success
       }
-      return { success: false, error: error.message }
+
+      if (error.code === '23505') {
+        // Duplicate transfer_content, append a short random string to make it unique
+        currentTransferContent = `${data.transfer_content} ${Math.floor(Math.random() * 10000)}`
+      } else {
+        // Other error, stop retrying
+        break
+      }
+    }
+
+    if (insertError) {
+      return { success: false, error: insertError.message }
     }
 
     revalidatePath('/tai-khoan/nap-tien')

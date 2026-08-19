@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { submitTopupRequestAction } from '@/actions/user/topup.actions'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -15,9 +15,12 @@ export function UserTopupForm({ userId }: { userId: string }) {
   
   // Create a unique content prefix for this user to track easily
   const shortId = userId.substring(0, 6).toUpperCase()
-  const defaultContent = `NAPTIEN ${shortId}`
-  const [content, setContent] = useState(defaultContent)
+  const [content, setContent] = useState('')
   const [proofImage, setProofImage] = useState('')
+
+  useEffect(() => {
+    setContent(`NAPTIEN ${shortId} ${Math.floor(Math.random() * 10000)}`)
+  }, [shortId])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -36,7 +39,7 @@ export function UserTopupForm({ userId }: { userId: string }) {
       if (result.success) {
         toast.success('Gửi yêu cầu thành công! Admin sẽ duyệt sớm nhất.')
         setAmount(100000)
-        setContent(`${defaultContent} ${Math.floor(Math.random() * 1000)}`) // Add random suffix to avoid duplicate content error next time
+        setContent(`NAPTIEN ${shortId} ${Math.floor(Math.random() * 10000)}`)
         setProofImage('')
       } else {
         toast.error(result.error)
