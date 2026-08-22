@@ -8,14 +8,14 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath, revalidateTag } from 'next/cache'
 import { CACHE_TAGS } from '@/lib/cache-tags'
 
-async function getAdminId() {
+async function getUserId() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Unauthorized')
   
   const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
-  if (profile?.role !== 'admin') {
-    throw new Error('Unauthorized: Admin access required')
+  if (profile?.role !== 'admin' && profile?.role !== 'seller') {
+    throw new Error('Unauthorized: Admin or Seller access required')
   }
   
   return user.id
@@ -60,7 +60,7 @@ export async function generateProductImageAction(
   previousSessionId?: string | null
 ) {
   try {
-    const adminId = await getAdminId()
+    const userId = await getUserId()
     
     if (!productName || productName.trim().length < 2) {
       return { status: 'error' as const, message: 'Tên sản phẩm quá ngắn để tìm kiếm ảnh.' }
@@ -109,7 +109,7 @@ export async function generateProductImageAction(
       productName,
       productId,
       formSessionId,
-      adminId,
+      adminId: userId,
       bypassCache,
       excludeUrl,
       previousSessionId
@@ -144,12 +144,12 @@ export async function selectManualCandidateAction({
   expectedUpdatedAt?: string | null;
 }) {
   try {
-    const adminId = await getAdminId();
+    const userId = await getUserId();
 
     const { url: trustedUrl, sessionId } = await CandidateSessionService.verifyAndResolveCandidate({
       candidateSessionId,
       candidateId,
-      adminId,
+      adminId: userId,
       productId,
       formSessionId,
     });
