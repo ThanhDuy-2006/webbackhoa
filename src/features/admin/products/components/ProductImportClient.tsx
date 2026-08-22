@@ -126,10 +126,10 @@ export function ProductImportClient({ categories }: Props) {
         return isNaN(num) ? null : num
       }
 
-      const price = parseNumber(row['Giá bán']) || 0
-      const sale_price = parseNumber(row['Giá khuyến mãi'])
-      const stock = parseNumber(row['Tồn kho']) || 0
-      const name = row['Tên sản phẩm'] ? String(row['Tên sản phẩm']).trim() : ''
+      const price = parseNumber(row['Giá bán'] ?? row['Giá gốc'] ?? row['Giá']) || 0
+      const sale_price = parseNumber(row['Giá khuyến mãi'] ?? row['Giá KM'] ?? row['Giá giảm'])
+      const stock = parseNumber(row['Tồn kho'] ?? row['Số lượng'] ?? row['Quantity']) || 0
+      const name = (row['Tên sản phẩm'] ?? row['Tên'] ?? row['Sản phẩm']) ? String(row['Tên sản phẩm'] ?? row['Tên'] ?? row['Sản phẩm']).trim() : ''
 
       if (name) {
         const imageUrl = row['Hình ảnh'] ? String(row['Hình ảnh']).trim() : null
