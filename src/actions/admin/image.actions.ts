@@ -21,8 +21,7 @@ async function getAdminId() {
   return user.id
 }
 
-import fs from 'fs';
-import path from 'path';
+import { DANH_SACH_SAN_PHAM_CSV } from '@/lib/images/danhsachsanpham';
 
 let localImageCache: Map<string, string> | null = null;
 
@@ -30,28 +29,24 @@ async function getLocalImageMap() {
   if (localImageCache) return localImageCache;
   localImageCache = new Map();
   try {
-    const csvPath = path.join(process.cwd(), 'src', 'danhsachsanpham.csv');
-    if (fs.existsSync(csvPath)) {
-      const content = await fs.promises.readFile(csvPath, 'utf-8');
-      const lines = content.split(/\r?\n/);
-      for (let i = 1; i < lines.length; i++) {
-        const line = lines[i].trim();
-        if (!line) continue;
-        const lastComma = line.lastIndexOf(',');
-        if (lastComma !== -1) {
-          const url = line.substring(lastComma + 1).trim();
-          let name = line.substring(0, lastComma).trim();
-          if (name.startsWith('"') && name.endsWith('"')) {
-            name = name.substring(1, name.length - 1).trim();
-          }
-          if (name && url) {
-            localImageCache.set(name.toLowerCase(), url);
-          }
+    const lines = DANH_SACH_SAN_PHAM_CSV.split(/\r?\n/);
+    for (let i = 1; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
+      const lastComma = line.lastIndexOf(',');
+      if (lastComma !== -1) {
+        const url = line.substring(lastComma + 1).trim();
+        let name = line.substring(0, lastComma).trim();
+        if (name.startsWith('"') && name.endsWith('"')) {
+          name = name.substring(1, name.length - 1).trim();
+        }
+        if (name && url) {
+          localImageCache.set(name.toLowerCase(), url);
         }
       }
     }
   } catch (err) {
-    console.error('Could not read danhsachsanpham.csv', err);
+    console.error('Could not parse danhsachsanpham.csv', err);
   }
   return localImageCache;
 }
