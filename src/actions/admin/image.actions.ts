@@ -23,31 +23,31 @@ async function getUserId() {
 
 import { DANH_SACH_SAN_PHAM_CSV } from '@/lib/images/danhsachsanpham';
 
-let localImageCache: Map<string, string> | null = null;
+const localImageCache = new Map<string, string>();
 
-async function getLocalImageMap() {
-  if (localImageCache) return localImageCache;
-  localImageCache = new Map();
-  try {
-    const lines = DANH_SACH_SAN_PHAM_CSV.split(/\r?\n/);
-    for (let i = 1; i < lines.length; i++) {
-      const line = lines[i].trim();
-      if (!line) continue;
-      const lastComma = line.lastIndexOf(',');
-      if (lastComma !== -1) {
-        const url = line.substring(lastComma + 1).trim();
-        let name = line.substring(0, lastComma).trim();
-        if (name.startsWith('"') && name.endsWith('"')) {
-          name = name.substring(1, name.length - 1).trim();
-        }
-        if (name && url) {
-          localImageCache.set(name.toLowerCase(), url);
-        }
+// Initialize synchronously on module load
+try {
+  const lines = DANH_SACH_SAN_PHAM_CSV.split(/\r?\n/);
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+    const lastComma = line.lastIndexOf(',');
+    if (lastComma !== -1) {
+      const url = line.substring(lastComma + 1).trim();
+      let name = line.substring(0, lastComma).trim();
+      if (name.startsWith('"') && name.endsWith('"')) {
+        name = name.substring(1, name.length - 1).trim();
+      }
+      if (name && url) {
+        localImageCache.set(name.toLowerCase(), url);
       }
     }
-  } catch (err) {
-    console.error('Could not parse danhsachsanpham.csv', err);
   }
+} catch (err) {
+  console.error('Could not parse danhsachsanpham.csv', err);
+}
+
+function getLocalImageMap() {
   return localImageCache;
 }
 
@@ -66,7 +66,7 @@ export async function generateProductImageAction(
       return { status: 'error' as const, message: 'Tên sản phẩm quá ngắn để tìm kiếm ảnh.' }
     }
 
-    const localMap = await getLocalImageMap();
+    const localMap = getLocalImageMap();
     const searchName = productName.toLowerCase().trim();
     if (localMap) {
       let matchedUrl: string | null = null;
