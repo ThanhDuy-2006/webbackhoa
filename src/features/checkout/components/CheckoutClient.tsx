@@ -31,9 +31,9 @@ export function CheckoutClient({ user, profile, settings }: CheckoutClientProps)
   const [isCheckingCoupon, setIsCheckingCoupon] = useState(false)
   
   const [formData, setFormData] = useState({
-    receiver_name: profile.full_name || '',
-    receiver_phone: profile.phone || '',
-    receiver_address: profile.address || '',
+    receiver_name: profile?.full_name || '',
+    receiver_phone: profile?.phone || '',
+    receiver_address: profile?.address || '',
     note: ''
   })
 
@@ -121,7 +121,13 @@ export function CheckoutClient({ user, profile, settings }: CheckoutClientProps)
     if (result.success) {
       toast.success('Đặt hàng thành công!')
       clearCart()
-      router.push(`/tai-khoan/don-hang`)
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('wallet-balance-changed', {
+          detail: { newBalance: (profile?.balance || 0) - finalAmount }
+        }))
+      }
+      router.refresh()
+      router.push('/tai-khoan/don-hang')
     } else {
       toast.error(result.error)
       setIsSubmitting(false)
@@ -257,8 +263,8 @@ export function CheckoutClient({ user, profile, settings }: CheckoutClientProps)
             <div className="bg-slate-50 p-4 rounded-lg space-y-2 border">
               <div className="flex justify-between text-sm">
                 <span className="text-slate-600">Số dư ví hiện tại:</span>
-                <span className={`font-medium ${profile.balance < 0 ? 'text-red-600' : ''}`}>
-                  {formatCurrency(profile.balance || 0)}
+                <span className={`font-medium ${(profile?.balance || 0) < 0 ? 'text-red-600' : ''}`}>
+                  {formatCurrency(profile?.balance || 0)}
                 </span>
               </div>
             </div>
@@ -266,7 +272,7 @@ export function CheckoutClient({ user, profile, settings }: CheckoutClientProps)
             <Button 
               type="submit" 
               form="checkout-form"
-              className="w-full bg-emerald-600 hover:bg-emerald-700 h-12 text-base font-semibold"
+              className="w-full bg-emerald-600 hover:bg-emerald-700 h-12 text-base font-semibold cursor-pointer"
               disabled={isSubmitting}
             >
               {isSubmitting ? (

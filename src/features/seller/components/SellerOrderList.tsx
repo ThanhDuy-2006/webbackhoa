@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
 import { PackageCheck, Truck, CheckCircle2, Clock, User, Phone, MapPin } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { SellerOrder } from '@/types/order.type'
@@ -19,6 +20,24 @@ interface SellerOrderListProps {
 export function SellerOrderList({ orders, totalCount, currentPage, currentStatus }: SellerOrderListProps) {
   const router = useRouter()
   const [updatingId, setUpdatingId] = useState<string | null>(null)
+
+  useEffect(() => {
+    const supabase = createClient()
+    const channel = supabase
+      .channel('seller-orders-live-sync')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'seller_orders' },
+        () => {
+          router.refresh()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [router])
 
   const handleStatusFilter = (status: string) => {
     const params = new URLSearchParams()
@@ -147,7 +166,7 @@ export function SellerOrderList({ orders, totalCount, currentPage, currentStatus
                       size="sm"
                       disabled={updatingId === order.id}
                       onClick={() => handleUpdateStatus(order.id, 'confirmed')}
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold"
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold cursor-pointer"
                     >
                       <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Xác nhận đơn
                     </Button>
@@ -158,7 +177,7 @@ export function SellerOrderList({ orders, totalCount, currentPage, currentStatus
                       size="sm"
                       disabled={updatingId === order.id}
                       onClick={() => handleUpdateStatus(order.id, 'shipping')}
-                      className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold"
+                      className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold cursor-pointer"
                     >
                       <Truck className="w-3.5 h-3.5 mr-1" /> Đang giao hàng
                     </Button>

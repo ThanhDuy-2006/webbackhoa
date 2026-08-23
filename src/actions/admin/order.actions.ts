@@ -18,7 +18,9 @@ export async function updateOrderStatusAction(id: string, status: string) {
     
     if (result.success) {
       revalidatePath('/admin/orders')
-      // revalidatePath(`/tai-khoan/don-hang`)
+      revalidatePath('/tai-khoan/don-hang')
+      revalidatePath('/tai-khoan/don-ban')
+      revalidatePath('/tai-khoan/doanh-thu')
     }
     
     return result

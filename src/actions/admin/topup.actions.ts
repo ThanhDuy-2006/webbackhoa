@@ -17,7 +17,10 @@ export async function approveTopupAction(id: string, note?: string) {
     
     if (result.success) {
       revalidatePath('/admin/topups')
-      // revalidatePath('/tai-khoan')
+      revalidatePath('/tai-khoan')
+      revalidatePath('/tai-khoan/nap-tien')
+      revalidatePath('/tai-khoan/lich-su-giao-dich')
+      revalidatePath('/tai-khoan/lich-su-chung')
     }
     
     return result
@@ -39,7 +42,10 @@ export async function rejectTopupAction(id: string, note: string) {
     
     if (result.success) {
       revalidatePath('/admin/topups')
-      // revalidatePath('/tai-khoan')
+      revalidatePath('/tai-khoan')
+      revalidatePath('/tai-khoan/nap-tien')
+      revalidatePath('/tai-khoan/lich-su-giao-dich')
+      revalidatePath('/tai-khoan/lich-su-chung')
     }
     
     return result

@@ -46,16 +46,28 @@ export function NavbarClient({ user, profile }: NavbarClientProps) {
   }, [profile?.balance])
 
   useEffect(() => {
+    const handleBalanceChanged = (e: any) => {
+      if (e?.detail?.newBalance !== undefined) {
+        setBalance(Number(e.detail.newBalance))
+      }
+    }
+    window.addEventListener('wallet-balance-changed', handleBalanceChanged)
+    return () => window.removeEventListener('wallet-balance-changed', handleBalanceChanged)
+  }, [])
+
+  useEffect(() => {
     if (!user) return
 
     const supabase = createClient()
     const channel = supabase
-      .channel('public:profiles')
+      .channel(`public:profiles:${user.id}`)
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${user.id}` },
         (payload) => {
-          setBalance(Number(payload.new.balance || 0))
+          if (payload.new && payload.new.balance !== undefined) {
+            setBalance(Number(payload.new.balance))
+          }
         }
       )
       .subscribe()
@@ -165,8 +177,8 @@ export function NavbarClient({ user, profile }: NavbarClientProps) {
                   <span className="text-sm font-semibold text-slate-900 dark:text-slate-100 leading-none max-w-[120px] truncate">
                     {(profile?.full_name as string) || user?.email?.split('@')[0] || 'Tài khoản'}
                   </span>
-                  <span className={`text-xs font-medium mt-1.5 leading-none ${Number(profile?.balance || 0) < 0 ? 'text-red-600' : 'text-emerald-600'}`}>
-                    {formatCurrency(Number(profile?.balance || 0))}
+                  <span className={`text-xs font-medium mt-1.5 leading-none ${balance < 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                    {formatCurrency(balance)}
                   </span>
                 </div>
               </DropdownMenuTrigger>
@@ -175,7 +187,7 @@ export function NavbarClient({ user, profile }: NavbarClientProps) {
                   <DropdownMenuLabel>
                     <div className="flex flex-col space-y-1">
                       <p className="text-sm font-medium leading-none">{(profile?.full_name as string) || user?.email || 'Người dùng'}</p>
-                      <p className="text-xs leading-none text-muted-foreground mt-1">Ví: {formatCurrency(Number(profile?.balance || 0))}</p>
+                      <p className="text-xs leading-none text-muted-foreground mt-1">Ví: {formatCurrency(balance)}</p>
                     </div>
                   </DropdownMenuLabel>
                 </DropdownMenuGroup>

@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
 import { Order } from '@/types/order.type'
 import {
   Table,
@@ -53,6 +54,24 @@ export function UserOrderList({ initialData, total, shares = [] }: UserOrderList
   
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
+
+  useEffect(() => {
+    const supabase = createClient()
+    const channel = supabase
+      .channel('user-orders-live-sync')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'orders' },
+        () => {
+          router.refresh()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [router])
 
   const unifiedList = [
     ...initialData.map(o => ({ type: 'order', data: o, date: new Date(o.created_at).getTime() })),

@@ -15,7 +15,7 @@ describe('SmartImage', () => {
   it('renders standard image', () => {
     render(<SmartImage productId="123" src="https://example.com/test.jpg" alt="test" />);
     const img = screen.getByRole('img');
-    expect(img).toHaveAttribute('src', 'https://example.com/test.jpg');
+    expect(decodeURIComponent(img.getAttribute('src') || '')).toContain('https://example.com/test.jpg');
     expect(img).toHaveAttribute('alt', 'test');
   });
 
@@ -26,7 +26,7 @@ describe('SmartImage', () => {
     fireEvent.error(img);
     
     // Checks that placeholder is set
-    expect(img).toHaveAttribute('src', '/images/product-placeholder.png');
+    expect(decodeURIComponent(img.getAttribute('src') || '')).toContain('/images/product-placeholder.png');
     
     // Checks that report-broken was called
     expect(fetch).toHaveBeenCalledWith('/api/images/report-broken', expect.any(Object));

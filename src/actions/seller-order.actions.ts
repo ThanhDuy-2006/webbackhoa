@@ -73,6 +73,9 @@ export async function updateSellerOrderStatusAction(sellerOrderId: string, newSt
     if (error) throw new Error(error.message)
 
     revalidatePath('/tai-khoan/don-ban')
+    revalidatePath('/tai-khoan/don-hang')
+    revalidatePath('/tai-khoan/doanh-thu')
+    revalidatePath('/admin/orders')
     return { success: true }
   } catch (err: unknown) {
     const error = err as Error

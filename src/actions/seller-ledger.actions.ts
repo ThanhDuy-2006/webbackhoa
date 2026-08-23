@@ -140,9 +140,13 @@ export async function confirmBuyerOrderReceiptAction(sellerOrderId: string) {
 
     if (error) throw new Error(error.message)
 
+    revalidatePath('/tai-khoan')
     revalidatePath('/tai-khoan/don-hang')
     revalidatePath('/tai-khoan/don-ban')
     revalidatePath('/tai-khoan/doanh-thu')
+    revalidatePath('/tai-khoan/chia-tien')
+    revalidatePath('/tai-khoan/lich-su-giao-dich')
+    revalidatePath('/admin/orders')
     return { success: true }
   } catch (err: unknown) {
     const error = err as Error

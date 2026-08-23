@@ -1,7 +1,8 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, revalidateTag } from 'next/cache'
+import { CACHE_TAGS } from '@/lib/cache-tags'
 import { sanitizeSellerProductInput } from '@/schemas/seller-product.schema'
 import { ProductRepository } from '@/repositories/product.repository'
 async function authenticateSeller() {
@@ -87,6 +88,7 @@ export async function createSellerProductAction(rawInput: unknown) {
       payload: { name: newProduct.name, price: newProduct.price }
     }])
 
+    revalidateTag(CACHE_TAGS.STOREFRONT_PRODUCTS)
     revalidatePath('/')
     revalidatePath('/san-pham')
     revalidatePath('/tai-khoan/san-pham-cua-toi')
@@ -167,6 +169,7 @@ export async function updateSellerProductAction(productId: string, rawInput: unk
       }
     }
 
+    revalidateTag(CACHE_TAGS.STOREFRONT_PRODUCTS)
     revalidatePath('/')
     revalidatePath('/san-pham')
     revalidatePath(`/san-pham/${existing.slug}`)
@@ -191,6 +194,7 @@ export async function pauseSellerProductAction(productId: string) {
 
     if (error) throw new Error('Không thể tạm dừng sản phẩm')
 
+    revalidateTag(CACHE_TAGS.STOREFRONT_PRODUCTS)
     revalidatePath('/')
     revalidatePath('/san-pham')
     revalidatePath('/tai-khoan/san-pham-cua-toi')
@@ -213,6 +217,7 @@ export async function activateSellerProductAction(productId: string) {
 
     if (error) throw new Error('Không thể kích hoạt lại sản phẩm')
 
+    revalidateTag(CACHE_TAGS.STOREFRONT_PRODUCTS)
     revalidatePath('/')
     revalidatePath('/san-pham')
     revalidatePath('/tai-khoan/san-pham-cua-toi')
@@ -240,6 +245,7 @@ export async function softDeleteSellerProductAction(productId: string) {
 
     if (error) throw new Error('Không thể xóa sản phẩm')
 
+    revalidateTag(CACHE_TAGS.STOREFRONT_PRODUCTS)
     revalidatePath('/')
     revalidatePath('/san-pham')
     revalidatePath('/tai-khoan/san-pham-cua-toi')
@@ -330,6 +336,7 @@ export async function splitSellerProductAction(productId: string, splitAmount: n
       throw new Error('Lỗi khi tạo sản phẩm tách mới')
     }
 
+    revalidateTag(CACHE_TAGS.STOREFRONT_PRODUCTS)
     revalidatePath('/')
     revalidatePath('/san-pham')
     revalidatePath('/tai-khoan/san-pham-cua-toi')
@@ -414,6 +421,7 @@ export async function bulkCreateSellerProductsAction(rawInput: unknown[]) {
     }))
     await supabase.from('audit_logs').insert(auditPayloads)
 
+    revalidateTag(CACHE_TAGS.STOREFRONT_PRODUCTS)
     revalidatePath('/')
     revalidatePath('/san-pham')
     revalidatePath('/tai-khoan/san-pham-cua-toi')

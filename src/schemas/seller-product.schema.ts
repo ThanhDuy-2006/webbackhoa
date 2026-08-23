@@ -26,7 +26,7 @@ export const sellerProductSchema = z.object({
   }
   return true;
 }, {
-  message: "Giá khuyến mãi phải nhỏ hơn giá gốc",
+  message: "Giá khuyến mãi phải nhỏ hơn giá gốc sản phẩm",
   path: ["sale_price"]
 })
 

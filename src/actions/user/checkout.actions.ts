@@ -1,7 +1,8 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, revalidateTag } from 'next/cache'
+import { CACHE_TAGS } from '@/lib/cache-tags'
 import crypto from 'crypto'
 
 export async function processCheckout(
@@ -59,9 +60,30 @@ export async function processCheckout(
       throw new Error(rpcError.message || 'Lỗi khi xử lý thanh toán tự động')
     }
 
+    // Invalidate product cache & storefront tags
+    revalidateTag(CACHE_TAGS.STOREFRONT_PRODUCTS)
+    revalidatePath('/')
+    revalidatePath('/san-pham')
+
+    // Invalidate product details for purchased items if slug available
+    for (const item of items) {
+      if (item.slug) {
+        revalidatePath(`/san-pham/${item.slug}`)
+      }
+    }
+
+    // Invalidate buyer and seller portal pages
+    revalidatePath('/tai-khoan')
     revalidatePath('/tai-khoan/don-hang')
     revalidatePath('/tai-khoan/don-ban')
+    revalidatePath('/tai-khoan/san-pham-cua-toi')
+    revalidatePath('/tai-khoan/doanh-thu')
+    revalidatePath('/tai-khoan/chia-tien')
+    revalidatePath('/tai-khoan/lich-su-giao-dich')
+    revalidatePath('/tai-khoan/lich-su-chung')
+    revalidatePath('/tai-khoan/nap-tien')
     revalidatePath('/admin/orders')
+    revalidatePath('/admin/products')
     
     return { success: true, data: orderId }
   } catch (err: unknown) {
