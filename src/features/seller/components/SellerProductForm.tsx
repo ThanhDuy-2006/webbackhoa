@@ -115,11 +115,9 @@ export function SellerProductForm({ categories, initialData }: SellerProductForm
     }
   }
 
-  // Auto-generate image from name (debounced with requestId race-condition guard)
+  // Auto-generate image from name / fetch suggestions (debounced with requestId race-condition guard)
   useEffect(() => {
-    const currentUrl = watch('image_url')
-    
-    if (productName && productName.trim().length >= 2 && !currentUrl) {
+    if (productName && productName.trim().length >= 2) {
       const currentRequestId = ++requestIdRef.current
 
       const timer = setTimeout(async () => {
@@ -135,18 +133,24 @@ export function SellerProductForm({ categories, initialData }: SellerProductForm
 
           if (currentRequestId !== requestIdRef.current) return
 
+          const list = (res.candidates && res.candidates.length > 0)
+            ? res.candidates
+            : (res.url ? [{ id: 'cand-auto', url: res.url, thumbnailUrl: res.url, metadataScore: 90, provider: 'auto' }] : [])
+
           if (res.status === 'auto_selected' && res.url) {
-            setValue('image_url', res.url, { shouldValidate: true })
-            setCandidates([])
+            if (!watch('image_url')) {
+              setValue('image_url', res.url, { shouldValidate: true })
+            }
+            setCandidates(list)
             setCandidateSessionId(null)
           } else if (res.status === 'manual_selection_required') {
             setCandidateSessionId(res.candidateSessionId)
-            setCandidates(res.candidates)
+            setCandidates(list)
             setVerificationStatus(res.verificationStatus)
             setImageError(res.reason)
 
-            if (res.candidates.length > 0) {
-              setValue('image_url', res.candidates[0].url, { shouldValidate: true })
+            if (list.length > 0 && !watch('image_url')) {
+              setValue('image_url', list[0].url, { shouldValidate: true })
             }
           } else if (res.status === 'not_found') {
             setCandidates([])
@@ -194,20 +198,24 @@ export function SellerProductForm({ categories, initialData }: SellerProductForm
 
       if (currentRequestId !== requestIdRef.current) return
 
+      const list = (res.candidates && res.candidates.length > 0)
+        ? res.candidates
+        : (res.url ? [{ id: 'cand-auto', url: res.url, thumbnailUrl: res.url, metadataScore: 90, provider: 'auto' }] : [])
+
       if (res.status === 'auto_selected' && res.url) {
         setValue('image_url', res.url, { shouldValidate: true })
-        setCandidates([])
+        setCandidates(list)
         setCandidateSessionId(null)
-        toast.success('Đã tự động chọn ảnh phù hợp nhất')
+        toast.success('Đã gợi ý hình ảnh phù hợp')
       } else if (res.status === 'manual_selection_required') {
         setCandidateSessionId(res.candidateSessionId)
-        setCandidates(res.candidates)
+        setCandidates(list)
         setVerificationStatus(res.verificationStatus)
         setImageError(res.reason)
 
-        if (res.candidates.length > 0) {
-          setValue('image_url', res.candidates[0].url, { shouldValidate: true })
-          toast.success(`Đã tự động chọn ảnh có điểm cao nhất (${res.candidates[0].metadataScore}/100)`)
+        if (list.length > 0) {
+          setValue('image_url', list[0].url, { shouldValidate: true })
+          toast.success(`Đã tìm thấy ${list.length} gợi ý ảnh phù hợp`)
         } else {
           toast.info('Vui lòng chọn 1 trong các ảnh gợi ý bên dưới')
         }
@@ -485,7 +493,7 @@ export function SellerProductForm({ categories, initialData }: SellerProductForm
                   <Button 
                     type="button" 
                     variant="link" 
-                    onClick={() => handleGenerateImage(false)} 
+                    onClick={() => handleGenerateImage(true)} 
                     className="mt-1 h-auto p-0 text-xs text-emerald-600 font-semibold"
                   >
                     Tự động tìm ảnh

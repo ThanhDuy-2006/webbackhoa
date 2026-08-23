@@ -590,7 +590,7 @@ export function SellerProductImportClient({ categories }: Props) {
                               variant="outline"
                               size="xs"
                               className="text-[11px] h-6 px-2"
-                              onClick={() => handleSearchImageForRow(prod)}
+                              onClick={() => { setSelectedRowForImage(prod); if (!prod.candidates || prod.candidates.length === 0) handleSearchImageForRow(prod); }}
                             >
                               <Search className="w-3 h-3 mr-1" />
                               {prod.image_url ? 'Đổi ảnh' : 'Tìm ảnh'}

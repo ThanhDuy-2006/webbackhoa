@@ -348,22 +348,36 @@ export function ProductImportClient({ categories }: Props) {
         true
       )
 
+      const resolvedCandidates = (res.candidates && res.candidates.length > 0)
+        ? res.candidates
+        : (res.url ? [{ id: 'cand-auto', url: res.url, thumbnailUrl: res.url, metadataScore: 90, provider: 'auto' }] : [])
+
+      handleUpdateRow(row.tempId, 'candidates', resolvedCandidates)
+
       if (res.status === 'auto_selected' && res.url) {
-        handleUpdateRow(row.tempId, 'image_url', res.url)
-        setSelectedRowForImage(prev => prev ? { ...prev, image_url: res.url, candidates: [] } : null)
-        toast.success(`Đã tự động chọn ảnh phù hợp nhất cho ${row.name}`)
+        if (!row.image_url) {
+          handleUpdateRow(row.tempId, 'image_url', res.url)
+        }
+        setSelectedRowForImage(prev => prev ? { 
+          ...prev, 
+          image_url: prev.image_url || res.url, 
+          candidates: resolvedCandidates,
+          candidateSessionId: null,
+          imageError: null
+        } : null)
+        toast.success(`Đã tìm thấy ${resolvedCandidates.length} gợi ý ảnh cho ${row.name}`)
       } else if (res.status === 'manual_selection_required' && res.candidates) {
+        if (!row.image_url && res.candidates.length > 0) {
+          handleUpdateRow(row.tempId, 'image_url', res.candidates[0].url)
+        }
         setSelectedRowForImage(prev => prev ? {
           ...prev,
+          image_url: prev.image_url || (res.candidates.length > 0 ? res.candidates[0].url : ''),
           candidateSessionId: res.candidateSessionId,
           candidates: res.candidates,
           imageError: res.reason
         } : null)
-
-        // Pre-select top candidate
-        if (res.candidates.length > 0) {
-          handleUpdateRow(row.tempId, 'image_url', res.candidates[0].url)
-        }
+        toast.success(`Đã tìm thấy ${res.candidates.length} gợi ý ảnh cho ${row.name}`)
       } else if (res.status === 'not_found') {
         toast.error(res.reason)
       } else if (res.status === 'error') {
@@ -600,7 +614,7 @@ export function ProductImportClient({ categories }: Props) {
                               variant="outline"
                               size="xs"
                               className="text-[11px] h-6 px-2"
-                              onClick={() => handleSearchImageForRow(prod)}
+                              onClick={() => { setSelectedRowForImage(prod); if (!prod.candidates || prod.candidates.length === 0) handleSearchImageForRow(prod); }}
                             >
                               <Search className="w-3 h-3 mr-1" />
                               {prod.image_url ? 'Đổi ảnh' : 'Tìm ảnh'}

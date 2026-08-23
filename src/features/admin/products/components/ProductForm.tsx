@@ -185,12 +185,16 @@ export function ProductForm({ initialData, categories }: Props) {
 
       if (currentRequestId !== requestIdRef.current) return
 
+      const list = (res.candidates && res.candidates.length > 0)
+        ? res.candidates
+        : (res.url ? [{ id: 'cand-auto', url: res.url, thumbnailUrl: res.url, metadataScore: 90, provider: 'auto' }] : [])
+
       if (res.status === 'auto_selected' && res.url) {
         setValue('image_url', res.url, { shouldValidate: true })
         setValue('image_source', 'auto')
-        setCandidates([])
+        setCandidates(list)
         setCandidateSessionId(null)
-        toast.success('Đã tự động chọn ảnh phù hợp nhất')
+        toast.success('Đã gợi ý hình ảnh phù hợp')
       } else if (res.status === 'manual_selection_required') {
         setCandidateSessionId(res.candidateSessionId)
         setCandidates(res.candidates)

@@ -60,42 +60,52 @@ export async function generateProductImageAction(
       return { status: 'error' as const, message: 'Tên sản phẩm quá ngắn để tìm kiếm ảnh.' }
     }
 
-    const localMap = getLocalImageMap();
-    const searchName = productName.toLowerCase().trim();
-    if (localMap) {
-      let matchedUrl: string | null = null;
-      
-      if (localMap.has(searchName)) {
-        matchedUrl = localMap.get(searchName)!;
-      } else {
-        const keys = Array.from(localMap.keys()).sort((a, b) => b.length - a.length);
-        for (const key of keys) {
-          if (searchName.includes(key) || key.includes(searchName)) {
-            matchedUrl = localMap.get(key)!;
-            break;
+    if (!bypassCache) {
+      const localMap = getLocalImageMap();
+      const searchName = productName.toLowerCase().trim();
+      if (localMap) {
+        let matchedUrl: string | null = null;
+        
+        if (localMap.has(searchName)) {
+          matchedUrl = localMap.get(searchName)!;
+        } else {
+          const keys = Array.from(localMap.keys()).sort((a, b) => b.length - a.length);
+          for (const key of keys) {
+            if (searchName.includes(key) || key.includes(searchName)) {
+              matchedUrl = localMap.get(key)!;
+              break;
+            }
           }
         }
-      }
 
-      if (matchedUrl) {
-        if (productId) {
-          const supabaseAdmin = createAdminClient();
-          await supabaseAdmin
-            .from('products')
-            .update({
-              image_url: matchedUrl,
-              image_source: 'auto',
-              image_status: 'valid',
-              images: [matchedUrl]
-            })
-            .eq('id', productId);
+        if (matchedUrl && (!excludeUrl || excludeUrl !== matchedUrl)) {
+          if (productId) {
+            const supabaseAdmin = createAdminClient();
+            await supabaseAdmin
+              .from('products')
+              .update({
+                image_url: matchedUrl,
+                image_source: 'auto',
+                image_status: 'valid',
+                images: [matchedUrl]
+              })
+              .eq('id', productId);
+          }
+          
+          return { 
+            status: 'auto_selected' as const,
+            url: matchedUrl,
+            candidates: [
+              {
+                id: 'local-match',
+                url: matchedUrl,
+                thumbnailUrl: matchedUrl,
+                metadataScore: 100,
+                provider: 'local',
+              }
+            ]
+          };
         }
-        
-        return { 
-          status: 'auto_selected' as const,
-          url: matchedUrl,
-          candidates: []
-        };
       }
     }
 
