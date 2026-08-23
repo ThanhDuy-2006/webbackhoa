@@ -1,11 +1,23 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useForm, useFieldArray, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { ArrowLeft, Upload, Plus, Trash2, Loader2, Image as ImageIcon, Sparkles } from 'lucide-react'
+import { 
+  ArrowLeft, 
+  Upload, 
+  Plus, 
+  Trash2, 
+  Loader2, 
+  Image as ImageIcon, 
+  Sparkles, 
+  RefreshCw, 
+  ExternalLink, 
+  AlertCircle, 
+  CheckCircle 
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -15,7 +27,8 @@ import { Product } from '@/types/product.type'
 import { sellerProductSchema, SellerProductInput } from '@/schemas/seller-product.schema'
 import { createSellerProductAction, updateSellerProductAction } from '@/actions/seller-product.actions'
 import { uploadSellerProductImage } from '@/lib/storage/seller-image-upload'
-import { searchPexelsImagesPublicAction } from '@/actions/product-public.actions'
+import { generateProductImageAction } from '@/actions/admin/image.actions'
+import { ImageCandidate, VisualVerificationStatus } from '@/lib/images/types'
 import { SmartImage } from '@/components/ui/smart-image'
 import { toast } from 'sonner'
 
@@ -28,8 +41,18 @@ export function SellerProductForm({ categories, initialData }: SellerProductForm
   const router = useRouter()
   const [submitting, setSubmitting] = useState(false)
   const [uploadingImage, setUploadingImage] = useState(false)
-  const [autoSearchingImage, setAutoSearchingImage] = useState(false)
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false)
+  const [imageError, setImageError] = useState<string | null>(null)
   const [priceMode, setPriceMode] = useState<'unit' | 'total'>('unit')
+
+  // Candidates UI state (matching Admin ProductForm)
+  const [candidateSessionId, setCandidateSessionId] = useState<string | null>(null)
+  const [candidates, setCandidates] = useState<ImageCandidate[]>([])
+  const [verificationStatus, setVerificationStatus] = useState<VisualVerificationStatus | null>(null)
+
+  // Race condition & session tracking
+  const requestIdRef = useRef<number>(0)
+  const formSessionIdRef = useRef<string>(crypto.randomUUID())
 
   const isEdit = Boolean(initialData)
 
@@ -81,6 +104,8 @@ export function SellerProductForm({ categories, initialData }: SellerProductForm
       const res = await uploadSellerProductImage(file)
       if (res.success && res.url) {
         setValue('image_url', res.url, { shouldValidate: true })
+        setCandidates([])
+        setCandidateSessionId(null)
         toast.success('Đã tải ảnh sản phẩm lên thành công!')
       } else {
         toast.error(res.error || 'Lỗi tải ảnh')
@@ -90,54 +115,133 @@ export function SellerProductForm({ categories, initialData }: SellerProductForm
     }
   }
 
-  // Optional Pexels Auto Image Generator
-  const handleAutoSearchImage = async () => {
+  // Auto-generate image from name (debounced with requestId race-condition guard)
+  useEffect(() => {
+    const currentUrl = watch('image_url')
+    
+    if (productName && productName.trim().length >= 2 && !currentUrl) {
+      const currentRequestId = ++requestIdRef.current
+
+      const timer = setTimeout(async () => {
+        setIsGeneratingImage(true)
+        setImageError(null)
+        try {
+          const res = await generateProductImageAction(
+            productName, 
+            initialData?.id, 
+            formSessionIdRef.current, 
+            false
+          )
+
+          if (currentRequestId !== requestIdRef.current) return
+
+          if (res.status === 'auto_selected' && res.url) {
+            setValue('image_url', res.url, { shouldValidate: true })
+            setCandidates([])
+            setCandidateSessionId(null)
+          } else if (res.status === 'manual_selection_required') {
+            setCandidateSessionId(res.candidateSessionId)
+            setCandidates(res.candidates)
+            setVerificationStatus(res.verificationStatus)
+            setImageError(res.reason)
+
+            if (res.candidates.length > 0) {
+              setValue('image_url', res.candidates[0].url, { shouldValidate: true })
+            }
+          } else if (res.status === 'not_found') {
+            setCandidates([])
+            setCandidateSessionId(null)
+            setVerificationStatus(res.verificationStatus)
+            setImageError(res.reason)
+          } else if (res.status === 'error') {
+            setImageError(res.message)
+          }
+        } catch (e) {
+          console.error(e)
+        } finally {
+          if (currentRequestId === requestIdRef.current) {
+            setIsGeneratingImage(false)
+          }
+        }
+      }, 800)
+      
+      return () => clearTimeout(timer)
+    }
+  }, [productName, initialData, setValue, watch])
+
+  const handleGenerateImage = async (bypassCache: boolean = false) => {
     if (!productName || productName.trim().length < 2) {
-      toast.error('Vui lòng nhập tên sản phẩm trước khi tìm ảnh tự động')
+      toast.error('Vui lòng nhập tên sản phẩm trước (ít nhất 2 ký tự)')
       return
     }
 
-    setAutoSearchingImage(true)
+    const currentRequestId = ++requestIdRef.current
+    setIsGeneratingImage(true)
+    setImageError(null)
+
     try {
-      const pexelsUrl = await searchPexelsImagesPublicAction(productName)
-      if (pexelsUrl) {
-        setValue('image_url', pexelsUrl, { shouldValidate: true })
-        toast.success('Đã tự động tìm được hình ảnh phù hợp!')
-      } else {
-        toast.error('Không tìm thấy ảnh tự động phù hợp. Vui lòng tải ảnh thủ công.')
+      const currentUrl = watch('image_url')
+      const excludeUrl = bypassCache && currentUrl ? currentUrl : undefined
+
+      const res = await generateProductImageAction(
+        productName,
+        initialData?.id,
+        formSessionIdRef.current,
+        bypassCache,
+        excludeUrl,
+        candidateSessionId
+      )
+
+      if (currentRequestId !== requestIdRef.current) return
+
+      if (res.status === 'auto_selected' && res.url) {
+        setValue('image_url', res.url, { shouldValidate: true })
+        setCandidates([])
+        setCandidateSessionId(null)
+        toast.success('Đã tự động chọn ảnh phù hợp nhất')
+      } else if (res.status === 'manual_selection_required') {
+        setCandidateSessionId(res.candidateSessionId)
+        setCandidates(res.candidates)
+        setVerificationStatus(res.verificationStatus)
+        setImageError(res.reason)
+
+        if (res.candidates.length > 0) {
+          setValue('image_url', res.candidates[0].url, { shouldValidate: true })
+          toast.success(`Đã tự động chọn ảnh có điểm cao nhất (${res.candidates[0].metadataScore}/100)`)
+        } else {
+          toast.info('Vui lòng chọn 1 trong các ảnh gợi ý bên dưới')
+        }
+      } else if (res.status === 'not_found') {
+        setCandidates([])
+        setCandidateSessionId(null)
+        setVerificationStatus(res.verificationStatus)
+        setImageError(res.reason)
+        toast.error(res.reason)
+      } else if (res.status === 'error') {
+        setImageError(res.message)
+        toast.error(res.message)
       }
-    } catch {
-      toast.error('Lỗi khi tự động tìm ảnh')
+    } catch (e: any) {
+      toast.error(e?.message || 'Lỗi khi tìm ảnh')
     } finally {
-      setAutoSearchingImage(false)
+      if (currentRequestId === requestIdRef.current) {
+        setIsGeneratingImage(false)
+      }
     }
   }
 
-  // Auto-fetch image when product name changes (debounced)
-  useEffect(() => {
-    if (!productName || productName.trim().length < 2) return
-    
-    // Only auto-fetch if there's no image or if the current image is already from Pexels
-    // This prevents overwriting a manually uploaded image
-    if (currentImageUrl && !currentImageUrl.includes('pexels.com')) return
+  const handleSelectCandidate = (candidate: ImageCandidate) => {
+    setValue('image_url', candidate.url, { shouldValidate: true })
+    toast.success('Đã chọn hình ảnh sản phẩm')
+  }
 
-    const timer = setTimeout(async () => {
-      setAutoSearchingImage(true)
-      try {
-        const pexelsUrl = await searchPexelsImagesPublicAction(productName)
-        if (pexelsUrl) {
-          setValue('image_url', pexelsUrl, { shouldValidate: true })
-        }
-      } catch (e) {
-        console.error(e)
-      } finally {
-        setAutoSearchingImage(false)
-      }
-    }, 1000)
-
-    return () => clearTimeout(timer)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [productName, setValue])
+  const handleRefreshPreview = () => {
+    const current = watch('image_url')
+    if (current) {
+      setValue('image_url', '')
+      setTimeout(() => setValue('image_url', current), 50)
+    }
+  }
 
   const onSubmit = async (data: SellerProductInput) => {
     setSubmitting(true)
@@ -198,43 +302,45 @@ export function SellerProductForm({ categories, initialData }: SellerProductForm
         <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-4">
           <h2 className="text-base font-bold text-slate-900 border-b border-slate-100 pb-3">Thông tin cơ bản</h2>
 
-          <div className="space-y-2">
-            <Label htmlFor="name" className="font-semibold text-slate-700">Tên sản phẩm *</Label>
-            <Input
-              id="name"
-              {...register('name')}
-              placeholder="VD: Tai nghe Bluetooth không dây Chống ồn"
-              className="rounded-xl"
-            />
-            {errors.name?.message && <p className="text-xs text-rose-600 font-medium">{String(errors.name.message)}</p>}
-          </div>
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="name" className="font-semibold text-slate-700">Tên sản phẩm *</Label>
+              <Input
+                id="name"
+                {...register('name')}
+                placeholder="VD: Cà chua sạch Đà Lạt 1kg"
+                className="rounded-xl"
+              />
+              {errors.name?.message && <p className="text-xs text-rose-600 font-medium">{String(errors.name.message)}</p>}
+            </div>
+
             <div className="space-y-2">
-              <Label htmlFor="category_id" className="font-semibold text-slate-700">Danh mục sản phẩm *</Label>
+              <Label htmlFor="category_id" className="font-semibold text-slate-700">Danh mục sản phẩm</Label>
               <select
                 id="category_id"
                 {...register('category_id')}
-                className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full h-10 px-3 py-2 text-sm bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
               >
                 <option value="">-- Chọn danh mục --</option>
-                {categories?.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
+                {categories.map((cat) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </option>
                 ))}
               </select>
               {errors.category_id?.message && <p className="text-xs text-rose-600 font-medium">{String(errors.category_id.message)}</p>}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="listing_status" className="font-semibold text-slate-700">Trạng thái đăng bán</Label>
+              <Label htmlFor="listing_status" className="font-semibold text-slate-700">Trạng thái đăng</Label>
               <select
                 id="listing_status"
                 {...register('listing_status')}
-                className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full h-10 px-3 py-2 text-sm bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
               >
-                <option value="active">Đang bán (Công khai ngay)</option>
+                <option value="active">Đăng bán ngay (Công khai)</option>
+                <option value="draft">Lưu bản nháp (Chưa bán)</option>
                 <option value="paused">Tạm dừng bán</option>
-                <option value="draft">Bản nháp</option>
               </select>
             </div>
           </div>
@@ -245,7 +351,7 @@ export function SellerProductForm({ categories, initialData }: SellerProductForm
               id="description"
               {...register('description')}
               rows={4}
-              placeholder="Nhập chi tiết về tình trạng sản phẩm, xuất xứ, tính năng nổi bật..."
+              placeholder="Mô tả nguồn gốc, chất lượng, cách bảo quản..."
               className="rounded-xl"
             />
           </div>
@@ -347,23 +453,48 @@ export function SellerProductForm({ categories, initialData }: SellerProductForm
           </div>
         </div>
 
-        {/* Image Upload Card */}
+        {/* Image Upload & Suggestion Card */}
         <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-4">
           <h2 className="text-base font-bold text-slate-900 border-b border-slate-100 pb-3">Hình ảnh sản phẩm</h2>
 
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
-            <div className="w-32 h-32 rounded-2xl bg-slate-50 border-2 border-dashed border-slate-200 overflow-hidden relative shrink-0 flex items-center justify-center">
-              {currentImageUrl ? (
-                <SmartImage src={currentImageUrl} alt="Xem trước ảnh" fill className="object-cover" />
+            <div className="w-36 h-36 rounded-2xl bg-slate-50 border-2 border-dashed border-slate-200 overflow-hidden relative shrink-0 flex items-center justify-center group">
+              {isGeneratingImage ? (
+                <div className="flex flex-col items-center gap-2 text-slate-400 p-2 text-center">
+                  <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
+                  <span className="text-[11px] font-medium">Đang tìm ảnh...</span>
+                </div>
+              ) : currentImageUrl ? (
+                <div className="relative w-full h-full">
+                  <SmartImage src={currentImageUrl} alt="Xem trước ảnh" fill className="object-cover" />
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    className="absolute top-1.5 right-1.5 opacity-80 hover:opacity-100 h-6 px-1.5 text-[10px] rounded-lg shadow-sm"
+                    onClick={handleRefreshPreview}
+                    title="Làm mới ảnh xem trước"
+                  >
+                    <RefreshCw className="w-3 h-3 mr-1" /> Làm mới
+                  </Button>
+                </div>
               ) : (
-                <div className="text-center p-3">
+                <div className="flex flex-col items-center text-slate-400 p-3 text-center">
                   <ImageIcon className="w-8 h-8 text-slate-300 mx-auto" />
                   <span className="text-[10px] text-slate-400 mt-1 block">Chưa có ảnh</span>
+                  <Button 
+                    type="button" 
+                    variant="link" 
+                    onClick={() => handleGenerateImage(false)} 
+                    className="mt-1 h-auto p-0 text-xs text-emerald-600 font-semibold"
+                  >
+                    Tự động tìm ảnh
+                  </Button>
                 </div>
               )}
             </div>
 
-            <div className="space-y-3 flex-1">
+            <div className="space-y-3 flex-1 w-full">
               <div className="flex flex-wrap gap-2">
                 <label className="inline-flex items-center px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold cursor-pointer shadow-sm transition-all">
                   {uploadingImage ? (
@@ -372,7 +503,7 @@ export function SellerProductForm({ categories, initialData }: SellerProductForm
                     </>
                   ) : (
                     <>
-                      <Upload className="w-4 h-4 mr-2" /> Tải ảnh thực tế từ thiết bị
+                      <Upload className="w-4 h-4 mr-2" /> Tải ảnh từ thiết bị
                     </>
                   )}
                   <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleFileUpload} className="hidden" disabled={uploadingImage} />
@@ -382,31 +513,151 @@ export function SellerProductForm({ categories, initialData }: SellerProductForm
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={handleAutoSearchImage}
-                  disabled={autoSearchingImage}
-                  className="rounded-xl text-xs"
+                  onClick={() => handleGenerateImage(false)}
+                  disabled={isGeneratingImage}
+                  className="rounded-xl text-xs cursor-pointer border-slate-200 hover:bg-slate-50"
                 >
-                  {autoSearchingImage ? (
+                  {isGeneratingImage ? (
                     <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Đang tìm ảnh...
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin text-emerald-600" /> Đang tìm ảnh...
                     </>
                   ) : (
                     <>
-                      <Sparkles className="w-4 h-4 mr-2 text-amber-500" /> Tự động gán ảnh Pexels
+                      <Sparkles className="w-4 h-4 mr-2 text-amber-500" /> Tự động gợi ý ảnh
                     </>
                   )}
                 </Button>
               </div>
 
-              <p className="text-xs text-slate-500">Chấp nhận ảnh JPG, PNG, WEBP tối đa 5MB. Ảnh sẽ được tự động bảo mật qua Supabase Storage.</p>
+              <p className="text-xs text-slate-500">Chấp nhận ảnh JPG, PNG, WEBP tối đa 5MB hoặc chọn gợi ý ảnh tự động từ hệ thống.</p>
               
               <Input
                 {...register('image_url')}
                 placeholder="Hoặc dán URL đường dẫn ảnh trực tiếp..."
                 className="rounded-xl text-xs"
+                onChange={(e) => {
+                  setValue('image_url', e.target.value)
+                  setCandidates([])
+                  setCandidateSessionId(null)
+                }}
               />
             </div>
           </div>
+
+          {/* Manual Selection Candidate Grid (Top 5 / Gợi ý ảnh) */}
+          {candidates.length > 0 && (
+            <div className="mt-4 border-t border-slate-100 pt-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="font-semibold text-slate-800 text-sm">
+                  Gợi ý hình ảnh (Top {candidates.length}):
+                </Label>
+                <Button 
+                  type="button" 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => handleGenerateImage(true)}
+                  disabled={isGeneratingImage}
+                  className="text-xs text-slate-600 hover:text-emerald-600 cursor-pointer"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 mr-1 ${isGeneratingImage ? 'animate-spin' : ''}`} /> Thử tìm lại
+                </Button>
+              </div>
+
+              {verificationStatus === 'not_available' && (
+                <div className="flex items-start gap-2 p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800">
+                  <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                  <span>Chưa cấu hình kiểm tra hình ảnh bằng AI. Vui lòng chọn ảnh thủ công bên dưới.</span>
+                </div>
+              )}
+
+              {imageError && (
+                <div className="flex items-start gap-2 p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800">
+                  <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                  <span>{imageError}</span>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                {candidates.map((cand) => {
+                  const isSelected = watch('image_url') === cand.url
+                  return (
+                    <div
+                      key={cand.id}
+                      className={`border rounded-xl p-2.5 flex flex-col justify-between space-y-2 transition shadow-sm ${
+                        isSelected
+                          ? 'border-emerald-500 bg-emerald-50/40 ring-2 ring-emerald-500/20'
+                          : 'border-slate-200 bg-white hover:border-emerald-300'
+                      }`}
+                    >
+                      <div className="relative h-32 bg-slate-50 rounded-lg overflow-hidden flex items-center justify-center border border-slate-100">
+                        <img
+                          src={cand.thumbnailUrl || cand.url}
+                          alt="Candidate"
+                          className="max-h-full max-w-full object-contain"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = '/placeholder.png'
+                          }}
+                        />
+                        {isSelected && (
+                          <span className="absolute top-1.5 right-1.5 bg-emerald-600 text-white text-[10px] font-semibold px-2 py-0.5 rounded shadow">
+                            ✓ Đang chọn
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="text-xs space-y-1">
+                        <div className="flex justify-between text-slate-600">
+                          <span>Điểm metadata:</span>
+                          <span className="font-semibold text-slate-800">{cand.metadataScore}/100</span>
+                        </div>
+
+                        {cand.visualScore !== undefined && (
+                          <div className="flex justify-between text-blue-600">
+                            <span>Độ phù hợp do AI đánh giá:</span>
+                            <span className="font-semibold">{cand.visualScore}/100</span>
+                          </div>
+                        )}
+
+                        {cand.sourcePageUrl && (
+                          <a
+                            href={cand.sourcePageUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[10px] text-slate-400 hover:text-emerald-600 hover:underline flex items-center gap-1 truncate max-w-full"
+                          >
+                            Nguồn: Pexels <ExternalLink className="w-2.5 h-2.5 inline" />
+                          </a>
+                        )}
+                      </div>
+
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={isSelected ? "outline" : "default"}
+                        className={`w-full text-xs font-semibold rounded-lg cursor-pointer ${
+                          isSelected
+                            ? "border-emerald-500 text-emerald-700 bg-emerald-50 hover:bg-emerald-100"
+                            : "bg-slate-900 hover:bg-slate-800 text-white"
+                        }`}
+                        onClick={() => handleSelectCandidate(cand)}
+                        disabled={isSelected}
+                      >
+                        {isSelected ? (
+                          <>
+                            <CheckCircle className="w-3.5 h-3.5 mr-1 text-emerald-600" /> Đang sử dụng
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle className="w-3.5 h-3.5 mr-1" /> Chọn ảnh này
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Variants Card (Optional) */}
@@ -421,7 +672,7 @@ export function SellerProductForm({ categories, initialData }: SellerProductForm
               variant="outline"
               size="sm"
               onClick={() => append({ name: '', price: null, stock: 10, is_active: true })}
-              className="rounded-xl text-xs"
+              className="rounded-xl text-xs cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5 mr-1" /> Thêm biến thể
             </Button>
@@ -463,7 +714,7 @@ export function SellerProductForm({ categories, initialData }: SellerProductForm
                   <div className="w-24">
                     <Input
                       type="number"
-                      {...register(`variants.${index}.stock`, { valueAsNumber: true })}
+                      {...register(`variants.${index}.stock`, { setValueAs: v => v === '' ? 0 : Number(v) })}
                       placeholder="Tồn kho"
                       className="rounded-lg text-xs bg-white"
                     />
@@ -471,9 +722,9 @@ export function SellerProductForm({ categories, initialData }: SellerProductForm
                   <Button
                     type="button"
                     variant="ghost"
-                    size="sm"
+                    size="icon"
                     onClick={() => remove(index)}
-                    className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-lg p-2"
+                    className="text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg cursor-pointer"
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>
@@ -483,15 +734,17 @@ export function SellerProductForm({ categories, initialData }: SellerProductForm
           )}
         </div>
 
-        {/* Submit Actions */}
+        {/* Submit Buttons */}
         <div className="flex items-center justify-end gap-3 pt-4">
           <Link href="/tai-khoan/san-pham-cua-toi">
-            <Button type="button" variant="outline" className="rounded-xl">Hủy bỏ</Button>
+            <Button type="button" variant="outline" className="rounded-xl px-6 cursor-pointer" disabled={submitting}>
+              Hủy
+            </Button>
           </Link>
           <Button
             type="submit"
             disabled={submitting}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold px-8 shadow-md shadow-emerald-600/20"
+            className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl px-8 font-semibold shadow-sm cursor-pointer"
           >
             {submitting ? (
               <>
@@ -500,7 +753,7 @@ export function SellerProductForm({ categories, initialData }: SellerProductForm
             ) : isEdit ? (
               'Cập nhật sản phẩm'
             ) : (
-              'Xác nhận đăng bán ngay'
+              'Đăng bán ngay'
             )}
           </Button>
         </div>
