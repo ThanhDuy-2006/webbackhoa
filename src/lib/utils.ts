@@ -6,5 +6,6 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('vi-VN').format(amount) + ' VND'
+  const numericAmount = Math.round(Number(amount) || 0)
+  return new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 0 }).format(numericAmount) + ' VND'
 }
