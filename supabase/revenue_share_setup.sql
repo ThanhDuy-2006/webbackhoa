@@ -595,6 +595,7 @@ AS $$
 DECLARE
   v_admin_id uuid;
   v_admin_name text;
+  v_admin_role text;
   v_admin_revenue_role text;
   v_share RECORD;
   v_tx_id uuid;
@@ -605,11 +606,11 @@ BEGIN
     RETURN json_build_object('success', false, 'error', 'Không xác định được danh tính người thực hiện');
   END IF;
 
-  SELECT full_name, revenue_role INTO v_admin_name, v_admin_revenue_role
+  SELECT full_name, role, revenue_role INTO v_admin_name, v_admin_role, v_admin_revenue_role
   FROM public.profiles
   WHERE id = v_admin_id;
 
-  IF v_admin_revenue_role != 'super_admin' THEN
+  IF COALESCE(v_admin_revenue_role, '') != 'super_admin' AND COALESCE(v_admin_role, '') != 'admin' THEN
     RETURN json_build_object('success', false, 'error', 'Chỉ Super Admin mới được thực hiện thu hồi thủ công');
   END IF;
 
