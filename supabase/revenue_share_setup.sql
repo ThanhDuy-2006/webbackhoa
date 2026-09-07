@@ -631,9 +631,9 @@ BEGIN
   SET status = 'reversed' 
   WHERE id = p_share_id;
 
-  -- 4. Khấu trừ tiền trong ví người nhận
+  -- 4. Khấu trừ tiền trong ví người nhận (Hoàn lại tiền đã bị trừ)
   UPDATE public.profiles 
-  SET balance = COALESCE(balance, 0) - v_share.amount
+  SET balance = ROUND(COALESCE(balance, 0) - v_share.amount, 0)
   WHERE id = v_share.recipient_id;
 
   -- 5. Tạo lịch sử ví giao dịch thu hồi (Hoàn trả lại tiền đã trừ trước đó nên ghi dương)
@@ -650,7 +650,7 @@ BEGIN
     'revenue_share_reversal',
     -v_share.amount,
     COALESCE(v_share.balance, 0),
-    COALESCE(v_share.balance, 0) - v_share.amount,
+    ROUND(COALESCE(v_share.balance, 0) - v_share.amount, 0),
     null,
     'Hoàn tiền chia sẻ chi phí sản phẩm thủ công ' || v_share.product_name_snapshot || ' bởi Super Admin ' || v_admin_name || ': +' || to_char(ABS(v_share.amount), 'FM999,999,999') || 'đ (Đơn ' || v_share.order_code_snapshot || ')'
   ) RETURNING id INTO v_tx_id;

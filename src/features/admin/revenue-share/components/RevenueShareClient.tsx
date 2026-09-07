@@ -345,7 +345,7 @@ export function RevenueShareClient({ products, categories, variants, users }: Pr
 
   // Manual Compensating Rollback for a group of shares
   const handleRollbackShare = async (shareIds: string[]) => {
-    if (!confirm('CẢNH BÁO: Bạn đang thực hiện giao dịch bù trừ để thu hồi tiền thủ công của chia sẻ này. Số dư ví người nhận sẽ bị trừ. Tiếp tục?')) return
+    if (!confirm('CẢNH BÁO: Bạn đang thực hiện hoàn trả lại tiền cho giao dịch chia sẻ chi phí này. Số tiền đã khấu trừ trước đó sẽ được hoàn trả lại vào ví người nhận. Bạn có chắc chắn muốn tiếp tục?')) return
 
     setLoading(true)
     let hasError = false

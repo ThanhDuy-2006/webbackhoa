@@ -809,10 +809,13 @@ export async function executeDirectCostSplitAction(data: {
     checkRevenueManager(adminProfile.revenue_role)
     const supabase = createAdminClient()
 
-    // 1. Calculate total net amount and map sellers
+    if (!data.products || data.products.length === 0) {
+      throw new Error('Vui lòng chọn ít nhất một sản phẩm')
+    }
+
+    // 1. Calculate total net amount and build product summary
     let totalNetAmount = 0
     const productNamesList: string[] = []
-    const sellerNetMap: Record<string, number> = {}
 
     for (const p of data.products) {
       const net = Math.max(0, (p.amount * p.quantity) - p.discount)
@@ -820,34 +823,28 @@ export async function executeDirectCostSplitAction(data: {
 
       // Lookup product/variant name for snapshotting
       let productName = 'Sản phẩm trực tiếp'
-      let seller_id = null
       
       if (p.variant_id) {
         const { data: v } = await supabase.from('product_variants').select('name, product_id').eq('id', p.variant_id).single()
         if (v) {
-          productName = v.name
-          const { data: prod } = await supabase.from('products').select('seller_id').eq('id', v.product_id).single()
-          if (prod) seller_id = prod.seller_id
+          const { data: prod } = await supabase.from('products').select('name').eq('id', v.product_id).single()
+          productName = prod ? `${prod.name} (${v.name})` : v.name
         }
       } else if (p.product_id) {
-        const { data: prod } = await supabase.from('products').select('name, seller_id').eq('id', p.product_id).single()
+        const { data: prod } = await supabase.from('products').select('name').eq('id', p.product_id).single()
         if (prod) {
           productName = prod.name
-          seller_id = prod.seller_id
         }
       }
       productNamesList.push(`${productName} (SL: ${p.quantity})`)
-
-      if (seller_id) {
-        sellerNetMap[seller_id] = (sellerNetMap[seller_id] || 0) + net
-      }
     }
 
+    totalNetAmount = Math.round(totalNetAmount)
     const combinedProductNames = productNamesList.join(', ')
     const recipientCount = data.recipients.length
     if (recipientCount === 0) throw new Error('Vui lòng chọn ít nhất một người nhận')
 
-    // 2. Process each recipient
+    // 2. Process each recipient and deduct cost share
     let totalDeducted = 0
     for (const r of data.recipients) {
       let shareAmount = 0
@@ -856,7 +853,6 @@ export async function executeDirectCostSplitAction(data: {
       } else if (data.sharing_method === 'percentage') {
         shareAmount = totalNetAmount * ((r.percentage || 0) / 100)
       } else if (data.sharing_method === 'fixed') {
-        // Fixed amount is entered as a direct value for the total split
         shareAmount = r.fixed_amount || 0
       }
 
@@ -872,18 +868,19 @@ export async function executeDirectCostSplitAction(data: {
         .eq('id', r.user_id)
         .single()
 
-      const currentBalance = profile ? (profile.balance || 0) : 0
+      const currentBalance = Math.round(profile ? (profile.balance || 0) : 0)
       const recipientName = profile ? (profile.full_name || profile.email) : 'Thành viên'
+      const newBalance = currentBalance - shareAmount
 
       // Deduct wallet balance
       const { error: wError } = await supabase
         .from('profiles')
-        .update({ balance: currentBalance - shareAmount })
+        .update({ balance: newBalance })
         .eq('id', r.user_id)
 
       if (wError) throw wError
 
-      // Insert wallet transaction
+      // Insert wallet transaction (negative amount for expense deduction)
       const { data: tx, error: txError } = await supabase
         .from('wallet_transactions')
         .insert({
@@ -891,15 +888,15 @@ export async function executeDirectCostSplitAction(data: {
           type: 'revenue_share',
           amount: -shareAmount,
           balance_before: currentBalance,
-          balance_after: currentBalance - shareAmount,
-          note: `Trừ tiền chia sẻ chi phí: ${combinedProductNames} (Tổng trừ: -${shareAmount.toLocaleString()}đ)`
+          balance_after: newBalance,
+          note: `Trừ tiền chia sẻ chi phí: ${combinedProductNames} (Tổng trừ: -${shareAmount.toLocaleString('vi-VN')}đ)`
         })
         .select()
         .single()
 
       if (txError) throw txError
 
-      // Insert product_revenue_shares record
+      // Insert product_revenue_shares record (status: 'completed', negative amount)
       const { error: shareError } = await supabase
         .from('product_revenue_shares')
         .insert({
@@ -920,100 +917,24 @@ export async function executeDirectCostSplitAction(data: {
       await supabase.from('notifications').insert({
         user_id: r.user_id,
         title: 'Chia sẻ chi phí sản phẩm',
-        message: `Tài khoản bị khấu trừ chi phí ${combinedProductNames}: -${shareAmount.toLocaleString()}đ`,
+        message: `Tài khoản bị khấu trừ chi phí ${combinedProductNames}: -${shareAmount.toLocaleString('vi-VN')}đ`,
         type: 'revenue_share',
         link: '/tai-khoan/chia-tien'
       })
     }
 
-    // 3. Pay the sellers if applicable
-    if (totalDeducted > 0 && totalNetAmount > 0) {
-      for (const [seller_id, net] of Object.entries(sellerNetMap)) {
-        if (net <= 0) continue
-        const sellerShare = Math.round(totalDeducted * (net / totalNetAmount))
-        if (sellerShare <= 0) continue
-
-        const { data: sellerProfile } = await supabase
-          .from('profiles')
-          .select('balance, full_name, email')
-          .eq('id', seller_id)
-          .single()
-
-        if (!sellerProfile) continue
-
-        const currentBalance = sellerProfile.balance || 0
-        const newBalance = currentBalance + sellerShare
-
-        const { error: wError } = await supabase
-          .from('profiles')
-          .update({ balance: newBalance })
-          .eq('id', seller_id)
-
-        if (wError) throw wError
-
-        const { error: txError } = await supabase
-          .from('wallet_transactions')
-          .insert({
-            user_id: seller_id,
-            type: 'revenue_share',
-            amount: sellerShare,
-            balance_before: currentBalance,
-            balance_after: newBalance,
-            note: `Nhận tiền chia sẻ từ sản phẩm: ${combinedProductNames} (+${sellerShare.toLocaleString()}đ)`
-          })
-
-        if (txError) throw txError
-
-        await supabase.from('notifications').insert({
-          user_id: seller_id,
-          title: 'Nhận tiền chia sẻ sản phẩm',
-          message: `Bạn được cộng +${sellerShare.toLocaleString()}đ từ việc chia tiền sản phẩm ${combinedProductNames}`,
-          type: 'revenue_share',
-          link: '/tai-khoan/lich-su-giao-dich'
-        })
-      }
-    }
-
-    // Cập nhật tồn kho hoặc ẩn sản phẩm
-    for (const p of data.products) {
-      if (p.variant_id) {
-        const { data: v } = await supabase.from('product_variants').select('stock').eq('id', p.variant_id).single()
-        if (v) {
-          const newStock = Math.max(0, (v.stock || 0) - p.quantity)
-          await supabase.from('product_variants').update({ stock: newStock }).eq('id', p.variant_id)
-        }
-      } else if (p.product_id) {
-        const { data: prod } = await supabase.from('products').select('stock').eq('id', p.product_id).single()
-        if (prod) {
-          const newStock = Math.max(0, (prod.stock || 0) - p.quantity)
-          if (newStock > 0) {
-            await supabase.from('products').update({ stock: newStock }).eq('id', p.product_id)
-          } else {
-            await supabase
-              .from('products')
-              .update({ 
-                stock: 0,
-                listing_status: 'deleted', 
-                is_deleted: true, 
-                is_active: false, 
-                deleted_at: new Date().toISOString() 
-              })
-              .eq('id', p.product_id)
-          }
-        }
-      }
-    }
-
-    // Insert public activity log
+    // 3. Insert public activity log
     await supabase.from('revenue_share_activities').insert({
       admin_name: adminProfile.full_name || admin.email,
       product_name: combinedProductNames,
       recipients_count: recipientCount,
-      total_amount: totalNetAmount,
-      description: `Admin ${adminProfile.full_name || admin.email} đã phân chia trực tiếp chi phí ${combinedProductNames} cho ${recipientCount} người. Tổng khấu trừ: -${totalNetAmount.toLocaleString()}đ.`
+      total_amount: totalDeducted,
+      description: `Admin ${adminProfile.full_name || admin.email} đã phân chia trực tiếp chi phí ${combinedProductNames} cho ${recipientCount} người. Tổng khấu trừ: -${totalDeducted.toLocaleString('vi-VN')}đ.`
     })
 
     revalidatePath('/admin/revenue-share')
+    revalidatePath('/admin/products')
+    revalidatePath('/products')
     return { success: true }
   } catch (error: any) {
     console.error('Lỗi khi chia tiền trực tiếp:', error)
