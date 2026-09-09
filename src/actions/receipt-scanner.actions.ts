@@ -25,6 +25,25 @@ export interface ScanReceiptResult {
   items?: ScannedReceiptItem[]
 }
 
+function parseVietnameseNumber(val: any): number {
+  if (typeof val === 'number') return Math.round(val)
+  if (!val) return 0
+  let str = String(val).trim().toLowerCase().replace(/đ|vnd|vnđ/g, '').trim()
+  // If number formatted like "4.200" or "21.000" or "74.250"
+  if (/^\d{1,3}(\.\d{3})+$/.test(str)) {
+    str = str.replace(/\./g, '')
+  } else if (/^\d{1,3}(,\d{3})+$/.test(str)) {
+    str = str.replace(/,/g, '')
+  } else if (str.includes('.') && !str.includes(',')) {
+    const parts = str.split('.')
+    if (parts.length === 2 && parts[1].length === 3) {
+      str = parts[0] + parts[1]
+    }
+  }
+  const cleanNum = parseFloat(str.replace(/[^\d.-]/g, ''))
+  return isNaN(cleanNum) ? 0 : Math.round(cleanNum)
+}
+
 export async function scanReceiptAction(base64ImageWithHeader: string): Promise<ScanReceiptResult> {
   try {
     const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY
@@ -62,8 +81,8 @@ Nhiệm vụ:
 1. Đọc và nhận diện toàn bộ danh sách sản phẩm/hàng hóa trong ảnh hóa đơn.
 2. Với từng sản phẩm:
    - "name": Tên chuẩn tiếng Việt, có dấu rõ ràng (bỏ các mã vạch số hoặc ký tự rác nếu có, ví dụ: "Rau muống gói 500g", "Thịt ba rọi heo 300g", "Nước mắm Nam Ngư 500ml", "Mì Hảo Hảo tôm chua cay").
-   - "stock": Số lượng mua (mặc định là 1 nếu là 1 gói/chai/món hoặc số kg làm tròn phù hợp, số nguyên >= 1).
-   - "price": Đơn giá của 1 đơn vị sản phẩm (số nguyên VNĐ). Nếu hóa đơn ghi tổng tiền dòng và số lượng, hãy tính đơn giá = tổng tiền dòng / số lượng.
+   - "stock": Số lượng mua dạng số nguyên (ví dụ: 1, 2, 3...; nếu 0.5kg hoặc đơn vị lẻ thì làm tròn số nguyên tối thiểu là 1).
+   - "price": Đơn giá của 1 đơn vị sản phẩm dạng SỐ NGUYÊN VNĐ KHÔNG DẤU CHẤM (Ví dụ: 4200, 7500, 21000, 6800, 7250. Tuyệt đối KHÔNG viết 4.200 hay 21.000). Nếu hóa đơn có giá giảm/khuyến mãi, hãy lấy giá thực tế đã giảm.
    - "category_slug": Danh mục phù hợp nhất từ danh sách sau:
 ${categoryListStr}
    - "expiry_days_estimate": Ước lượng số ngày sử dụng tốt nhất cho loại thực phẩm này kể từ ngày mua:
@@ -79,7 +98,7 @@ ${categoryListStr}
 Hãy trả về DUY NHẤT một chuỗi JSON hợp lệ theo định dạng sau (không bao gồm markdown hay chú thích thừa):
 {
   "merchant": "Tên siêu thị/cửa hàng nếu có",
-  "total_bill": 0,
+  "total_bill": 74250,
   "items": [
     {
       "name": "Tên sản phẩm",
@@ -92,32 +111,47 @@ Hãy trả về DUY NHẤT một chuỗi JSON hợp lệ theo định dạng sau
 }
 `
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: [
-        {
-          role: 'user',
-          parts: [
-            {
-              inlineData: {
-                data: base64Data,
-                mimeType: mimeType
-              }
-            },
-            {
-              text: prompt
-            }
-          ]
-        }
-      ],
-      config: {
-        responseMimeType: 'application/json',
-        temperature: 0.1,
-      }
-    })
+    const candidateModels = ['gemini-3.6-flash', 'gemini-3.8-flash', 'gemini-3.5-flash', 'gemini-2.5-flash']
+    let text = ''
+    let lastError: any = null
 
-    const text = response.text || ''
+    for (const modelName of candidateModels) {
+      try {
+        const res = await ai.models.generateContent({
+          model: modelName,
+          contents: [
+            {
+              role: 'user',
+              parts: [
+                {
+                  inlineData: {
+                    data: base64Data,
+                    mimeType: mimeType
+                  }
+                },
+                {
+                  text: prompt
+                }
+              ]
+            }
+          ],
+          config: {
+            responseMimeType: 'application/json',
+            temperature: 0.1,
+          }
+        })
+        if (res.text) {
+          text = res.text
+          break
+        }
+      } catch (e: any) {
+        console.warn(`Model ${modelName} failed, trying next candidate:`, e?.message)
+        lastError = e
+      }
+    }
+
     if (!text) {
+      if (lastError) throw lastError
       return {
         success: false,
         error: 'AI không đọc được nội dung từ ảnh hóa đơn. Vui lòng chụp rõ nét hơn.'
@@ -150,9 +184,9 @@ Hãy trả về DUY NHẤT một chuỗi JSON hợp lệ theo định dạng sau
       return {
         tempId: `scanned-${idx}-${Date.now()}`,
         name: String(item.name || '').trim(),
-        price: Number(item.price) || 0,
+        price: parseVietnameseNumber(item.price),
         sale_price: null,
-        stock: Number(item.stock) > 0 ? Number(item.stock) : 1,
+        stock: parseVietnameseNumber(item.stock) > 0 ? parseVietnameseNumber(item.stock) : 1,
         category_id: matchedCategory ? matchedCategory.id : (categories && categories.length > 0 ? categories[0].id : null),
         category_name: matchedCategory ? matchedCategory.name : null,
         expiry_date: calculatedExpiryDate,
@@ -163,7 +197,7 @@ Hãy trả về DUY NHẤT một chuỗi JSON hợp lệ theo định dạng sau
     return {
       success: true,
       merchantName: parsed.merchant,
-      totalBill: parsed.total_bill,
+      totalBill: parseVietnameseNumber(parsed.total_bill),
       items: scannedItems,
     }
   } catch (err: unknown) {
