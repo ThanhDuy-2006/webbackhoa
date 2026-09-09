@@ -1025,7 +1025,24 @@ export async function executeDirectCostSplitAction(data: {
       }
     }
 
-    // 4. Insert public activity log
+    // 4. Deduct product / variant stock quantity
+    for (const p of data.products) {
+      if (p.variant_id) {
+        const { data: v } = await supabase.from('product_variants').select('stock').eq('id', p.variant_id).single()
+        if (v) {
+          const newStock = Math.max(0, (v.stock || 0) - p.quantity)
+          await supabase.from('product_variants').update({ stock: newStock }).eq('id', p.variant_id)
+        }
+      } else if (p.product_id) {
+        const { data: prod } = await supabase.from('products').select('stock').eq('id', p.product_id).single()
+        if (prod) {
+          const newStock = Math.max(0, (prod.stock || 0) - p.quantity)
+          await supabase.from('products').update({ stock: newStock }).eq('id', p.product_id)
+        }
+      }
+    }
+
+    // 5. Insert public activity log
     await supabase.from('revenue_share_activities').insert({
       admin_name: adminProfile.full_name || admin.email,
       product_name: combinedProductNames,
