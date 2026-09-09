@@ -13,7 +13,7 @@ export const productVariantSchema = z.object({
 export const productSchema = z.object({
   name: z.string().min(1, 'Tên sản phẩm không được để trống'),
   slug: z.string().or(z.literal('')).optional().nullable(),
-  category_id: z.string().min(1, 'Danh mục không hợp lệ').or(z.literal('')).transform(val => val === '' ? null : val).optional().nullable(),
+  category_id: z.string({ required_error: 'Vui lòng chọn danh mục cho sản phẩm' }).min(1, 'Vui lòng chọn danh mục cho sản phẩm'),
   description: z.string().optional().nullable(),
   price: z.coerce.number().min(0, 'Giá không hợp lệ'),
   sale_price: z.preprocess((val) => val === '' ? null : val, z.coerce.number().min(0, 'Giá khuyến mãi không hợp lệ').optional().nullable()),

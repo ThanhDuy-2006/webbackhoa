@@ -41,6 +41,17 @@ describe('Peer-to-Peer (C2C) Marketplace Integration Tests', () => {
 
       expect(() => sanitizeSellerProductInput(invalidInput)).toThrow('Giá khuyến mãi phải nhỏ hơn giá gốc sản phẩm')
     })
+
+    it('rejects product without category_id', () => {
+      const missingCatInput = {
+        name: 'Sản phẩm không có danh mục',
+        category_id: '',
+        price: 100000,
+        stock: 10,
+      }
+
+      expect(() => sanitizeSellerProductInput(missingCatInput)).toThrow('Vui lòng chọn danh mục sản phẩm')
+    })
   })
 
   describe('Zero Platform Fee (0% Default) & Financial Calculations', () => {

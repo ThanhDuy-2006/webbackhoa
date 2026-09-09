@@ -408,6 +408,12 @@ export function ProductImportClient({ categories }: Props) {
       return
     }
 
+    const missingCategoryItems = validItems.filter(p => !p.category_id)
+    if (missingCategoryItems.length > 0) {
+      toast.error(`Có ${missingCategoryItems.length} sản phẩm chưa chọn danh mục (vd: "${missingCategoryItems[0].name}"). Vui lòng chọn danh mục cho tất cả sản phẩm trước khi nhập!`)
+      return
+    }
+
     setLoading(true)
     try {
       const result = await bulkCreateProductsAction(validItems)
@@ -577,7 +583,7 @@ export function ProductImportClient({ categories }: Props) {
                     <TableHead className="w-12 text-center">#</TableHead>
                     <TableHead className="w-44">Hình ảnh</TableHead>
                     <TableHead className="min-w-[200px]">Tên sản phẩm</TableHead>
-                    <TableHead className="w-44">Danh mục</TableHead>
+                    <TableHead className="w-44">Danh mục <span className="text-red-500">*</span></TableHead>
                     <TableHead className="w-28">Giá bán (đ)</TableHead>
                     <TableHead className="w-28">Giá KM (đ)</TableHead>
                     <TableHead className="w-24">Tồn kho</TableHead>
@@ -651,10 +657,10 @@ export function ProductImportClient({ categories }: Props) {
                           value={prod.category_id || ''}
                           onChange={(e) => handleUpdateRow(prod.tempId, 'category_id', e.target.value || null)}
                           className={`w-full h-8 px-2 border rounded-md text-xs font-medium bg-white focus:outline-none ${
-                            !prod.category_id ? 'border-amber-400 text-amber-800 bg-amber-50' : 'border-slate-300'
+                            !prod.category_id ? 'border-red-400 text-red-700 bg-red-50/50 ring-1 ring-red-400' : 'border-slate-300'
                           }`}
                         >
-                          <option value="">-- Chưa chọn danh mục --</option>
+                          <option value="">-- Chọn danh mục (*) --</option>
                           {categories.map(cat => (
                             <option key={cat.id} value={cat.id}>
                               {cat.name}

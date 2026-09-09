@@ -323,11 +323,11 @@ export function SellerProductForm({ categories, initialData }: SellerProductForm
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="category_id" className="font-semibold text-slate-700">Danh mục sản phẩm</Label>
+              <Label htmlFor="category_id" className="font-semibold text-slate-700">Danh mục sản phẩm <span className="text-red-500">*</span></Label>
               <select
                 id="category_id"
                 {...register('category_id')}
-                className="w-full h-10 px-3 py-2 text-sm bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                className={`w-full h-10 px-3 py-2 text-sm bg-white border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 ${errors.category_id ? 'border-rose-500 bg-rose-50/30' : 'border-slate-200'}`}
               >
                 <option value="">-- Chọn danh mục --</option>
                 {categories.map((cat) => (

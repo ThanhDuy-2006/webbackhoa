@@ -52,6 +52,7 @@ export function ProductForm({ initialData, categories }: Props) {
     resolver: zodResolver(productSchema),
     defaultValues: initialData ? {
       ...initialData,
+      category_id: initialData.category_id || '',
       variants: initialData.variants || [],
       images: initialData.images || []
     } : {
@@ -472,9 +473,9 @@ export function ProductForm({ initialData, categories }: Props) {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-2">
-                <Label>Danh mục sản phẩm</Label>
+                <Label>Danh mục sản phẩm <span className="text-red-500">*</span></Label>
                 <select 
-                  className="flex h-9 w-full items-center justify-between whitespace-nowrap rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                  className={`flex h-9 w-full items-center justify-between whitespace-nowrap rounded-md border bg-transparent px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50 ${errors.category_id ? 'border-red-500 bg-red-50/30' : 'border-input'}`}
                   {...register('category_id')}
                 >
                   <option value="">-- Chọn danh mục --</option>
@@ -482,7 +483,7 @@ export function ProductForm({ initialData, categories }: Props) {
                     <option key={c.id} value={c.id}>{c.name}</option>
                   ))}
                 </select>
-                {errors.category_id && <span className="text-sm text-red-500">{errors.category_id.message}</span>}
+                {errors.category_id && <span className="text-sm text-red-500 font-medium">{errors.category_id.message}</span>}
               </div>
 
               <div className="flex items-center space-x-2 pt-4">
