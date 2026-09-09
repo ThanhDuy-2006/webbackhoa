@@ -79,10 +79,16 @@ Bạn là chuyên gia OCR bóc tách hóa đơn, phiếu mua hàng siêu thị, 
 
 Nhiệm vụ:
 1. Đọc và nhận diện toàn bộ danh sách sản phẩm/hàng hóa trong ảnh hóa đơn.
-2. Với từng sản phẩm:
-   - "name": Tên chuẩn tiếng Việt, có dấu rõ ràng (bỏ các mã vạch số hoặc ký tự rác nếu có, ví dụ: "Rau muống gói 500g", "Thịt ba rọi heo 300g", "Nước mắm Nam Ngư 500ml", "Mì Hảo Hảo tôm chua cay").
+
+LƯU Ý CỰC KỲ QUAN TRỌNG VỀ GIÁ TIỀN & THÀNH TIỀN (BẮT BUỘC TUÂN THỦ):
+- Trên hóa đơn (ví dụ Bách Hóa Xanh, WinMart), nhiều sản phẩm có 2 mức giá: Mức giá gốc in gạch bỏ (ví dụ: 9.000, 10.000, 14.500) và Mức giá khuyến mãi / giá bán thực tế sau khi giảm (ví dụ: 6.667, 7.500, 7.250).
+- Cột "Thành tiền" ở ngoài cùng bên phải là số tiền thực tế phải trả (ví dụ: 3 nấm = 20.000đ, 1 rau muống = 7.500đ, 1 ổi = 7.250đ).
+- BẠN BẮT BUỘC PHẢI LẤY ĐÚNG GIÁ THỰC TẾ ĐÃ GIẢM (sau khuyến mãi / sau khi gạch bỏ) hoặc tính: đơn giá = Thành tiền / Số lượng. TUYỆT ĐỐI KHÔNG ĐƯỢC LẤY GIÁ GỐC BỊ GẠCH BỎ!
+- Với từng sản phẩm:
+   - "name": Tên chuẩn tiếng Việt, có dấu rõ ràng (bỏ các mã vạch số hoặc ký tự rác nếu có, ví dụ: "Rau muống hạt gói 400g", "Nấm kim châm TQ 150g", "Ổi Đài Loan", "Lẩu thái Cholimex chai 280g").
    - "stock": Số lượng mua dạng số nguyên (ví dụ: 1, 2, 3...; nếu 0.5kg hoặc đơn vị lẻ thì làm tròn số nguyên tối thiểu là 1).
-   - "price": Đơn giá của 1 đơn vị sản phẩm dạng SỐ NGUYÊN VNĐ KHÔNG DẤU CHẤM (Ví dụ: 4200, 7500, 21000, 6800, 7250. Tuyệt đối KHÔNG viết 4.200 hay 21.000). Nếu hóa đơn có giá giảm/khuyến mãi, hãy lấy giá thực tế đã giảm.
+   - "price": Đơn giá thực tế sau khi giảm của 1 đơn vị sản phẩm (dạng SỐ NGUYÊN VNĐ KHÔNG DẤU CHẤM. Ví dụ: rau muống là 7500 chứ KHÔNG PHẢI 10000; nấm là 6667 chứ KHÔNG PHẢI 9000; ổi là 7250 chứ KHÔNG PHẢI 14500; lẩu thái là 21000; ngò gai là 4200).
+   - "original_price": Giá gốc ban đầu nếu trên hóa đơn có in gạch bỏ (số nguyên VNĐ), nếu không có thì để null.
    - "category_slug": Danh mục phù hợp nhất từ danh sách sau:
 ${categoryListStr}
    - "expiry_days_estimate": Ước lượng số ngày sử dụng tốt nhất cho loại thực phẩm này kể từ ngày mua:
@@ -97,14 +103,15 @@ ${categoryListStr}
 
 Hãy trả về DUY NHẤT một chuỗi JSON hợp lệ theo định dạng sau (không bao gồm markdown hay chú thích thừa):
 {
-  "merchant": "Tên siêu thị/cửa hàng nếu có",
+  "merchant": "BÁCH HÓA XANH",
   "total_bill": 74250,
   "items": [
     {
-      "name": "Tên sản phẩm",
+      "name": "Rau muống hạt gói 400g",
       "stock": 1,
-      "price": 25000,
-      "category_slug": "slug-danh-muc",
+      "price": 7500,
+      "original_price": 10000,
+      "category_slug": "rau-cu-qua",
       "expiry_days_estimate": 4
     }
   ]
