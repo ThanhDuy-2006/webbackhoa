@@ -472,3 +472,39 @@ export async function bulkCreateSellerProductsAction(rawInput: unknown[]) {
     return { success: false, error: error.message || 'Lỗi khi tạo hàng loạt sản phẩm' }
   }
 }
+
+export async function bulkDeleteSellerProductsAction(productIds: string[]) {
+  try {
+    const { user, supabase } = await authenticateSeller()
+
+    if (!Array.isArray(productIds) || productIds.length === 0) {
+      throw new Error('Danh sách ID sản phẩm không hợp lệ hoặc trống')
+    }
+
+    const { error } = await supabase
+      .from('products')
+      .update({
+        listing_status: 'deleted',
+        is_deleted: true,
+        is_active: false,
+        deleted_at: new Date().toISOString()
+      })
+      .in('id', productIds)
+      .eq('seller_id', user.id)
+
+    if (error) {
+      console.error('DEBUG BULK DELETE SELLER PRODUCTS ERROR:', error)
+      throw new Error(`Không thể xóa hàng loạt sản phẩm: ${error.message}`)
+    }
+
+    revalidateTag(CACHE_TAGS.STOREFRONT_PRODUCTS)
+    revalidatePath('/')
+    revalidatePath('/san-pham')
+    revalidatePath('/tai-khoan/san-pham-cua-toi')
+
+    return { success: true, count: productIds.length }
+  } catch (err: unknown) {
+    const error = err as Error
+    return { success: false, error: error.message || 'Lỗi khi xóa hàng loạt sản phẩm' }
+  }
+}

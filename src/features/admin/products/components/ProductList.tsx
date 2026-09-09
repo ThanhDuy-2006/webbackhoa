@@ -78,7 +78,7 @@ export function ProductList({ initialProducts, totalCount, currentPage, searchTe
   const [isDeleting, setIsDeleting] = useState<string | null>(null)
   
   // Revenue Share State
-  const [shareProduct, setShareProduct] = useState<Product | null>(null)
+  const [shareProducts, setShareProducts] = useState<Product[]>([])
   const [shareMethod, setShareMethod] = useState<'equal' | 'percentage' | 'fixed'>('equal')
   const [shareRecipients, setShareRecipients] = useState<Array<{user_id: string, percentage?: number, fixed_amount?: number}>>([])
   const [shareLoading, setShareLoading] = useState(false)
@@ -156,9 +156,11 @@ export function ProductList({ initialProducts, totalCount, currentPage, searchTe
     router.push(`/admin/products?${searchParams.toString()}`)
   }
 
+  const totalShareAmount = shareProducts.reduce((sum, p) => sum + (p.sale_price || p.price || 0), 0)
+
   const calculateAmount = (recipient: any) => {
-    if (!shareProduct) return 0
-    const base = shareProduct.sale_price || shareProduct.price
+    if (shareProducts.length === 0) return 0
+    const base = totalShareAmount
     
     if (shareMethod === 'equal') {
       return shareRecipients.length > 0 ? Math.round(base / shareRecipients.length) : 0
@@ -170,7 +172,7 @@ export function ProductList({ initialProducts, totalCount, currentPage, searchTe
   }
 
   const handleShareSubmit = async () => {
-    if (!shareProduct) return
+    if (shareProducts.length === 0) return
     if (shareRecipients.length === 0) return toast.error('Vui lòng chọn ít nhất một người nhận')
     
     if (shareMethod === 'percentage') {
@@ -186,16 +188,16 @@ export function ProductList({ initialProducts, totalCount, currentPage, searchTe
       }
     }
 
-    if (!confirm('Bạn có chắc chắn muốn thực hiện giao dịch chia tiền khấu trừ ví các thành viên ngay lập tức?')) return
+    if (!confirm(`Bạn có chắc chắn muốn thực hiện giao dịch chia tiền (${formatCurrency(totalShareAmount)}) khấu trừ ví các thành viên ngay lập tức?`)) return
 
     setShareLoading(true)
     const res = await executeDirectCostSplitAction({
-      products: [{
-        product_id: shareProduct.id,
-        amount: shareProduct.sale_price || shareProduct.price, // Or sale_price if you want, let's use price as a base and 0 discount
+      products: shareProducts.map(p => ({
+        product_id: p.id,
+        amount: p.sale_price || p.price,
         quantity: 1,
         discount: 0
-      }],
+      })),
       sharing_method: shareMethod,
       recipients: shareRecipients.map(r => ({
         user_id: r.user_id,
@@ -207,8 +209,9 @@ export function ProductList({ initialProducts, totalCount, currentPage, searchTe
 
     if (res.success) {
       toast.success('Khấu trừ và chia tiền trực tiếp thành công!')
-      setShareProduct(null)
+      setShareProducts([])
       setShareRecipients([])
+      setSelectedIds([])
     } else {
       toast.error(res.error || 'Có lỗi xảy ra')
     }
@@ -244,15 +247,28 @@ export function ProductList({ initialProducts, totalCount, currentPage, searchTe
             </Select>
           )}
           {selectedIds.length > 0 && (
-            <Button 
-              variant="destructive" 
-              onClick={handleBulkDelete} 
-              disabled={isBulkDeleting}
-              className="rounded-xl shadow-sm transition-all"
-            >
-              <Trash2 className="w-4 h-4 mr-2" />
-              Xóa ({selectedIds.length})
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="destructive" 
+                onClick={handleBulkDelete} 
+                disabled={isBulkDeleting}
+                className="rounded-xl shadow-sm transition-all"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Xóa ({selectedIds.length})
+              </Button>
+              <Button 
+                onClick={() => {
+                  setShareProducts(products.filter(p => selectedIds.includes(p.id)))
+                  setShareRecipients([])
+                  setShareMethod('equal')
+                }}
+                className="rounded-xl shadow-sm bg-orange-500 hover:bg-orange-600 text-white transition-all font-medium"
+              >
+                <Coins className="w-4 h-4 mr-2" />
+                Chia tiền ({selectedIds.length})
+              </Button>
+            </div>
           )}
         </div>
         <div className="space-x-2 flex flex-wrap items-center gap-2">
@@ -360,7 +376,7 @@ export function ProductList({ initialProducts, totalCount, currentPage, searchTe
                       size="icon"
                       title="Chia tiền"
                       onClick={() => {
-                        setShareProduct(product)
+                        setShareProducts([product])
                         setShareRecipients([])
                         setShareMethod('equal')
                       }}
@@ -409,27 +425,46 @@ export function ProductList({ initialProducts, totalCount, currentPage, searchTe
       )}
 
       {/* Revenue Share Dialog */}
-      <Dialog open={!!shareProduct} onOpenChange={(open) => !open && setShareProduct(null)}>
-        <DialogContent className="sm:max-w-[600px]">
+      <Dialog open={shareProducts.length > 0} onOpenChange={(open) => !open && setShareProducts([])}>
+        <DialogContent className="sm:max-w-[650px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Coins className="h-5 w-5 text-orange-500" />
-              Chia tiền khấu trừ trực tiếp
+              Chia tiền khấu trừ trực tiếp {shareProducts.length > 1 ? `(${shareProducts.length} sản phẩm)` : ''}
             </DialogTitle>
           </DialogHeader>
 
-          {shareProduct && (
+          {shareProducts.length > 0 && (
             <div className="space-y-6 py-4">
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex items-center justify-between">
-                <div>
-                  <h4 className="font-medium text-slate-900">{shareProduct.name}</h4>
-                  <p className="text-sm text-slate-500 mt-1">Giá bán: <span className="font-semibold text-emerald-600">{formatCurrency(shareProduct.sale_price || shareProduct.price)}</span></p>
-                </div>
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                {shareProducts.length === 1 ? (
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-medium text-slate-900">{shareProducts[0].name}</h4>
+                      <p className="text-sm text-slate-500 mt-1">Giá bán: <span className="font-semibold text-emerald-600">{formatCurrency(shareProducts[0].sale_price || shareProducts[0].price)}</span></p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+                      <span className="font-semibold text-sm text-slate-700">{shareProducts.length} sản phẩm đã chọn:</span>
+                      <span className="font-bold text-emerald-600 text-sm">Tổng: {formatCurrency(totalShareAmount)}</span>
+                    </div>
+                    <div className="max-h-36 overflow-y-auto divide-y divide-slate-100 text-xs text-slate-600 pr-1">
+                      {shareProducts.map(p => (
+                        <div key={p.id} className="py-1.5 flex items-center justify-between">
+                          <span className="truncate pr-2 font-medium">{p.name}</span>
+                          <span className="shrink-0 font-semibold">{formatCurrency(p.sale_price || p.price)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-3">
-                <label className="text-sm font-medium text-slate-700">Phương thức chia</label>
-                <div className="flex gap-4">
+                <label className="text-sm font-medium text-slate-700">Phương thức chia (Tổng: {formatCurrency(totalShareAmount)})</label>
+                <div className="flex flex-wrap gap-4">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input type="radio" checked={shareMethod === 'equal'} onChange={() => setShareMethod('equal')} className="text-emerald-600 focus:ring-emerald-500" />
                     <span className="text-sm">Chia đều</span>
@@ -539,7 +574,7 @@ export function ProductList({ initialProducts, totalCount, currentPage, searchTe
           )}
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShareProduct(null)} className="rounded-xl">Hủy</Button>
+            <Button variant="outline" onClick={() => setShareProducts([])} className="rounded-xl">Hủy</Button>
             <Button onClick={handleShareSubmit} disabled={shareLoading || shareRecipients.length === 0} className="rounded-xl bg-orange-500 hover:bg-orange-600 text-white">
               {shareLoading ? 'Đang xử lý...' : 'Xác nhận chia tiền'}
             </Button>
