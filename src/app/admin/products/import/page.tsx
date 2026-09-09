@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import { ProductImportClient } from '@/features/admin/products/components/ProductImportClient'
 import { CategoryService } from '@/services/category.service'
 import { ArrowLeft } from 'lucide-react'
@@ -5,7 +6,13 @@ import Link from 'next/link'
 
 export const revalidate = 0
 
-export default async function ImportProductPage() {
+interface PageProps {
+  searchParams: Promise<{ scan?: string }>
+}
+
+export default async function ImportProductPage({ searchParams }: PageProps) {
+  const params = await searchParams
+  const initialScan = params?.scan === 'true'
   const { data: categories } = await CategoryService.getPaginatedCategories(1, 100, '')
 
   return (
@@ -16,11 +23,14 @@ export default async function ImportProductPage() {
         </Link>
         <div>
           <h1 className="text-2xl font-bold">Nhập sản phẩm hàng loạt</h1>
-          <p className="text-slate-500">Thêm nhiều sản phẩm cùng lúc bằng file Excel hoặc văn bản (Text/CSV).</p>
+          <p className="text-slate-500">Thêm nhiều sản phẩm cùng lúc bằng file Excel, quét hóa đơn hoặc văn bản (Text/CSV).</p>
         </div>
       </div>
       
-      <ProductImportClient categories={categories} />
+      <Suspense fallback={<div className="p-12 text-center text-slate-400">Đang tải biểu mẫu nhập hàng...</div>}>
+        <ProductImportClient categories={categories || []} initialScan={initialScan} />
+      </Suspense>
     </div>
   )
 }
+

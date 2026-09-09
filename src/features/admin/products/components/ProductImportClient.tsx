@@ -43,6 +43,7 @@ import {
 
 interface Props {
   categories: Category[]
+  initialScan?: boolean
 }
 
 export interface EditableImportProduct extends ProductFormData {
@@ -56,7 +57,7 @@ export interface EditableImportProduct extends ProductFormData {
   price_mode?: 'unit' | 'total'
 }
 
-export function ProductImportClient({ categories }: Props) {
+export function ProductImportClient({ categories, initialScan = false }: Props) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [loading, setLoading] = useState(false)
@@ -66,12 +67,14 @@ export function ProductImportClient({ categories }: Props) {
   const [rawText, setRawText] = useState('')
   const [globalPriceMode, setGlobalPriceMode] = useState<'unit' | 'total'>('unit')
 
-  // Auto-open scanner if navigated with ?scan=true
+  // Auto-open scanner if navigated with ?scan=true or initialScan prop
+  const [isScannerOpen, setIsScannerOpen] = useState(initialScan)
+
   useEffect(() => {
-    if (searchParams.get('scan') === 'true') {
+    if (initialScan || searchParams?.get('scan') === 'true') {
       setIsScannerOpen(true)
     }
-  }, [searchParams])
+  }, [initialScan, searchParams])
 
   // Recalculate prices when globalPriceMode changes
   useEffect(() => {
@@ -92,7 +95,6 @@ export function ProductImportClient({ categories }: Props) {
   // Dialog state for candidate selection on an individual row
   const [selectedRowForImage, setSelectedRowForImage] = useState<EditableImportProduct | null>(null)
   const [isSearchingSingleImage, setIsSearchingSingleImage] = useState(false)
-  const [isScannerOpen, setIsScannerOpen] = useState(false)
 
   // Handle scanned receipt items
   const handleScannedReceiptImport = (items: ScannedReceiptItem[]) => {
