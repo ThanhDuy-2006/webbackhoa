@@ -122,8 +122,13 @@ export function SellerProductImportClient({ categories, initialScan = false }: P
 
     const updatedData = [...importData, ...formatted]
     setImportData(updatedData)
-    toast.success(`Đã nhận ${formatted.length} sản phẩm từ hóa đơn! Đang tìm ảnh tự động...`)
+    toast.success(`Đã thêm ${formatted.length} sản phẩm vào bảng chỉnh sửa! Đang tự động tìm ảnh...`)
     
+    // Smooth scroll down to table
+    setTimeout(() => {
+      window.scrollTo({ top: 450, behavior: 'smooth' })
+    }, 150)
+
     // Trigger image auto-search for newly scanned items
     autoFetchImagesForBatch(updatedData)
   }

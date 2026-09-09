@@ -61,6 +61,11 @@ export function ReceiptScannerDialog({ open, onOpenChange, onImportItems }: Rece
           totalBill: res.totalBill,
         })
         toast.success(`Đã nhận diện thành công ${res.items.length} sản phẩm từ hóa đơn!`)
+        // Auto-transfer items directly to the Excel-like table on the page
+        onImportItems(res.items)
+        onOpenChange(false)
+        setSelectedImage(null)
+        setScannedResult(null)
       } else {
         setErrorMessage(res.error || 'Không nhận diện được sản phẩm nào.')
         toast.error(res.error || 'Không nhận diện được sản phẩm.')
