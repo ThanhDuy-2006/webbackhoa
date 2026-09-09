@@ -26,7 +26,7 @@ import { generateProductImageAction, selectManualCandidateAction } from '@/actio
 import { ImageCandidate } from '@/lib/images/types'
 import { toast } from 'sonner'
 import { handleServerActionError } from '@/lib/server-action-error-handler'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Input } from '@/components/ui/input'
 import { ReceiptScannerDialog } from '@/components/scanner/ReceiptScannerDialog'
@@ -58,12 +58,20 @@ export interface EditableImportProduct extends ProductFormData {
 
 export function ProductImportClient({ categories }: Props) {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [loading, setLoading] = useState(false)
   const [autoSearchingBatch, setAutoSearchingBatch] = useState(false)
   const [autoSearchProgress, setAutoSearchProgress] = useState({ current: 0, total: 0 })
   const [importData, setImportData] = useState<EditableImportProduct[]>([])
   const [rawText, setRawText] = useState('')
   const [globalPriceMode, setGlobalPriceMode] = useState<'unit' | 'total'>('unit')
+
+  // Auto-open scanner if navigated with ?scan=true
+  useEffect(() => {
+    if (searchParams.get('scan') === 'true') {
+      setIsScannerOpen(true)
+    }
+  }, [searchParams])
 
   // Recalculate prices when globalPriceMode changes
   useEffect(() => {

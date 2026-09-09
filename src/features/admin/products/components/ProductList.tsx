@@ -27,7 +27,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Pencil, Trash2, Plus, Search, Coins, X, Check } from 'lucide-react'
+import { Pencil, Trash2, Plus, Search, Coins, X, Check, Camera } from 'lucide-react'
 import { deleteProductAction, bulkDeleteProductsAction } from '@/actions/admin/product.actions'
 import { executeDirectCostSplitAction } from '@/actions/admin/revenue-share.actions'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -255,7 +255,13 @@ export function ProductList({ initialProducts, totalCount, currentPage, searchTe
             </Button>
           )}
         </div>
-        <div className="space-x-2 flex">
+        <div className="space-x-2 flex flex-wrap items-center gap-2">
+          <Link href="/admin/products/import?scan=true">
+            <Button className="gap-2 bg-gradient-to-r from-amber-500 to-emerald-600 hover:from-amber-600 hover:to-emerald-700 text-white font-semibold shadow-sm">
+              <Camera className="w-4 h-4" />
+              Quét hóa đơn AI
+            </Button>
+          </Link>
           <Link href="/admin/products/import">
             <Button variant="outline" className="text-emerald-600 border-emerald-600 hover:bg-emerald-50">
               Nhập từ file Excel

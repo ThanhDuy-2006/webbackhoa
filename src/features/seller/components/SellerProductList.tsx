@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Plus, Search, Edit3, PauseCircle, PlayCircle, Trash2, AlertTriangle, Package, ExternalLink, ChevronLeft, ChevronRight, Split } from 'lucide-react'
+import { Plus, Search, Edit3, PauseCircle, PlayCircle, Trash2, AlertTriangle, Package, ExternalLink, ChevronLeft, ChevronRight, Split, Camera, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Product } from '@/types/product.type'
@@ -158,9 +158,14 @@ export function SellerProductList({
           <h1 className="text-xl font-bold text-slate-900">Sản phẩm của tôi</h1>
           <p className="text-sm text-slate-500 mt-1">Quản lý và đăng bán sản phẩm cá nhân công khai tức thì</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <Link href="/tai-khoan/san-pham-cua-toi/import?scan=true">
+            <Button className="gap-2 bg-gradient-to-r from-amber-500 to-emerald-600 hover:from-amber-600 hover:to-emerald-700 text-white font-semibold shadow-sm">
+              <Camera className="w-4 h-4" /> Quét hóa đơn AI
+            </Button>
+          </Link>
           <Link href="/tai-khoan/san-pham-cua-toi/import">
-            <Button variant="outline" className="gap-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800">
+            <Button variant="outline" className="gap-2 border-slate-200 text-slate-700 hover:bg-slate-50">
               Nhập từ Excel
             </Button>
           </Link>

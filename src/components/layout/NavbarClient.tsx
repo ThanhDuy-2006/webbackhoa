@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { ShoppingCart, User as UserIcon, LogOut, Menu, Package, Settings, Wallet, ShoppingBag, Home, Tag, Sun, Moon, Sprout, Trophy, Store } from 'lucide-react'
+import { ShoppingCart, User as UserIcon, LogOut, Menu, Package, Settings, Wallet, ShoppingBag, Home, Tag, Sun, Moon, Sprout, Trophy, Store, Camera } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -88,6 +88,7 @@ export function NavbarClient({ user, profile }: NavbarClientProps) {
   const navItems = [
     { name: 'Sản phẩm', href: '/', icon: Package },
     { name: 'Của tôi', href: user ? '/tai-khoan/san-pham-cua-toi' : '/login', icon: Store },
+    { name: 'Quét AI', href: user ? '/tai-khoan/san-pham-cua-toi/import?scan=true' : '/login', icon: Camera },
     { name: 'Bảng xếp hạng', href: '/bang-xep-hang', icon: Trophy },
     { name: 'Giỏ hàng', href: '#cart', icon: ShoppingCart, isCart: true },
     { name: 'Cá nhân', href: user ? '/tai-khoan' : '/login', icon: UserIcon },
@@ -114,7 +115,7 @@ export function NavbarClient({ user, profile }: NavbarClientProps) {
               Bách Hóa
             </span>
           </Link>
-          <nav className="hidden lg:flex gap-6 text-sm font-medium text-slate-600 dark:text-slate-300">
+          <nav className="hidden lg:flex gap-6 items-center text-sm font-medium text-slate-600 dark:text-slate-300">
             <Link href="/" className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">Sản phẩm</Link>
             <Link href="/bang-xep-hang" className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors flex items-center gap-1"><Trophy className="w-4 h-4" /> Bảng xếp hạng</Link>
             {user && (
@@ -122,6 +123,13 @@ export function NavbarClient({ user, profile }: NavbarClientProps) {
                 <Package className="w-4 h-4" /> Sản phẩm của tôi
               </Link>
             )}
+            <Link 
+              href={user ? "/tai-khoan/san-pham-cua-toi/import?scan=true" : "/login"} 
+              className="flex items-center gap-1.5 px-3 py-1 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900/40 text-amber-700 dark:text-amber-400 rounded-full border border-amber-200/80 dark:border-amber-800/80 text-xs font-semibold shadow-xs transition-all"
+            >
+              <Camera className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 animate-pulse" />
+              <span>Quét hóa đơn AI</span>
+            </Link>
           </nav>
         </div>
 
@@ -204,6 +212,12 @@ export function NavbarClient({ user, profile }: NavbarClientProps) {
                   <Link href="/tai-khoan" className="cursor-pointer flex w-full items-center">
                     <UserIcon className="mr-2 h-4 w-4" />
                     <span>Tài khoản cá nhân</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <Link href="/tai-khoan/san-pham-cua-toi/import?scan=true" className="cursor-pointer flex w-full items-center text-amber-700 dark:text-amber-400 font-medium">
+                    <Camera className="mr-2 h-4 w-4" />
+                    <span>Quét hóa đơn AI</span>
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem>
