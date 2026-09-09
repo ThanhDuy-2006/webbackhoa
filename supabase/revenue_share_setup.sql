@@ -652,10 +652,13 @@ BEGIN
     COALESCE(v_share.balance, 0),
     ROUND(COALESCE(v_share.balance, 0) - v_share.amount, 0),
     null,
-    'Hoàn tiền chia sẻ chi phí sản phẩm thủ công ' || v_share.product_name_snapshot || ' bởi Super Admin ' || v_admin_name || ': +' || to_char(ABS(v_share.amount), 'FM999,999,999') || 'đ (Đơn ' || v_share.order_code_snapshot || ')'
+    CASE 
+      WHEN v_share.amount < 0 THEN 'Hoàn tiền chia sẻ chi phí sản phẩm thủ công ' || v_share.product_name_snapshot || ' bởi Super Admin ' || v_admin_name || ': +' || to_char(ABS(v_share.amount), 'FM999,999,999') || 'đ (Đơn ' || v_share.order_code_snapshot || ')'
+      ELSE 'Thu hồi tiền bán/chia sẻ sản phẩm thủ công ' || v_share.product_name_snapshot || ' bởi Super Admin ' || v_admin_name || ': -' || to_char(ABS(v_share.amount), 'FM999,999,999') || 'đ (Đơn ' || v_share.order_code_snapshot || ')'
+    END
   ) RETURNING id INTO v_tx_id;
 
-  -- 6. Ghi nhận lịch sử giao dịch đảo ngược (Giao dịch mới mang giá trị dương để đảo ngược giá trị âm)
+  -- 6. Ghi nhận lịch sử giao dịch đảo ngược (Giao dịch mới đảo ngược giá trị ban đầu)
   INSERT INTO public.product_revenue_shares (
     order_item_id,
     rule_id,
@@ -692,8 +695,11 @@ BEGIN
     link
   ) VALUES (
     v_share.recipient_id,
-    'Hoàn trả chi phí sản phẩm',
-    'Đã hoàn lại tiền chia sẻ chi phí sản phẩm ' || v_share.product_name_snapshot || ' thủ công bởi Super Admin: +' || to_char(ABS(v_share.amount), 'FM999,999,999') || 'đ',
+    CASE WHEN v_share.amount < 0 THEN 'Hoàn trả chi phí sản phẩm' ELSE 'Thu hồi tiền bán sản phẩm' END,
+    CASE 
+      WHEN v_share.amount < 0 THEN 'Đã hoàn lại tiền chia sẻ chi phí sản phẩm ' || v_share.product_name_snapshot || ' thủ công bởi Super Admin: +' || to_char(ABS(v_share.amount), 'FM999,999,999') || 'đ'
+      ELSE 'Đã thu hồi lại tiền bán sản phẩm ' || v_share.product_name_snapshot || ' thủ công bởi Super Admin: -' || to_char(ABS(v_share.amount), 'FM999,999,999') || 'đ'
+    END,
     'revenue_share',
     false,
     '/tai-khoan/chia-tien'

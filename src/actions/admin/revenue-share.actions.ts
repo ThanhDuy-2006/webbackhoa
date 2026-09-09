@@ -813,30 +813,60 @@ export async function executeDirectCostSplitAction(data: {
       throw new Error('Vui lòng chọn ít nhất một sản phẩm')
     }
 
-    // 1. Calculate total net amount and build product summary
+    // 1. Calculate total net amount, build product summary and map product sellers
     let totalNetAmount = 0
     const productNamesList: string[] = []
+    const sellerNetMap: Record<string, number> = {}
+    const sellerProductNamesMap: Record<string, string[]> = {}
 
     for (const p of data.products) {
       const net = Math.max(0, (p.amount * p.quantity) - p.discount)
       totalNetAmount += net
 
-      // Lookup product/variant name for snapshotting
+      // Lookup product/variant name and seller_id for snapshotting
       let productName = 'Sản phẩm trực tiếp'
+      let seller_id: string | null = null
       
       if (p.variant_id) {
-        const { data: v } = await supabase.from('product_variants').select('name, product_id').eq('id', p.variant_id).single()
+        const { data: v } = await supabase
+          .from('product_variants')
+          .select('name, product_id')
+          .eq('id', p.variant_id)
+          .single()
+
         if (v) {
-          const { data: prod } = await supabase.from('products').select('name').eq('id', v.product_id).single()
+          const { data: prod } = await supabase
+            .from('products')
+            .select('name, seller_id')
+            .eq('id', v.product_id)
+            .single()
+
           productName = prod ? `${prod.name} (${v.name})` : v.name
+          if (prod?.seller_id) seller_id = prod.seller_id
         }
       } else if (p.product_id) {
-        const { data: prod } = await supabase.from('products').select('name').eq('id', p.product_id).single()
+        const { data: prod } = await supabase
+          .from('products')
+          .select('name, seller_id')
+          .eq('id', p.product_id)
+          .single()
+
         if (prod) {
           productName = prod.name
+          if (prod.seller_id) seller_id = prod.seller_id
         }
       }
-      productNamesList.push(`${productName} (SL: ${p.quantity})`)
+
+      const itemDesc = `${productName} (SL: ${p.quantity})`
+      productNamesList.push(itemDesc)
+
+      if (seller_id) {
+        sellerNetMap[seller_id] = (sellerNetMap[seller_id] || 0) + net
+        if (!sellerProductNamesMap[seller_id]) {
+          sellerProductNamesMap[seller_id] = []
+        }
+        sellerProductNamesMap[seller_id].push(itemDesc)
+      }
     }
 
     totalNetAmount = Math.round(totalNetAmount)
@@ -923,7 +953,79 @@ export async function executeDirectCostSplitAction(data: {
       })
     }
 
-    // 3. Insert public activity log
+    // 3. Credit the sellers who posted/own the products
+    if (totalDeducted > 0 && totalNetAmount > 0) {
+      for (const [seller_id, net] of Object.entries(sellerNetMap)) {
+        if (net <= 0) continue
+        const sellerShare = Math.round(totalDeducted * (net / totalNetAmount))
+        if (sellerShare <= 0) continue
+
+        const { data: sellerProfile } = await supabase
+          .from('profiles')
+          .select('balance, full_name, email')
+          .eq('id', seller_id)
+          .single()
+
+        if (!sellerProfile) continue
+
+        const currentBalance = Math.round(sellerProfile.balance || 0)
+        const newBalance = currentBalance + sellerShare
+        const sellerName = sellerProfile.full_name || sellerProfile.email || 'Người bán'
+        const sellerProducts = (sellerProductNamesMap[seller_id] || []).join(', ') || combinedProductNames
+
+        // Credit seller wallet balance
+        const { error: wError } = await supabase
+          .from('profiles')
+          .update({ balance: newBalance })
+          .eq('id', seller_id)
+
+        if (wError) throw wError
+
+        // Insert wallet transaction for seller
+        const { data: sellerTx, error: txError } = await supabase
+          .from('wallet_transactions')
+          .insert({
+            user_id: seller_id,
+            type: 'revenue_share',
+            amount: sellerShare,
+            balance_before: currentBalance,
+            balance_after: newBalance,
+            note: `Nhận tiền bán/chia sẻ sản phẩm: ${sellerProducts} (+${sellerShare.toLocaleString('vi-VN')}đ)`
+          })
+          .select()
+          .single()
+
+        if (txError) throw txError
+
+        // Insert product_revenue_shares record for seller payout
+        const { error: shareError } = await supabase
+          .from('product_revenue_shares')
+          .insert({
+            recipient_id: seller_id,
+            amount: sellerShare,
+            percentage: null,
+            status: 'completed',
+            wallet_transaction_id: sellerTx ? sellerTx.id : null,
+            order_code_snapshot: 'MANUAL',
+            product_name_snapshot: `[Doanh thu người bán] ${sellerProducts}`,
+            admin_name_snapshot: adminProfile.full_name || admin.email,
+            recipient_name_snapshot: `${sellerName} (Người bán)`
+          })
+
+        if (shareError) throw shareError
+
+        // Send notification to seller
+        await supabase.from('notifications').insert({
+          user_id: seller_id,
+          title: 'Nhận tiền bán sản phẩm',
+          message: `Bạn được cộng +${sellerShare.toLocaleString('vi-VN')}đ từ việc chia tiền sản phẩm: ${sellerProducts}`,
+          type: 'revenue_share',
+          link: '/tai-khoan/lich-su-giao-dich'
+        })
+      }
+    }
+
+    // 4. Insert public activity log
     await supabase.from('revenue_share_activities').insert({
       admin_name: adminProfile.full_name || admin.email,
       product_name: combinedProductNames,

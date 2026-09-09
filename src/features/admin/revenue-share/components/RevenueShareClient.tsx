@@ -1007,19 +1007,21 @@ export function RevenueShareClient({ products, categories, variants, users }: Pr
                       {Object.values(
                         history.reduce((acc, item) => {
                           const timeKey = item.created_at.substring(0, 16)
-                          const key = `${item.order_code_snapshot}_${item.product_name_snapshot}_${item.status}_${timeKey}`
+                          const isNegative = Number(item.amount) < 0
+                          const typeKey = isNegative ? 'deduct' : 'payout'
+                          const key = `${item.order_code_snapshot}_${item.product_name_snapshot}_${item.status}_${typeKey}_${timeKey}`
                           if (!acc[key]) {
                             acc[key] = {
                               ...item,
                               groupedIds: [item.id],
                               recipients: [item.recipient_name_snapshot],
-                              totalAmount: item.amount,
+                              totalAmount: Number(item.amount),
                               allPercentages: [item.percentage]
                             }
                           } else {
                             acc[key].groupedIds.push(item.id)
                             acc[key].recipients.push(item.recipient_name_snapshot)
-                            acc[key].totalAmount += item.amount
+                            acc[key].totalAmount += Number(item.amount)
                             acc[key].allPercentages.push(item.percentage)
                           }
                           return acc
@@ -1029,9 +1031,10 @@ export function RevenueShareClient({ products, categories, variants, users }: Pr
                       .map((item: any) => {
                         const date = new Date(item.created_at).toLocaleString('vi-VN')
                         const isReversal = item.status === 'reversed'
+                        const isPayout = !isReversal && item.totalAmount > 0
+                        const isDeduction = !isReversal && item.totalAmount < 0
                         const isRefund = isReversal && item.totalAmount > 0
                         const isRevokedOriginal = isReversal && item.totalAmount < 0
-                        const isSuccess = item.status === 'completed'
                         const isMulti = item.recipients.length > 1
 
                         return (
@@ -1049,8 +1052,14 @@ export function RevenueShareClient({ products, categories, variants, users }: Pr
                               ) : item.recipients[0]}
                             </td>
                             <td className="py-3.5">
-                              <strong className={`font-mono font-black ${isRefund ? 'text-emerald-600' : isRevokedOriginal ? 'text-slate-400 line-through' : 'text-red-500'}`}>
-                                {isRefund ? '+' : ''}{formatCurrency(item.totalAmount)}
+                              <strong className={`font-mono font-black ${
+                                isPayout || isRefund 
+                                  ? 'text-emerald-600' 
+                                  : isRevokedOriginal 
+                                    ? 'text-slate-400 line-through' 
+                                    : 'text-red-500'
+                              }`}>
+                                {(isPayout || isRefund) && item.totalAmount > 0 ? '+' : ''}{formatCurrency(item.totalAmount)}
                               </strong>
                             </td>
                             <td className="py-3.5 text-slate-500">
@@ -1062,11 +1071,21 @@ export function RevenueShareClient({ products, categories, variants, users }: Pr
                             </td>
                             <td className="py-3.5">
                               <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                                isRefund ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
-                                isRevokedOriginal ? 'bg-slate-100 text-slate-500 border border-slate-200' :
-                                'bg-emerald-50 text-emerald-700 border border-emerald-100'
+                                isPayout 
+                                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+                                  : isRefund 
+                                    ? 'bg-blue-50 text-blue-700 border border-blue-200' 
+                                    : isRevokedOriginal 
+                                      ? 'bg-slate-100 text-slate-500 border border-slate-200' 
+                                      : 'bg-red-50 text-red-700 border border-red-100'
                               }`}>
-                                {isRefund ? 'HOÀN TIỀN' : isRevokedOriginal ? 'BỊ THU HỒI' : 'THÀNH CÔNG'}
+                                {isPayout 
+                                  ? 'THU NHẬP NGƯỜI BÁN' 
+                                  : isRefund 
+                                    ? 'HOÀN TIỀN' 
+                                    : isRevokedOriginal 
+                                      ? 'ĐÃ THU HỒI' 
+                                      : 'KHẤU TRỪ CHI PHÍ'}
                               </span>
                             </td>
                             <td className="py-3.5 text-right">
