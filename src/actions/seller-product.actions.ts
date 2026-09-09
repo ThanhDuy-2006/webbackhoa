@@ -55,11 +55,23 @@ export async function createSellerProductAction(rawInput: unknown) {
       image_status: 'valid'
     }
 
-    const { data: newProduct, error } = await supabase
+    let insertResult = await supabase
       .from('products')
       .insert([productPayload])
       .select()
       .single()
+
+    if (insertResult.error && insertResult.error.message?.includes('expiry_date')) {
+      const fallbackPayload = { ...productPayload }
+      delete (fallbackPayload as any).expiry_date
+      insertResult = await supabase
+        .from('products')
+        .insert([fallbackPayload])
+        .select()
+        .single()
+    }
+
+    const { data: newProduct, error } = insertResult
 
     if (error || !newProduct) {
       console.error('DEBUG CREATE SELLER PRODUCT ERROR:', error)
@@ -133,11 +145,22 @@ export async function updateSellerProductAction(productId: string, rawInput: unk
       updated_at: new Date().toISOString(),
     }
 
-    const { error: updateError } = await supabase
+    let { error: updateError } = await supabase
       .from('products')
       .update(updatePayload)
       .eq('id', productId)
       .eq('seller_id', user.id)
+
+    if (updateError && updateError.message?.includes('expiry_date')) {
+      const fallbackPayload = { ...updatePayload }
+      delete (fallbackPayload as any).expiry_date
+      const retryResult = await supabase
+        .from('products')
+        .update(fallbackPayload)
+        .eq('id', productId)
+        .eq('seller_id', user.id)
+      updateError = retryResult.error
+    }
 
     if (updateError) {
       throw new Error(`Lỗi cập nhật sản phẩm: ${updateError.message}`)
@@ -382,10 +405,24 @@ export async function bulkCreateSellerProductsAction(rawInput: unknown[]) {
       }
     })
 
-    const { data: newProducts, error } = await supabase
+    let { data: newProducts, error } = await supabase
       .from('products')
       .insert(productPayloads)
       .select()
+
+    if (error && error.message?.includes('expiry_date')) {
+      const fallbackPayloads = productPayloads.map(p => {
+        const copy = { ...p }
+        delete (copy as any).expiry_date
+        return copy
+      })
+      const retryResult = await supabase
+        .from('products')
+        .insert(fallbackPayloads)
+        .select()
+      newProducts = retryResult.data
+      error = retryResult.error
+    }
 
     if (error || !newProducts) {
       console.error('DEBUG BULK CREATE SELLER PRODUCT ERROR:', error)

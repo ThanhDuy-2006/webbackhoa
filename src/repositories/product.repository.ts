@@ -141,11 +141,23 @@ export const ProductRepository = {
     const supabase = createAdminClient()
     
     // 1. Create Product
-    const { data: product, error: productError } = await supabase
+    let { data: product, error: productError } = await supabase
       .from('products')
       .insert([productData])
       .select()
       .single()
+
+    if (productError && productError.message?.includes('expiry_date')) {
+      const fallbackData = { ...productData }
+      delete (fallbackData as any).expiry_date
+      const retry = await supabase
+        .from('products')
+        .insert([fallbackData])
+        .select()
+        .single()
+      product = retry.data
+      productError = retry.error
+    }
 
     if (productError) throw productError
 
@@ -203,12 +215,25 @@ export const ProductRepository = {
     }
 
     // 1. Update Product
-    const { data: product, error: productError } = await supabase
+    let { data: product, error: productError } = await supabase
       .from('products')
       .update(productData)
       .eq('id', id)
       .select()
       .single()
+
+    if (productError && productError.message?.includes('expiry_date')) {
+      const fallbackData = { ...productData }
+      delete (fallbackData as any).expiry_date
+      const retry = await supabase
+        .from('products')
+        .update(fallbackData)
+        .eq('id', id)
+        .select()
+        .single()
+      product = retry.data
+      productError = retry.error
+    }
 
     if (productError) throw productError
 
