@@ -25,6 +25,7 @@ export interface Product {
   is_active: boolean
   is_featured: boolean
   is_deleted: boolean
+  expiry_date?: string | null
   created_at: string
   updated_at: string
   deleted_at: string | null
@@ -57,6 +58,7 @@ export interface StorefrontProductSummary {
   stock: number
   image_url: string | null
   category_id: string | null
+  expiry_date?: string | null
   is_featured: boolean
   categories?: { slug: string; name?: string } | { slug: string }[] | null
 }

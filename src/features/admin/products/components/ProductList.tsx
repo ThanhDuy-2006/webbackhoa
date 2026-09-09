@@ -36,6 +36,7 @@ import { Input } from '@/components/ui/input'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { formatCurrency } from '@/lib/utils'
+import { ExpiryBadge } from '@/components/products/ExpiryBadge'
 
 interface User {
   id: string
@@ -311,8 +312,15 @@ export function ProductList({ initialProducts, totalCount, currentPage, searchTe
                       <div className="w-10 h-10 rounded border bg-slate-100 flex items-center justify-center text-xs text-slate-400">Trống</div>
                     )}
                   </TableCell>
-                  <TableCell className="font-medium max-w-[200px] truncate" title={product.name}>
-                    {product.name}
+                  <TableCell className="max-w-[220px]">
+                    <div className="font-medium text-slate-900 truncate" title={product.name}>
+                      {product.name}
+                    </div>
+                    {product.expiry_date && (
+                      <div className="mt-1">
+                        <ExpiryBadge expiryDate={product.expiry_date} size="sm" />
+                      </div>
+                    )}
                   </TableCell>
                   <TableCell className="text-slate-500">{product.category?.name || 'Không có'}</TableCell>
                   <TableCell>

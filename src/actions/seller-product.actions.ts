@@ -48,6 +48,7 @@ export async function createSellerProductAction(rawInput: unknown) {
       stock: validated.stock,
       image_url: validated.image_url || null,
       images: validated.images || [],
+      expiry_date: validated.expiry_date || null,
       is_active: (validated.listing_status || 'active') === 'active',
       is_featured: false, // Sellers cannot feature their own products
       image_source: 'manual',
@@ -126,6 +127,7 @@ export async function updateSellerProductAction(productId: string, rawInput: unk
       stock: validated.stock,
       image_url: validated.image_url || null,
       images: validated.images || [],
+      expiry_date: validated.expiry_date || null,
       listing_status: validated.listing_status || 'active',
       is_active: (validated.listing_status || 'active') === 'active',
       updated_at: new Date().toISOString(),
@@ -372,6 +374,7 @@ export async function bulkCreateSellerProductsAction(rawInput: unknown[]) {
         stock: validated.stock,
         image_url: validated.image_url || null,
         images: validated.images || [],
+        expiry_date: validated.expiry_date || null,
         is_active: (validated.listing_status || 'active') === 'active',
         is_featured: false,
         image_source: 'manual',

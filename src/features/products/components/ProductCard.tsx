@@ -12,6 +12,7 @@ import { QuickViewSheet } from '@/components/products/QuickViewSheet'
 import { SmartImage } from '@/components/ui/smart-image'
 import { StorefrontProductSummary } from '@/types/product.type'
 import { formatCurrency } from '@/lib/utils'
+import { ExpiryBadge } from '@/components/products/ExpiryBadge'
 
 interface ProductCardProps {
   product: StorefrontProductSummary
@@ -99,11 +100,16 @@ export function ProductCard({ product, index = 0, priority = false }: ProductCar
               <h3 className="line-clamp-2 text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200 transition-colors group-hover:text-emerald-600 leading-snug min-h-[2.5rem]">
                 {product.name}
               </h3>
-              {!isOutOfStock && (
-                <div className="mt-1 text-[10px] sm:text-[11px] text-slate-500">
-                  Kho: <span className="font-semibold text-slate-700 dark:text-slate-300">{product.stock}</span>
-                </div>
-              )}
+              <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                {!isOutOfStock && (
+                  <span className="text-[10px] sm:text-[11px] text-slate-500">
+                    Kho: <span className="font-semibold text-slate-700 dark:text-slate-300">{product.stock}</span>
+                  </span>
+                )}
+                {product.expiry_date && (
+                  <ExpiryBadge expiryDate={product.expiry_date} size="sm" />
+                )}
+              </div>
             </Link>
             
             <div className="mt-3 flex items-end justify-between gap-1.5">

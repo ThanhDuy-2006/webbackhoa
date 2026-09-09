@@ -8,9 +8,9 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Product } from '@/types/product.type'
 import { formatCurrency } from '@/lib/utils'
-import { toast } from 'sonner'
 import { pauseSellerProductAction, activateSellerProductAction, softDeleteSellerProductAction, splitSellerProductAction } from '@/actions/seller-product.actions'
 import { SmartImage } from '@/components/ui/smart-image'
+import { ExpiryBadge } from '@/components/products/ExpiryBadge'
 import {
   Dialog,
   DialogContent,
@@ -240,10 +240,13 @@ export function SellerProductList({
                     <h3 className="font-bold text-slate-900 truncate text-sm">{product.name}</h3>
                     {getStatusBadge(product.listing_status, product.suspension_reason)}
                   </div>
-                  <div className="flex items-center gap-3 text-xs text-slate-500">
+                  <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
                     <span className="font-semibold text-emerald-600 text-sm">{formatCurrency(product.sale_price || product.price)}</span>
                     {product.sale_price && <span className="line-through text-slate-400">{formatCurrency(product.price)}</span>}
                     <span>• Tồn kho: <strong className={product.stock > 0 ? 'text-slate-800' : 'text-rose-600'}>{product.stock}</strong></span>
+                    {product.expiry_date && (
+                      <ExpiryBadge expiryDate={product.expiry_date} size="sm" />
+                    )}
                   </div>
                   {product.suspension_reason && (
                     <p className="text-xs text-rose-600 bg-rose-50 p-1.5 rounded-lg border border-rose-100">

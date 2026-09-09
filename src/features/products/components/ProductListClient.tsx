@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { ProductCard } from './ProductCard'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Search, SlidersHorizontal, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Search, SlidersHorizontal, ChevronLeft, ChevronRight, AlertTriangle, Sparkles } from 'lucide-react'
 import {
   Select,
   SelectContent,
@@ -18,6 +18,7 @@ import { PullToRefresh } from '@/components/ui/PullToRefresh'
 import { motion } from 'framer-motion'
 import { StorefrontProductSummary } from '@/types/product.type'
 import { StorefrontCategorySummary } from '@/types/category.type'
+import { getExpiryInfo } from '@/lib/expiry-utils'
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -45,10 +46,15 @@ export function ProductListClient({
   const router = useRouter()
   const searchParams = useSearchParams()
   const [products, setProducts] = useState<StorefrontProductSummary[]>(initialProducts)
+  const [showExpiringOnly, setShowExpiringOnly] = useState(false)
 
   useEffect(() => {
     setProducts(initialProducts)
   }, [initialProducts])
+
+  const displayedProducts = showExpiringOnly
+    ? products.filter(p => p.expiry_date && getExpiryInfo(p.expiry_date).isUrgent)
+    : products
 
   const currentCategory = searchParams.get('category') || 'all'
   const currentSort = searchParams.get('sort') || 'newest'
@@ -97,16 +103,31 @@ export function ProductListClient({
                 <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider hidden md:block">Danh mục</Label>
                 <div className="flex flex-row md:flex-col gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-none snap-x">
                   <Button 
-                    variant={currentCategory === 'all' ? 'default' : 'ghost'} 
+                    variant={!showExpiringOnly && currentCategory === 'all' ? 'default' : 'ghost'} 
                     className={`justify-start shrink-0 snap-start h-10 md:h-9 rounded-full md:rounded-xl border md:border-transparent text-xs md:text-sm font-semibold cursor-pointer ${
-                      currentCategory === 'all' 
+                      !showExpiringOnly && currentCategory === 'all' 
                         ? 'bg-emerald-600 hover:bg-emerald-700 text-white dark:bg-emerald-600 dark:hover:bg-emerald-700' 
                         : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900'
                     }`}
-                    onClick={() => updateFilters('category', 'all')}
+                    onClick={() => { setShowExpiringOnly(false); updateFilters('category', 'all'); }}
                     style={{ minHeight: '44px' }}
                   >
                     Tất cả sản phẩm
+                  </Button>
+
+                  {/* Urgent / Expiring Soon FIFO Filter */}
+                  <Button 
+                    variant={showExpiringOnly ? 'default' : 'ghost'} 
+                    className={`justify-start shrink-0 snap-start h-10 md:h-9 rounded-full md:rounded-xl border text-xs md:text-sm font-semibold cursor-pointer transition-all ${
+                      showExpiringOnly 
+                        ? 'bg-amber-500 hover:bg-amber-600 text-white border-amber-600 shadow-sm' 
+                        : 'hover:bg-amber-50 text-amber-800 border-amber-200 bg-amber-50/50'
+                    }`}
+                    onClick={() => setShowExpiringOnly(prev => !prev)}
+                    style={{ minHeight: '44px' }}
+                  >
+                    <AlertTriangle className="w-4 h-4 mr-1.5 text-amber-600 shrink-0" />
+                    Cần dùng gấp (Cận date)
                   </Button>
                   {categories.map(cat => (
                     <Button
@@ -166,11 +187,15 @@ export function ProductListClient({
             </div>
           </div>
 
-          {products.length === 0 ? (
+          {displayedProducts.length === 0 ? (
             <div className="text-center py-24 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
               <Search className="h-12 w-12 text-slate-300 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-slate-900 dark:text-slate-100 mb-1">Không tìm thấy sản phẩm</h3>
-              <p className="text-slate-500">Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm</p>
+              <h3 className="text-lg font-medium text-slate-900 dark:text-slate-100 mb-1">
+                {showExpiringOnly ? 'Không có sản phẩm cận date' : 'Không tìm thấy sản phẩm'}
+              </h3>
+              <p className="text-slate-500">
+                {showExpiringOnly ? 'Tất cả sản phẩm trong kho đều còn hạn sử dụng an toàn!' : 'Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm'}
+              </p>
             </div>
           ) : (
             <>
@@ -180,7 +205,7 @@ export function ProductListClient({
                 animate="show"
                 className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6"
               >
-                {products.map((product, idx) => (
+                {displayedProducts.map((product, idx) => (
                   <ProductCard key={product.id} product={product} index={idx} priority={idx === 0} />
                 ))}
               </motion.div>

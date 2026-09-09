@@ -15,7 +15,10 @@ import {
   Search, 
   ImageIcon, 
   ExternalLink,
-  Loader2 
+  Loader2,
+  Camera,
+  Sparkles,
+  Calendar
 } from 'lucide-react'
 import { ProductFormData } from '@/schemas/product.schema'
 import { generateProductImageAction, selectManualCandidateAction } from '@/actions/admin/image.actions'
@@ -26,6 +29,9 @@ import { handleServerActionError } from '@/lib/server-action-error-handler'
 import { useRouter } from 'next/navigation'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Input } from '@/components/ui/input'
+import { ReceiptScannerDialog } from '@/components/scanner/ReceiptScannerDialog'
+import { ScannedReceiptItem } from '@/actions/receipt-scanner.actions'
+import { addDaysFromNow } from '@/lib/expiry-utils'
 import {
   Dialog,
   DialogContent,
@@ -78,6 +84,39 @@ export function SellerProductImportClient({ categories }: Props) {
   // Dialog state for candidate selection on an individual row
   const [selectedRowForImage, setSelectedRowForImage] = useState<EditableImportProduct | null>(null)
   const [isSearchingSingleImage, setIsSearchingSingleImage] = useState(false)
+  const [isScannerOpen, setIsScannerOpen] = useState(false)
+
+  // Handle scanned receipt items
+  const handleScannedReceiptImport = (items: ScannedReceiptItem[]) => {
+    const formatted: EditableImportProduct[] = items.map((item, idx) => ({
+      tempId: item.tempId || `scanned-${idx}-${Date.now()}`,
+      name: item.name,
+      slug: '',
+      category_id: item.category_id || (categories[0]?.id || ''),
+      description: item.description || '',
+      price: item.price,
+      sale_price: null,
+      raw_price: item.price,
+      raw_sale_price: null,
+      price_mode: globalPriceMode,
+      stock: item.stock,
+      expiry_date: item.expiry_date || null,
+      image_url: null,
+      image_source: 'auto',
+      image_status: 'unchecked',
+      images: [],
+      is_active: true,
+      is_featured: false,
+      variants: []
+    }))
+
+    const updatedData = [...importData, ...formatted]
+    setImportData(updatedData)
+    toast.success(`Đã nhận ${formatted.length} sản phẩm từ hóa đơn! Đang tìm ảnh tự động...`)
+    
+    // Trigger image auto-search for newly scanned items
+    autoFetchImagesForBatch(updatedData)
+  }
 
   // 1. Process Excel/Text JSON Data
   const processData = async (jsonData: any[]) => {
@@ -428,43 +467,72 @@ export function SellerProductImportClient({ categories }: Props) {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Upload Excel */}
-        <Card>
+      {/* Receipt Scanner Dialog */}
+      <ReceiptScannerDialog 
+        open={isScannerOpen} 
+        onOpenChange={setIsScannerOpen} 
+        onImportItems={handleScannedReceiptImport} 
+      />
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Scan Invoice with AI (Prominent) */}
+        <Card className="border-emerald-300 bg-gradient-to-br from-emerald-50/50 via-white to-amber-50/30 shadow-sm relative overflow-hidden flex flex-col justify-between">
+          <div className="absolute top-0 right-0 bg-emerald-600 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-bl-lg uppercase tracking-wider">
+            Nhanh nhất ✨
+          </div>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Upload className="w-5 h-5 text-emerald-600" /> Nhập từ file Excel / CSV
+            <CardTitle className="flex items-center gap-2 text-base text-emerald-900">
+              <Camera className="w-5 h-5 text-emerald-600" /> Quét ảnh hóa đơn AI
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-slate-500">
-              Tải lên file .xlsx hoặc .csv. Cột yêu cầu: Tên sản phẩm, Giá bán, Giá khuyến mãi, Tồn kho, Danh mục, Hình ảnh, Mô tả.
-              <span className="block mt-1 font-semibold text-emerald-700">
-                ✨ Nếu cột Hình ảnh bị trống, hệ thống sẽ tự động sử dụng AI để tìm và gán ảnh hợp lý nhất!
+          <CardContent className="space-y-4 flex-1 flex flex-col justify-between">
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Chụp phiếu mua hàng siêu thị / chợ (Bách Hóa Xanh, WinMart, Co.opmart...). AI sẽ tự động đọc tên, số lượng, giá và gợi ý hạn sử dụng (HSD).
+            </p>
+            <Button 
+              type="button" 
+              onClick={() => setIsScannerOpen(true)}
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium shadow-sm"
+            >
+              <Sparkles className="w-4 h-4 mr-2 text-amber-300" />
+              Mở Camera / Quét hóa đơn
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Upload Excel */}
+        <Card className="flex flex-col justify-between">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Upload className="w-5 h-5 text-emerald-600" /> Nhập từ Excel / CSV
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4 flex-1 flex flex-col justify-between">
+            <p className="text-xs text-slate-500">
+              Tải file .xlsx hoặc .csv. Cột: Tên, Giá, Tồn kho, Danh mục, Hạn sử dụng, Hình ảnh.
+              <span className="block mt-1 font-medium text-emerald-700">
+                ✨ Tự động tìm ảnh AI nếu thiếu ảnh!
               </span>
             </p>
-            <Input type="file" accept=".xlsx, .xls, .csv" onChange={handleFileUpload} />
+            <Input type="file" accept=".xlsx, .xls, .csv" onChange={handleFileUpload} className="text-xs" />
           </CardContent>
         </Card>
 
         {/* Paste Text */}
-        <Card>
+        <Card className="flex flex-col justify-between">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="w-5 h-5 text-emerald-600" /> Nhập từ Text (Copy/Paste)
+            <CardTitle className="flex items-center gap-2 text-base">
+              <FileText className="w-5 h-5 text-emerald-600" /> Nhập từ Text
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-slate-500">
-              Dán nội dung bảng từ Excel hoặc Google Sheets trực tiếp vào đây.
-            </p>
+          <CardContent className="space-y-3 flex-1 flex flex-col justify-between">
             <textarea 
               value={rawText}
               onChange={(e) => setRawText(e.target.value)}
-              className="w-full h-24 p-2 border rounded-md text-sm font-mono"
-              placeholder="Tên sản phẩm&#9;Giá bán&#9;Tồn kho..."
+              className="w-full h-16 p-2 border rounded-md text-xs font-mono"
+              placeholder="Tên SP&#9;Giá bán&#9;Tồn kho..."
             />
-            <Button onClick={handleTextImport} variant="secondary" className="w-full">
+            <Button onClick={handleTextImport} variant="secondary" size="sm" className="w-full text-xs">
               Phân tích Text
             </Button>
           </CardContent>
@@ -563,6 +631,7 @@ export function SellerProductImportClient({ categories }: Props) {
                     <TableHead className="w-28">Giá bán (đ)</TableHead>
                     <TableHead className="w-28">Giá KM (đ)</TableHead>
                     <TableHead className="w-24">Tồn kho</TableHead>
+                    <TableHead className="w-36">Hạn sử dụng</TableHead>
                     <TableHead className="w-16 text-center">Xóa</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -698,6 +767,35 @@ export function SellerProductImportClient({ categories }: Props) {
                           onChange={(e) => handleUpdateRow(prod.tempId, 'stock', Number(e.target.value))}
                           className="h-8 text-xs font-mono"
                         />
+                      </TableCell>
+
+                      {/* Expiry Date */}
+                      <TableCell>
+                        <div className="flex flex-col gap-1">
+                          <Input
+                            type="date"
+                            value={prod.expiry_date ? String(prod.expiry_date).split('T')[0] : ''}
+                            onChange={(e) => handleUpdateRow(prod.tempId, 'expiry_date', e.target.value || null)}
+                            className="h-8 text-[11px] px-1.5"
+                          />
+                          <div className="flex gap-1 text-[9px]">
+                            <button 
+                              type="button" 
+                              onClick={() => handleUpdateRow(prod.tempId, 'expiry_date', addDaysFromNow(3))}
+                              className="px-1.5 py-0.5 bg-slate-100 hover:bg-emerald-100 hover:text-emerald-700 text-slate-600 rounded transition-colors"
+                            >+3N</button>
+                            <button 
+                              type="button" 
+                              onClick={() => handleUpdateRow(prod.tempId, 'expiry_date', addDaysFromNow(7))}
+                              className="px-1.5 py-0.5 bg-slate-100 hover:bg-emerald-100 hover:text-emerald-700 text-slate-600 rounded transition-colors"
+                            >+7N</button>
+                            <button 
+                              type="button" 
+                              onClick={() => handleUpdateRow(prod.tempId, 'expiry_date', addDaysFromNow(30))}
+                              className="px-1.5 py-0.5 bg-slate-100 hover:bg-emerald-100 hover:text-emerald-700 text-slate-600 rounded transition-colors"
+                            >+1T</button>
+                          </div>
+                        </div>
                       </TableCell>
 
                       {/* Actions */}

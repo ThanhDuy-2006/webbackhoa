@@ -16,8 +16,10 @@ import {
   RefreshCw, 
   ExternalLink, 
   AlertCircle, 
-  CheckCircle 
+  CheckCircle,
+  Calendar
 } from 'lucide-react'
+import { addDaysFromNow } from '@/lib/expiry-utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -74,6 +76,7 @@ export function SellerProductForm({ categories, initialData }: SellerProductForm
       stock: initialData?.stock ?? ('' as any),
       image_url: initialData?.image_url || '',
       images: initialData?.images || [],
+      expiry_date: initialData?.expiry_date ? String(initialData.expiry_date).split('T')[0] : '',
       listing_status: (initialData?.listing_status as any) || 'active',
       variants: initialData?.variants?.map(v => ({
         id: v.id,
@@ -350,6 +353,50 @@ export function SellerProductForm({ categories, initialData }: SellerProductForm
                 <option value="draft">Lưu bản nháp (Chưa bán)</option>
                 <option value="paused">Tạm dừng bán</option>
               </select>
+            </div>
+          </div>
+
+          <div className="space-y-2 p-4 bg-slate-50/70 rounded-2xl border border-slate-200">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="expiry_date" className="font-semibold text-slate-700 flex items-center gap-1.5">
+                <Calendar className="w-4 h-4 text-emerald-600" />
+                Hạn sử dụng (HSD)
+              </Label>
+              {watch('expiry_date') && (
+                <button
+                  type="button"
+                  onClick={() => setValue('expiry_date', '')}
+                  className="text-xs text-rose-500 hover:underline"
+                >
+                  Xóa HSD
+                </button>
+              )}
+            </div>
+            <Input
+              type="date"
+              id="expiry_date"
+              {...register('expiry_date')}
+              className="rounded-xl bg-white"
+            />
+            <div className="flex flex-wrap items-center gap-1.5 pt-1">
+              <span className="text-xs text-slate-400 mr-1">Gán nhanh:</span>
+              {[
+                { label: '+3 ngày', days: 3 },
+                { label: '+7 ngày', days: 7 },
+                { label: '+15 ngày', days: 15 },
+                { label: '+1 tháng', days: 30 },
+                { label: '+3 tháng', days: 90 },
+                { label: '+6 tháng', days: 180 },
+              ].map((preset) => (
+                <button
+                  key={preset.days}
+                  type="button"
+                  onClick={() => setValue('expiry_date', addDaysFromNow(preset.days))}
+                  className="text-xs px-2 py-0.5 bg-white hover:bg-emerald-100 hover:text-emerald-700 text-slate-600 rounded-lg border border-slate-200 transition-colors shadow-xs"
+                >
+                  {preset.label}
+                </button>
+              ))}
             </div>
           </div>
 

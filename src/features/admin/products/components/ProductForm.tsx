@@ -17,7 +17,8 @@ import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { handleServerActionError } from '@/lib/server-action-error-handler'
-import { Plus, Trash2, Loader2, RefreshCw, Sparkles, ExternalLink, AlertCircle, CheckCircle } from 'lucide-react'
+import { Plus, Trash2, Loader2, RefreshCw, Sparkles, ExternalLink, AlertCircle, CheckCircle, Calendar } from 'lucide-react'
+import { addDaysFromNow } from '@/lib/expiry-utils'
 
 interface Props {
   initialData?: Product | null
@@ -53,6 +54,7 @@ export function ProductForm({ initialData, categories }: Props) {
     defaultValues: initialData ? {
       ...initialData,
       category_id: initialData.category_id || '',
+      expiry_date: initialData.expiry_date ? String(initialData.expiry_date).split('T')[0] : '',
       variants: initialData.variants || [],
       images: initialData.images || []
     } : {
@@ -67,6 +69,7 @@ export function ProductForm({ initialData, categories }: Props) {
       image_source: 'auto',
       image_status: 'unchecked',
       images: [],
+      expiry_date: '',
       is_active: true,
       is_featured: false,
       variants: []
@@ -486,7 +489,51 @@ export function ProductForm({ initialData, categories }: Props) {
                 {errors.category_id && <span className="text-sm text-red-500 font-medium">{errors.category_id.message}</span>}
               </div>
 
-              <div className="flex items-center space-x-2 pt-4">
+              <div className="grid gap-2 pt-3 border-t border-slate-100">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="expiry_date" className="flex items-center gap-1.5 font-medium text-slate-700">
+                    <Calendar className="w-4 h-4 text-slate-500" />
+                    Hạn sử dụng (HSD)
+                  </Label>
+                  {watch('expiry_date') && (
+                    <button
+                      type="button"
+                      onClick={() => setValue('expiry_date', '')}
+                      className="text-[11px] text-rose-500 hover:underline"
+                    >
+                      Xóa HSD
+                    </button>
+                  )}
+                </div>
+                <Input
+                  type="date"
+                  id="expiry_date"
+                  {...register('expiry_date')}
+                  className="h-9"
+                />
+                <div className="flex flex-wrap items-center gap-1 pt-1">
+                  <span className="text-[11px] text-slate-400 mr-1">Gán nhanh:</span>
+                  {[
+                    { label: '+3 ngày', days: 3 },
+                    { label: '+7 ngày', days: 7 },
+                    { label: '+15 ngày', days: 15 },
+                    { label: '+1 tháng', days: 30 },
+                    { label: '+3 tháng', days: 90 },
+                    { label: '+6 tháng', days: 180 },
+                  ].map((preset) => (
+                    <button
+                      key={preset.days}
+                      type="button"
+                      onClick={() => setValue('expiry_date', addDaysFromNow(preset.days))}
+                      className="text-[10px] px-1.5 py-0.5 bg-slate-100 hover:bg-emerald-100 hover:text-emerald-700 text-slate-600 rounded border border-slate-200 transition-colors"
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2 pt-2 border-t border-slate-100">
                 <Checkbox 
                   id="is_active" 
                   checked={watch('is_active')} 

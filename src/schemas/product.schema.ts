@@ -22,6 +22,7 @@ export const productSchema = z.object({
   images: z.array(z.string().url('URL ảnh không hợp lệ').or(z.literal(''))).default([]).transform(arr => arr.filter(url => url !== '')),
   is_active: z.boolean(),
   is_featured: z.boolean(),
+  expiry_date: z.string().or(z.literal('')).transform(val => val === '' ? null : val).optional().nullable(),
   variants: z.array(productVariantSchema).default([]),
   
   // Smart Image Automation Fields (Optional in input form, handled internally)

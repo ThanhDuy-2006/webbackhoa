@@ -9,6 +9,7 @@ export const sellerProductSchema = z.object({
   stock: z.coerce.number().int().min(0, 'Tồn kho không được nhỏ hơn 0'),
   image_url: z.string().url('URL ảnh không hợp lệ').or(z.literal('')).transform(val => val === '' ? null : val).optional().nullable(),
   images: z.array(z.string().url('URL ảnh không hợp lệ').or(z.literal(''))).default([]).transform(arr => arr.filter(url => url !== '')),
+  expiry_date: z.string().or(z.literal('')).transform(val => val === '' ? null : val).optional().nullable(),
   listing_status: z.enum(['draft', 'active', 'paused']).optional().default('active'),
   variants: z.array(
     z.object({

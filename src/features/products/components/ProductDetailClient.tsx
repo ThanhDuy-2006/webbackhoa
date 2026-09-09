@@ -12,6 +12,7 @@ import { addRecentlyViewed } from '@/components/products/RecentlyViewed'
 import { createClient } from '@/lib/supabase/client'
 import { ProductCard } from './ProductCard'
 import { formatCurrency } from '@/lib/utils'
+import { ExpiryBadge } from '@/components/products/ExpiryBadge'
 
 interface ProductDetailClientProps {
   product: any
@@ -186,8 +187,11 @@ export function ProductDetailClient({ product, variants, initialFavorited = fals
       {/* Product Info */}
       <div className="flex flex-col">
         <div className="mb-6">
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex flex-wrap items-center gap-3 mb-2">
             <span className="text-sm text-emerald-600 font-medium">{product.categories?.name}</span>
+            {product.expiry_date && (
+              <ExpiryBadge expiryDate={product.expiry_date} size="md" />
+            )}
             <div className="flex items-center text-amber-400 text-sm">
               <Star className="w-4 h-4 fill-current" />
               <Star className="w-4 h-4 fill-current" />

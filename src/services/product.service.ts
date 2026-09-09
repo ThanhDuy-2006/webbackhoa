@@ -76,6 +76,7 @@ export const ProductService = {
       stock: validatedData.stock,
       image_url: validatedData.image_url,
       images: validatedData.images,
+      expiry_date: validatedData.expiry_date || null,
       is_active: validatedData.is_active,
       is_featured: validatedData.is_featured,
     }
@@ -110,6 +111,7 @@ export const ProductService = {
       stock: validatedData.stock,
       image_url: validatedData.image_url,
       images: validatedData.images,
+      expiry_date: validatedData.expiry_date || null,
       is_active: validatedData.is_active,
       is_featured: validatedData.is_featured,
     }
@@ -148,15 +150,20 @@ export const ProductService = {
         ? (existingProduct.images || [existingProduct.image_url])
         : (validatedData.image_url ? [validatedData.image_url] : [])
 
+      const updatePayload: any = {
+        stock: newStock,
+        image_url: finalImageUrl,
+        images: finalImages,
+        image_status: finalImageUrl ? 'valid' : 'unchecked',
+        updated_at: new Date().toISOString(),
+      }
+      if (validatedData.expiry_date) {
+        updatePayload.expiry_date = validatedData.expiry_date
+      }
+
       await supabase
         .from('products')
-        .update({
-          stock: newStock,
-          image_url: finalImageUrl,
-          images: finalImages,
-          image_status: finalImageUrl ? 'valid' : 'unchecked',
-          updated_at: new Date().toISOString(),
-        })
+        .update(updatePayload)
         .eq('id', existingProduct.id)
 
       if (validatedData.stock > 0) {

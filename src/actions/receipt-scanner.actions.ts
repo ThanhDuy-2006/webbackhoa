@@ -1,0 +1,177 @@
+'use server'
+
+import { GoogleGenAI } from '@google/genai'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { addDaysFromNow } from '@/lib/expiry-utils'
+
+export interface ScannedReceiptItem {
+  tempId: string
+  name: string
+  price: number
+  sale_price?: number | null
+  stock: number
+  category_id?: string | null
+  category_name?: string | null
+  expiry_date?: string | null
+  description?: string
+  confidence?: number
+}
+
+export interface ScanReceiptResult {
+  success: boolean
+  error?: string
+  merchantName?: string
+  totalBill?: number
+  items?: ScannedReceiptItem[]
+}
+
+export async function scanReceiptAction(base64ImageWithHeader: string): Promise<ScanReceiptResult> {
+  try {
+    const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY
+    if (!apiKey) {
+      return {
+        success: false,
+        error: 'Chưa cấu hình GEMINI_API_KEY. Vui lòng thêm GEMINI_API_KEY vào file .env.local để sử dụng tính năng quét hóa đơn bằng AI.'
+      }
+    }
+
+    if (!base64ImageWithHeader || !base64ImageWithHeader.includes(',')) {
+      return {
+        success: false,
+        error: 'Dữ liệu ảnh hóa đơn không hợp lệ.'
+      }
+    }
+
+    // Extract mimeType and raw base64
+    const parts = base64ImageWithHeader.split(',')
+    const mimeMatch = parts[0].match(/:(.*?);/)
+    const mimeType = mimeMatch ? mimeMatch[1] : 'image/jpeg'
+    const base64Data = parts[1]
+
+    // Fetch existing categories to map
+    const supabase = createAdminClient()
+    const { data: categories } = await supabase.from('categories').select('id, name, slug')
+    const categoryListStr = categories?.map(c => `- ${c.name} (slug: ${c.slug}, id: ${c.id})`).join('\n') || ''
+
+    const ai = new GoogleGenAI({ apiKey })
+
+    const prompt = `
+Bạn là chuyên gia OCR bóc tách hóa đơn, phiếu mua hàng siêu thị, bách hóa, chợ tại Việt Nam (Bách Hóa Xanh, WinMart, Co.opmart, Tops Market, Lotte Mart, Ministop, Circle K, hóa đơn tạp hóa).
+
+Nhiệm vụ:
+1. Đọc và nhận diện toàn bộ danh sách sản phẩm/hàng hóa trong ảnh hóa đơn.
+2. Với từng sản phẩm:
+   - "name": Tên chuẩn tiếng Việt, có dấu rõ ràng (bỏ các mã vạch số hoặc ký tự rác nếu có, ví dụ: "Rau muống gói 500g", "Thịt ba rọi heo 300g", "Nước mắm Nam Ngư 500ml", "Mì Hảo Hảo tôm chua cay").
+   - "stock": Số lượng mua (mặc định là 1 nếu là 1 gói/chai/món hoặc số kg làm tròn phù hợp, số nguyên >= 1).
+   - "price": Đơn giá của 1 đơn vị sản phẩm (số nguyên VNĐ). Nếu hóa đơn ghi tổng tiền dòng và số lượng, hãy tính đơn giá = tổng tiền dòng / số lượng.
+   - "category_slug": Danh mục phù hợp nhất từ danh sách sau:
+${categoryListStr}
+   - "expiry_days_estimate": Ước lượng số ngày sử dụng tốt nhất cho loại thực phẩm này kể từ ngày mua:
+     + Rau củ quả tươi sống: 3-5 ngày (vd: 4)
+     + Thịt, cá, hải sản tươi: 2-3 ngày (vd: 2)
+     + Trái cây tươi: 4-7 ngày (vd: 5)
+     + Sữa tươi, bánh tươi, đậu hũ: 5-10 ngày (vd: 7)
+     + Thực phẩm khô, mì, gia vị, dầu ăn, gạo: 90-180 ngày (vd: 120)
+     + Nước ngọt, bia, đồ hộp: 90-365 ngày (vd: 180)
+     + Hóa mỹ phẩm, đồ gia dụng: 365 ngày (vd: 365)
+     + Khác: 30 ngày
+
+Hãy trả về DUY NHẤT một chuỗi JSON hợp lệ theo định dạng sau (không bao gồm markdown hay chú thích thừa):
+{
+  "merchant": "Tên siêu thị/cửa hàng nếu có",
+  "total_bill": 0,
+  "items": [
+    {
+      "name": "Tên sản phẩm",
+      "stock": 1,
+      "price": 25000,
+      "category_slug": "slug-danh-muc",
+      "expiry_days_estimate": 4
+    }
+  ]
+}
+`
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            {
+              inlineData: {
+                data: base64Data,
+                mimeType: mimeType
+              }
+            },
+            {
+              text: prompt
+            }
+          ]
+        }
+      ],
+      config: {
+        responseMimeType: 'application/json',
+        temperature: 0.1,
+      }
+    })
+
+    const text = response.text || ''
+    if (!text) {
+      return {
+        success: false,
+        error: 'AI không đọc được nội dung từ ảnh hóa đơn. Vui lòng chụp rõ nét hơn.'
+      }
+    }
+
+    const cleanJson = text.trim().replace(/^```json\s*/i, '').replace(/\s*```$/i, '')
+    const parsed = JSON.parse(cleanJson)
+
+    if (!parsed.items || !Array.isArray(parsed.items) || parsed.items.length === 0) {
+      return {
+        success: false,
+        error: 'Không tìm thấy dòng sản phẩm nào trong ảnh hóa đơn.'
+      }
+    }
+
+    const scannedItems: ScannedReceiptItem[] = parsed.items.map((item: any, idx: number) => {
+      // Find matching category ID
+      let matchedCategory = categories?.find(c => c.slug === item.category_slug)
+      if (!matchedCategory && item.category_slug) {
+        matchedCategory = categories?.find(c => c.name.toLowerCase().includes(item.category_slug.toLowerCase()))
+      }
+
+      const daysEstimate = typeof item.expiry_days_estimate === 'number' && item.expiry_days_estimate > 0 
+        ? item.expiry_days_estimate 
+        : 7
+      
+      const calculatedExpiryDate = addDaysFromNow(daysEstimate)
+
+      return {
+        tempId: `scanned-${idx}-${Date.now()}`,
+        name: String(item.name || '').trim(),
+        price: Number(item.price) || 0,
+        sale_price: null,
+        stock: Number(item.stock) > 0 ? Number(item.stock) : 1,
+        category_id: matchedCategory ? matchedCategory.id : (categories && categories.length > 0 ? categories[0].id : null),
+        category_name: matchedCategory ? matchedCategory.name : null,
+        expiry_date: calculatedExpiryDate,
+        description: `Nhập tự động từ hóa đơn ${parsed.merchant || ''}`,
+      }
+    })
+
+    return {
+      success: true,
+      merchantName: parsed.merchant,
+      totalBill: parsed.total_bill,
+      items: scannedItems,
+    }
+  } catch (err: unknown) {
+    const error = err as Error
+    console.error('Scan Receipt Error:', error)
+    return {
+      success: false,
+      error: error.message || 'Lỗi khi quét hóa đơn bằng AI.'
+    }
+  }
+}
