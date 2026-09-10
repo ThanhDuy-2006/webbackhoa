@@ -127,11 +127,15 @@ export const DashboardRepository = {
     const [
       { data: monthlyTopupsData },
       { data: allApprovedTopupsData },
-      { data: monthlyImportsData }
+      { data: monthlyImportsData },
+      { count: pendingTopupsCount },
+      { count: pendingWithdrawalsCount }
     ] = await Promise.all([
       supabase.from('topup_requests').select('amount').eq('status', 'approved').gte('created_at', startOfMonth),
       supabase.from('topup_requests').select('amount').eq('status', 'approved'),
-      supabase.from('inventory_logs').select('qty_before, qty_after, products:product_id(price)').eq('type', 'IMPORT').gte('created_at', startOfMonth)
+      supabase.from('inventory_logs').select('qty_before, qty_after, products:product_id(price)').eq('type', 'IMPORT').gte('created_at', startOfMonth),
+      supabase.from('topup_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+      supabase.from('withdrawal_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending')
     ])
 
     const monthlyTopup = monthlyTopupsData?.reduce((acc, row) => acc + Number(row.amount || 0), 0) || 0
@@ -153,6 +157,9 @@ export const DashboardRepository = {
       monthlyImportCost,
       totalTransactions,
       statusCounts,
+      pendingTopupsCount: pendingTopupsCount || 0,
+      pendingWithdrawalsCount: pendingWithdrawalsCount || 0,
+      pendingOrdersCount: statusCounts.pending || 0,
       revenueChart: last7Days,
       topProducts
     }

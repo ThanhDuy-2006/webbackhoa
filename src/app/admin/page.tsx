@@ -1,15 +1,37 @@
 import dynamic from 'next/dynamic'
 import { DashboardService } from '@/services/dashboard.service'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { DollarSign, Users, ShoppingBag, Package, TrendingUp, MoreHorizontal, CheckCircle2, Clock, Truck, XCircle, FileEdit, UserPlus, CreditCard, Receipt, ArrowLeftRight } from 'lucide-react'
+import { 
+  DollarSign, 
+  Users, 
+  ShoppingBag, 
+  Package, 
+  TrendingUp, 
+  CheckCircle2, 
+  Clock, 
+  Truck, 
+  XCircle, 
+  CreditCard, 
+  Receipt, 
+  ArrowLeftRight,
+  Plus,
+  Camera,
+  ExternalLink,
+  Calendar,
+  AlertCircle,
+  Landmark,
+  ArrowRight
+} from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/server'
+import { Button } from '@/components/ui/button'
+import { formatCurrency } from '@/lib/utils'
 
 // Dynamic import for Recharts to split JS bundle
 const AdminDashboardCharts = dynamic(
   () => import('@/features/admin/dashboard/components/AdminDashboardCharts').then(mod => mod.AdminDashboardCharts),
-  { loading: () => <div className="h-96 w-full animate-pulse bg-slate-100 rounded-xl" /> }
+  { loading: () => <div className="h-72 w-full animate-pulse bg-slate-100/70 rounded-2xl" /> }
 )
 
 export const revalidate = 0
@@ -20,54 +42,45 @@ export default async function AdminDashboardPage() {
   const { data: profile } = await supabase.from('profiles').select('full_name').eq('id', user?.id).single()
   
   const firstName = profile?.full_name?.split(' ').pop() || 'Admin'
+  const hour = new Date().getHours()
+  const greeting = hour < 12 ? 'Chào buổi sáng' : hour < 18 ? 'Chào buổi chiều' : 'Chào buổi tối'
 
   const { stats, recentOrders } = await DashboardService.getDashboardData()
-
-  const formatCurrency = (amount: number) => {
-    const numericAmount = Math.round(Number(amount) || 0)
-    return new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 0 }).format(numericAmount) + ' VND'
-  }
 
   // Get status badge colors
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'completed': return 'bg-emerald-100 text-emerald-600'
-      case 'shipping': return 'bg-blue-100 text-blue-600'
-      case 'pending': return 'bg-orange-100 text-orange-600'
-      case 'cancelled': return 'bg-red-100 text-red-600'
-      default: return 'bg-slate-100 text-slate-600'
-    }
-  }
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'completed': return 'Đã giao'
-      case 'shipping': return 'Đang giao'
-      case 'pending': return 'Chờ xử lý'
-      case 'cancelled': return 'Đã hủy'
-      default: return status
+      case 'completed': 
+        return { bg: 'bg-emerald-50 text-emerald-700 border-emerald-200', dot: 'bg-emerald-500', label: 'Đã giao' }
+      case 'shipping': 
+        return { bg: 'bg-blue-50 text-blue-700 border-blue-200', dot: 'bg-blue-500', label: 'Đang giao' }
+      case 'pending': 
+        return { bg: 'bg-amber-50 text-amber-700 border-amber-200', dot: 'bg-amber-500', label: 'Chờ xử lý' }
+      case 'cancelled': 
+        return { bg: 'bg-rose-50 text-rose-700 border-rose-200', dot: 'bg-rose-500', label: 'Đã hủy' }
+      default: 
+        return { bg: 'bg-slate-50 text-slate-700 border-slate-200', dot: 'bg-slate-400', label: status }
     }
   }
 
   // Generate real timeline from recent orders
   const realTimeline = recentOrders.slice(0, 4).map((order: any) => {
-    let icon = Clock, color = 'text-orange-500', bg = 'bg-orange-100', title = ''
+    let icon = Clock, color = 'text-amber-500', bg = 'bg-amber-100', title = ''
     
     if (order.status === 'completed') {
       icon = CheckCircle2; color = 'text-emerald-500'; bg = 'bg-emerald-100';
-      title = `Đơn hàng ${order.order_code} đã được giao thành công`;
+      title = `Đơn hàng #${order.order_code} đã được giao thành công`;
     } else if (order.status === 'pending') {
       icon = ShoppingBag; color = 'text-purple-500'; bg = 'bg-purple-100';
-      title = `Khách hàng ${order.profiles?.full_name || 'Khách'} đã đặt đơn hàng mới`;
+      title = `Khách hàng ${order.profiles?.full_name || 'Khách'} vừa đặt đơn mới`;
     } else if (order.status === 'shipping') {
       icon = Truck; color = 'text-blue-500'; bg = 'bg-blue-100';
-      title = `Đơn hàng ${order.order_code} đang được vận chuyển`;
+      title = `Đơn hàng #${order.order_code} đang được vận chuyển`;
     } else {
-      icon = XCircle; color = 'text-red-500'; bg = 'bg-red-100';
-      title = `Đơn hàng ${order.order_code} đã bị hủy`;
+      icon = XCircle; color = 'text-rose-500'; bg = 'bg-rose-100';
+      title = `Đơn hàng #${order.order_code} đã bị hủy`;
     }
 
-    // Format time difference
     const diff = new Date().getTime() - new Date(order.created_at).getTime();
     const minutes = Math.floor(diff / 60000);
     const hours = Math.floor(minutes / 60);
@@ -86,229 +99,303 @@ export default async function AdminDashboardPage() {
     }
   })
 
+  const pendingTopups = stats.pendingTopupsCount || 0
+  const pendingWithdrawals = stats.pendingWithdrawalsCount || 0
+  const pendingOrders = stats.pendingOrdersCount || 0
+  const hasPendingActions = pendingTopups > 0 || pendingWithdrawals > 0 || pendingOrders > 0
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Header Section */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
         <div>
-          <h2 className="text-[28px] font-extrabold tracking-tight text-slate-800 flex items-center gap-2">
-            Chào buổi sáng, {firstName}! 👋
-          </h2>
-          <p className="text-slate-500 font-medium mt-1">
-            Đây là tổng quan hoạt động của cửa hàng hôm nay.
+          <h1 className="text-xl md:text-2xl font-black tracking-tight text-slate-900 flex items-center gap-2">
+            {greeting}, {firstName}! 👋
+          </h1>
+          <p className="text-xs md:text-sm text-slate-500 mt-0.5">
+            Tổng quan doanh thu & vận hành hệ thống hôm nay.
           </p>
         </div>
-        <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-xl border border-slate-100 shadow-sm">
-          <Calendar className="w-4 h-4 text-slate-400" />
-          <span className="text-sm font-medium text-slate-700">Hôm nay: {new Date().toLocaleDateString('vi-VN')}</span>
-          <ChevronDown className="w-4 h-4 text-slate-400 ml-2" />
+
+        {/* Action Shortcuts & Date */}
+        <div className="flex flex-wrap items-center gap-2.5">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 text-slate-600 rounded-xl border border-slate-100 text-xs font-semibold">
+            <Calendar className="w-3.5 h-3.5 text-slate-400" />
+            <span>{new Date().toLocaleDateString('vi-VN', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
+          </div>
+
+          <Link href="/admin/products/create">
+            <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold gap-1 shadow-sm">
+              <Plus className="w-3.5 h-3.5" /> Thêm SP
+            </Button>
+          </Link>
+
+          <Link href="/admin/products/import?scan=true">
+            <Button size="sm" variant="outline" className="border-amber-200 bg-amber-50/50 hover:bg-amber-100 text-amber-800 rounded-xl text-xs font-bold gap-1">
+              <Camera className="w-3.5 h-3.5 text-amber-600" /> Quét HĐ
+            </Button>
+          </Link>
+
+          <Link href="/" target="_blank">
+            <Button size="sm" variant="ghost" className="rounded-xl text-xs font-medium text-slate-500 hover:text-slate-900 gap-1">
+              <ExternalLink className="w-3.5 h-3.5" /> Xem Store
+            </Button>
+          </Link>
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-6">
-        {/* Revenue */}
-        <Card className="rounded-[24px] border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white/80 backdrop-blur-xl hover:-translate-y-1 transition-transform duration-300">
-          <CardContent className="p-6">
-            <div className="flex items-start justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
-                  <DollarSign className="h-6 w-6 text-white" />
+      {/* Action Center Banners (If there are pending items) */}
+      {hasPendingActions && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {pendingTopups > 0 && (
+            <Link 
+              href="/admin/topups" 
+              className="flex items-center justify-between p-3.5 rounded-xl bg-emerald-50/90 border border-emerald-200 hover:bg-emerald-100/80 transition-all group"
+            >
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-emerald-500 text-white flex items-center justify-center font-bold text-xs shadow-xs">
+                  {pendingTopups}
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-slate-500 mb-1">Tổng doanh thu</p>
-                  <h3 className="text-2xl font-bold text-slate-800">{formatCurrency(stats.totalRevenue)}</h3>
+                  <p className="text-xs font-bold text-emerald-900">Yêu cầu nạp tiền chờ duyệt</p>
+                  <p className="text-[11px] text-emerald-700">Cần kiểm tra giao dịch nạp</p>
                 </div>
               </div>
-              <button className="text-slate-400 hover:text-slate-600">
-                <MoreHorizontal className="w-5 h-5" />
-              </button>
+              <ArrowRight className="w-4 h-4 text-emerald-600 group-hover:translate-x-0.5 transition-transform" />
+            </Link>
+          )}
+
+          {pendingWithdrawals > 0 && (
+            <Link 
+              href="/admin/withdrawals" 
+              className="flex items-center justify-between p-3.5 rounded-xl bg-blue-50/90 border border-blue-200 hover:bg-blue-100/80 transition-all group"
+            >
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-xs shadow-xs">
+                  {pendingWithdrawals}
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-blue-900">Yêu cầu rút tiền chờ duyệt</p>
+                  <p className="text-[11px] text-blue-700">Cần chuyển khoản cho user</p>
+                </div>
+              </div>
+              <ArrowRight className="w-4 h-4 text-blue-600 group-hover:translate-x-0.5 transition-transform" />
+            </Link>
+          )}
+
+          {pendingOrders > 0 && (
+            <Link 
+              href="/admin/orders" 
+              className="flex items-center justify-between p-3.5 rounded-xl bg-amber-50/90 border border-amber-200 hover:bg-amber-100/80 transition-all group"
+            >
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-amber-500 text-white flex items-center justify-center font-bold text-xs shadow-xs">
+                  {pendingOrders}
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-amber-900">Đơn hàng mới chờ xử lý</p>
+                  <p className="text-[11px] text-amber-700">Xác nhận và đóng gói giao</p>
+                </div>
+              </div>
+              <ArrowRight className="w-4 h-4 text-amber-600 group-hover:translate-x-0.5 transition-transform" />
+            </Link>
+          )}
+        </div>
+      )}
+
+      {/* Primary Key Metric Cards (Row 1: 4 cards) */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Card 1: Revenue */}
+        <Card className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm hover:shadow-md transition-all">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-slate-500">Tổng doanh thu</span>
+            <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+              <DollarSign className="w-4 h-4" />
             </div>
-            <div className="mt-4 flex items-center text-sm font-medium text-emerald-600 bg-emerald-50 w-fit px-2.5 py-1 rounded-full">
-              <TrendingUp className="w-4 h-4 mr-1" />
-              +18.2% <span className="text-slate-500 font-normal ml-1">so với hôm qua</span>
-            </div>
-          </CardContent>
+          </div>
+          <h3 className="text-lg md:text-xl font-black text-slate-900 font-mono tracking-tight">
+            {formatCurrency(stats.totalRevenue)}
+          </h3>
+          <div className="mt-2 flex items-center text-[11px] font-bold text-emerald-600 gap-1">
+            <TrendingUp className="w-3.5 h-3.5" />
+            <span>+18.2%</span>
+            <span className="text-slate-400 font-normal">so với hôm qua</span>
+          </div>
         </Card>
 
-        {/* Orders */}
-        <Card className="rounded-[24px] border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white/80 backdrop-blur-xl hover:-translate-y-1 transition-transform duration-300">
-          <CardContent className="p-6">
-            <div className="flex items-start justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center shadow-lg shadow-purple-500/20">
-                  <ShoppingBag className="h-6 w-6 text-white" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-slate-500 mb-1">Đơn hàng</p>
-                  <h3 className="text-2xl font-bold text-slate-800">{stats.totalOrders}</h3>
-                </div>
-              </div>
-              <button className="text-slate-400 hover:text-slate-600">
-                <MoreHorizontal className="w-5 h-5" />
-              </button>
+        {/* Card 2: Orders */}
+        <Card className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm hover:shadow-md transition-all">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-slate-500">Tổng đơn hàng</span>
+            <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+              <ShoppingBag className="w-4 h-4" />
             </div>
-            <div className="mt-4 flex items-center text-sm font-medium text-emerald-600 bg-emerald-50 w-fit px-2.5 py-1 rounded-full">
-              <TrendingUp className="w-4 h-4 mr-1" />
-              +12.4% <span className="text-slate-500 font-normal ml-1">so với hôm qua</span>
-            </div>
-          </CardContent>
+          </div>
+          <h3 className="text-lg md:text-xl font-black text-slate-900 font-mono tracking-tight">
+            {stats.totalOrders.toLocaleString('vi-VN')} <span className="text-xs font-semibold text-slate-400">đơn</span>
+          </h3>
+          <div className="mt-2 flex items-center text-[11px] font-bold text-blue-600 gap-1">
+            <CheckCircle2 className="w-3.5 h-3.5" />
+            <span>{stats.statusCounts?.completed || 0}</span>
+            <span className="text-slate-400 font-normal">đã giao thành công</span>
+          </div>
         </Card>
 
-        {/* Customers */}
-        <Card className="rounded-[24px] border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white/80 backdrop-blur-xl hover:-translate-y-1 transition-transform duration-300">
-          <CardContent className="p-6">
-            <div className="flex items-start justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-orange-400 to-orange-500 flex items-center justify-center shadow-lg shadow-orange-500/20">
-                  <Users className="h-6 w-6 text-white" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-slate-500 mb-1">Khách hàng</p>
-                  <h3 className="text-2xl font-bold text-slate-800">{stats.totalCustomers}</h3>
-                </div>
-              </div>
-              <button className="text-slate-400 hover:text-slate-600">
-                <MoreHorizontal className="w-5 h-5" />
-              </button>
+        {/* Card 3: Customers */}
+        <Card className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm hover:shadow-md transition-all">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-slate-500">Khách hàng</span>
+            <div className="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
+              <Users className="w-4 h-4" />
             </div>
-            <div className="mt-4 flex items-center text-sm font-medium text-emerald-600 bg-emerald-50 w-fit px-2.5 py-1 rounded-full">
-              <TrendingUp className="w-4 h-4 mr-1" />
-              +8.7% <span className="text-slate-500 font-normal ml-1">so với hôm qua</span>
-            </div>
-          </CardContent>
+          </div>
+          <h3 className="text-lg md:text-xl font-black text-slate-900 font-mono tracking-tight">
+            {stats.totalCustomers.toLocaleString('vi-VN')} <span className="text-xs font-semibold text-slate-400">user</span>
+          </h3>
+          <div className="mt-2 flex items-center text-[11px] font-bold text-emerald-600 gap-1">
+            <TrendingUp className="w-3.5 h-3.5" />
+            <span>+8.7%</span>
+            <span className="text-slate-400 font-normal">tài khoản hoạt động</span>
+          </div>
         </Card>
 
-        {/* Top Products */}
-        <Card className="rounded-[24px] border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white/80 backdrop-blur-xl hover:-translate-y-1 transition-transform duration-300">
-          <CardContent className="p-6">
-            <div className="flex items-start justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
-                  <Package className="h-6 w-6 text-white" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-slate-500 mb-1">Sản phẩm bán chạy</p>
-                  <h3 className="text-2xl font-bold text-slate-800">{stats.topProducts?.length || 0}</h3>
-                </div>
-              </div>
-              <button className="text-slate-400 hover:text-slate-600">
-                <MoreHorizontal className="w-5 h-5" />
-              </button>
+        {/* Card 4: Top Products */}
+        <Card className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm hover:shadow-md transition-all">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-slate-500">Sản phẩm bán chạy</span>
+            <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+              <Package className="w-4 h-4" />
             </div>
-            <div className="mt-4 flex items-center text-sm font-medium text-emerald-600 bg-emerald-50 w-fit px-2.5 py-1 rounded-full">
-              <TrendingUp className="w-4 h-4 mr-1" />
-              +15.3% <span className="text-slate-500 font-normal ml-1">so với hôm qua</span>
-            </div>
-          </CardContent>
+          </div>
+          <h3 className="text-lg md:text-xl font-black text-slate-900 font-mono tracking-tight">
+            {stats.topProducts?.length || 0} <span className="text-xs font-semibold text-slate-400">mặt hàng</span>
+          </h3>
+          <div className="mt-2 flex items-center text-[11px] font-bold text-amber-600 gap-1">
+            <TrendingUp className="w-3.5 h-3.5" />
+            <span>+15.3%</span>
+            <span className="text-slate-400 font-normal">sản lượng bán</span>
+          </div>
         </Card>
       </div>
 
-      {/* Monthly Financial Stats Cards */}
-      <div className="grid gap-6 md:grid-cols-3 mb-8">
+      {/* Secondary Financial Overview Bar (Row 2: 3 cards) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Nạp tiền trong tháng */}
-        <Card className="rounded-[24px] border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white/80 backdrop-blur-xl hover:-translate-y-1 transition-transform duration-300">
-          <CardContent className="p-6">
-            <div className="flex items-start justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-teal-400 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
-                  <CreditCard className="h-6 w-6 text-white" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-slate-500 mb-1">User nạp trong tháng</p>
-                  <h3 className="text-2xl font-bold text-slate-800">{formatCurrency(stats.monthlyTopup || 0)}</h3>
-                </div>
-              </div>
+        <div className="flex items-center justify-between p-4 rounded-2xl bg-white border border-slate-100 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+              <CreditCard className="w-5 h-5" />
             </div>
-            <div className="mt-4 flex items-center text-xs font-semibold text-emerald-700 bg-emerald-50 w-fit px-3 py-1 rounded-full">
-              Tháng {new Date().getMonth() + 1}/{new Date().getFullYear()} (Đã duyệt)
+            <div>
+              <p className="text-xs text-slate-500 font-medium">User nạp tháng này</p>
+              <h4 className="text-base font-black text-slate-900 font-mono">
+                {formatCurrency(stats.monthlyTopup || 0)}
+              </h4>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+          <span className="text-[10px] font-bold bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full">
+            Đã duyệt
+          </span>
+        </div>
 
-        {/* Tiền nhập sản phẩm trong tháng */}
-        <Card className="rounded-[24px] border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white/80 backdrop-blur-xl hover:-translate-y-1 transition-transform duration-300">
-          <CardContent className="p-6">
-            <div className="flex items-start justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg shadow-amber-500/20">
-                  <Receipt className="h-6 w-6 text-white" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-slate-500 mb-1">Tiền nhập SP trong tháng</p>
-                  <h3 className="text-2xl font-bold text-slate-800">{formatCurrency(stats.monthlyImportCost || 0)}</h3>
-                </div>
-              </div>
+        {/* Tiền nhập kho trong tháng */}
+        <div className="flex items-center justify-between p-4 rounded-2xl bg-white border border-slate-100 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+              <Receipt className="w-5 h-5" />
             </div>
-            <div className="mt-4 flex items-center text-xs font-semibold text-amber-700 bg-amber-50 w-fit px-3 py-1 rounded-full">
-              Tháng {new Date().getMonth() + 1}/{new Date().getFullYear()} (Tổng giá trị kho)
+            <div>
+              <p className="text-xs text-slate-500 font-medium">Tiền nhập SP tháng này</p>
+              <h4 className="text-base font-black text-slate-900 font-mono">
+                {formatCurrency(stats.monthlyImportCost || 0)}
+              </h4>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+          <span className="text-[10px] font-bold bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full">
+            Giá trị kho
+          </span>
+        </div>
 
-        {/* Tổng tiền giao dịch */}
-        <Card className="rounded-[24px] border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white/80 backdrop-blur-xl hover:-translate-y-1 transition-transform duration-300">
-          <CardContent className="p-6">
-            <div className="flex items-start justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
-                  <ArrowLeftRight className="h-6 w-6 text-white" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-slate-500 mb-1">Tổng tiền giao dịch</p>
-                  <h3 className="text-2xl font-bold text-slate-800">{formatCurrency(stats.totalTransactions || 0)}</h3>
-                </div>
-              </div>
+        {/* Tổng tiền luân chuyển */}
+        <div className="flex items-center justify-between p-4 rounded-2xl bg-white border border-slate-100 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+              <ArrowLeftRight className="w-5 h-5" />
             </div>
-            <div className="mt-4 flex items-center text-xs font-semibold text-indigo-700 bg-indigo-50 w-fit px-3 py-1 rounded-full">
-              Tổng doanh thu + Tổng tiền nạp
+            <div>
+              <p className="text-xs text-slate-500 font-medium">Tổng tiền giao dịch</p>
+              <h4 className="text-base font-black text-slate-900 font-mono">
+                {formatCurrency(stats.totalTransactions || 0)}
+              </h4>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+          <span className="text-[10px] font-bold bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full">
+            Doanh thu + Nạp
+          </span>
+        </div>
       </div>
 
       {/* Charts Section */}
       <AdminDashboardCharts revenueData={stats.revenueChart} statusData={stats.statusCounts} />
 
-      {/* Tables & Lists Section */}
-      <div className="grid gap-6 md:grid-cols-3">
-        {/* Recent Orders */}
-        <Card className="col-span-2 rounded-[24px] border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white/80 backdrop-blur-xl">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-base font-bold text-slate-800">Đơn hàng mới nhất</CardTitle>
-            <Link href="/admin/orders" className="text-sm font-medium text-blue-600 hover:text-blue-700">Xem tất cả</Link>
+      {/* Bottom Section: Recent Orders (7 cols) & Activity / Top Products (5 cols) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        {/* Recent Orders Table: 7 cols */}
+        <Card className="lg:col-span-7 rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden flex flex-col justify-between">
+          <CardHeader className="p-5 pb-3 flex flex-row items-center justify-between border-b border-slate-50">
+            <div>
+              <CardTitle className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                <ShoppingBag className="w-4 h-4 text-slate-600" /> Đơn hàng mới nhất
+              </CardTitle>
+              <p className="text-xs text-slate-400 mt-0.5">Các giao dịch đặt hàng gần đây</p>
+            </div>
+            <Link href="/admin/orders" className="text-xs font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1">
+              Xem tất cả <ArrowRight className="w-3 h-3" />
+            </Link>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-0">
             <div className="overflow-x-auto">
-              <table className="w-full text-sm text-left">
-                <thead className="text-xs text-slate-500 uppercase bg-slate-50/50 rounded-lg">
-                  <tr>
-                    <th className="px-4 py-3 font-medium rounded-l-lg">Mã đơn</th>
-                    <th className="px-4 py-3 font-medium">Khách hàng</th>
-                    <th className="px-4 py-3 font-medium">Tổng tiền</th>
-                    <th className="px-4 py-3 font-medium">Trạng thái</th>
-                    <th className="px-4 py-3 font-medium rounded-r-lg">Thời gian</th>
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="bg-slate-50/60 text-slate-400 border-b border-slate-100">
+                    <th className="p-3.5 pl-5 font-bold">Mã đơn</th>
+                    <th className="p-3.5 font-bold">Khách hàng</th>
+                    <th className="p-3.5 font-bold">Tổng tiền</th>
+                    <th className="p-3.5 font-bold">Trạng thái</th>
+                    <th className="p-3.5 pr-5 font-bold text-right">Thời gian</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-slate-50">
                   {recentOrders.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="px-4 py-8 text-center text-slate-500">Chưa có đơn hàng nào</td>
+                      <td colSpan={5} className="p-8 text-center text-slate-400 text-xs">Chưa có đơn hàng nào</td>
                     </tr>
                   ) : (
-                    recentOrders.map(order => (
-                      <tr key={order.id} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
-                        <td className="px-4 py-4 font-medium text-slate-800">{order.order_code}</td>
-                        <td className="px-4 py-4 text-slate-600">{order.profiles?.full_name || 'Khách hàng'}</td>
-                        <td className="px-4 py-4 font-semibold text-slate-800">{formatCurrency(Number(order.final_amount))}</td>
-                        <td className="px-4 py-4">
-                          <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${getStatusBadge(order.status)}`}>
-                            {getStatusText(order.status)}
-                          </span>
-                        </td>
-                        <td className="px-4 py-4 text-slate-500">{new Date(order.created_at).toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'})} - {new Date(order.created_at).toLocaleDateString('vi-VN')}</td>
-                      </tr>
-                    ))
+                    recentOrders.map((order: any) => {
+                      const badge = getStatusBadge(order.status)
+                      return (
+                        <tr key={order.id} className="hover:bg-slate-50/60 transition-colors">
+                          <td className="p-3.5 pl-5 font-mono font-bold text-slate-800">
+                            {order.order_code}
+                          </td>
+                          <td className="p-3.5 font-medium text-slate-700">
+                            {order.profiles?.full_name || 'Khách hàng'}
+                          </td>
+                          <td className="p-3.5 font-mono font-bold text-emerald-600">
+                            {formatCurrency(Number(order.final_amount))}
+                          </td>
+                          <td className="p-3.5">
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${badge.bg}`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${badge.dot}`}></span>
+                              {badge.label}
+                            </span>
+                          </td>
+                          <td className="p-3.5 pr-5 text-right text-slate-400 text-[11px] whitespace-nowrap font-medium">
+                            {new Date(order.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} - {new Date(order.created_at).toLocaleDateString('vi-VN')}
+                          </td>
+                        </tr>
+                      )
+                    })
                   )}
                 </tbody>
               </table>
@@ -316,103 +403,88 @@ export default async function AdminDashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Activity Timeline */}
-        <Card className="col-span-1 rounded-[24px] border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white/80 backdrop-blur-xl">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-base font-bold text-slate-800">Hoạt động gần đây</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-6">
-              {realTimeline.length === 0 ? (
-                <div className="text-center text-sm text-slate-500 py-4">Chưa có hoạt động nào</div>
+        {/* Right Column: Top Products & Activity: 5 cols */}
+        <div className="lg:col-span-5 space-y-5">
+          {/* Top Selling Products Card */}
+          <Card className="rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden">
+            <CardHeader className="p-5 pb-3 flex flex-row items-center justify-between border-b border-slate-50">
+              <CardTitle className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                <Package className="w-4 h-4 text-amber-500" /> Sản phẩm bán chạy
+              </CardTitle>
+              <Link href="/admin/products" className="text-xs font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1">
+                Xem kho <ArrowRight className="w-3 h-3" />
+              </Link>
+            </CardHeader>
+            <CardContent className="p-4 space-y-2.5">
+              {stats.topProducts?.length === 0 ? (
+                <div className="text-center py-6 text-xs text-slate-400">Chưa có dữ liệu bán hàng</div>
               ) : (
-                realTimeline.map((item: any, index: number) => {
-                  const Icon = item.icon
+                stats.topProducts?.map((product: any, idx: number) => {
+                  const rankColors = [
+                    'bg-amber-100 text-amber-800 border-amber-300',
+                    'bg-slate-100 text-slate-700 border-slate-300',
+                    'bg-orange-100 text-orange-800 border-orange-300',
+                    'bg-slate-50 text-slate-500 border-slate-200'
+                  ]
+
                   return (
-                    <div key={item.id} className="flex gap-4 relative">
-                      {/* Vertical Line */}
-                      {index !== realTimeline.length - 1 && (
-                        <div className="absolute left-[19px] top-[40px] bottom-[-24px] w-px bg-slate-100"></div>
-                      )}
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${item.bg}`}>
-                        <Icon className={`w-5 h-5 ${item.color}`} />
+                    <div key={product.id} className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 transition-colors">
+                      <span className={`w-5 h-5 rounded-full flex items-center justify-center font-bold text-[10px] shrink-0 border ${rankColors[idx] || rankColors[3]}`}>
+                        {idx + 1}
+                      </span>
+                      <div className="w-11 h-11 rounded-lg overflow-hidden relative shrink-0 border border-slate-100 bg-slate-50">
+                        <Image src={product.image} alt={product.name} fill className="object-cover" />
                       </div>
-                      <div className="pt-1">
-                        <p className="text-sm font-medium text-slate-700 leading-snug">{item.title}</p>
-                        <p className="text-xs text-slate-400 mt-1">{item.time}</p>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold text-slate-800 truncate" title={product.name}>
+                          {product.name}
+                        </p>
+                        <p className="text-[11px] text-slate-400 mt-0.5">
+                          Đã bán: <strong className="text-emerald-600 font-bold font-mono">{product.sold.toLocaleString()}</strong>
+                        </p>
                       </div>
                     </div>
                   )
                 })
               )}
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        {/* Top Selling Products List */}
-        <Card className="col-span-3 rounded-[24px] border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white/80 backdrop-blur-xl mt-2">
-          <CardHeader className="flex flex-row items-center justify-between pb-4">
-            <CardTitle className="text-base font-bold text-slate-800">Sản phẩm bán chạy nhất</CardTitle>
-            <Link href="/admin/products" className="text-sm font-medium text-blue-600 hover:text-blue-700">Xem tất cả</Link>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {stats.topProducts?.map((product: any) => (
-                <div key={product.id} className="flex items-center gap-4 p-3 rounded-2xl hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100">
-                  <div className="w-14 h-14 rounded-xl overflow-hidden relative shrink-0 border border-slate-100">
-                    <Image src={product.image} alt={product.name} fill className="object-cover" />
-                  </div>
-                  <div className="flex-1 overflow-hidden">
-                    <p className="text-sm font-semibold text-slate-800 truncate" title={product.name}>{product.name}</p>
-                    <p className="text-xs text-slate-500 mt-1"><span className="font-medium text-emerald-600">{product.sold.toLocaleString()}</span> đã bán</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+          {/* Activity Timeline Card */}
+          <Card className="rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden">
+            <CardHeader className="p-5 pb-3 border-b border-slate-50">
+              <CardTitle className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                <Clock className="w-4 h-4 text-purple-600" /> Hoạt động gần đây
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-5">
+              <div className="space-y-4">
+                {realTimeline.length === 0 ? (
+                  <div className="text-center text-xs text-slate-400 py-4">Chưa có hoạt động nào</div>
+                ) : (
+                  realTimeline.map((item: any, index: number) => {
+                    const Icon = item.icon
+                    return (
+                      <div key={item.id} className="flex gap-3 relative">
+                        {index !== realTimeline.length - 1 && (
+                          <div className="absolute left-4 top-8 bottom-[-16px] w-px bg-slate-100"></div>
+                        )}
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${item.bg}`}>
+                          <Icon className={`w-4 h-4 ${item.color}`} />
+                        </div>
+                        <div className="min-w-0 pt-0.5">
+                          <p className="text-xs font-semibold text-slate-800 leading-snug truncate">{item.title}</p>
+                          <p className="text-[10px] text-slate-400 mt-0.5">{item.time}</p>
+                        </div>
+                      </div>
+                    )
+                  })
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
-  )
-}
-
-function Calendar(props: any) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <rect width="18" height="18" x="3" y="4" rx="2" ry="2" />
-      <line x1="16" x2="16" y1="2" y2="6" />
-      <line x1="8" x2="8" y1="2" y2="6" />
-      <line x1="3" x2="21" y1="10" y2="10" />
-    </svg>
-  )
-}
-
-function ChevronDown(props: any) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="m6 9 6 6 6-6" />
-    </svg>
   )
 }
