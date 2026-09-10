@@ -65,28 +65,13 @@ export function UserWithdrawalForm({ balance }: UserWithdrawalFormProps) {
       return
     }
 
-    if (!effectiveBankName.trim()) {
-      toast.error('Vui lòng nhập hoặc chọn tên ngân hàng nhận tiền')
-      return
-    }
-
-    if (!accountNumber.trim()) {
-      toast.error('Vui lòng nhập số tài khoản ngân hàng')
-      return
-    }
-
-    if (!accountName.trim()) {
-      toast.error('Vui lòng nhập tên chủ tài khoản')
-      return
-    }
-
     setLoading(true)
     try {
       const res = await submitWithdrawalRequestAction({
         amount,
-        bank_name: effectiveBankName.trim(),
-        account_number: accountNumber.trim(),
-        account_name: accountName.trim().toUpperCase()
+        bank_name: effectiveBankName.trim() || 'Chưa cung cấp',
+        account_number: accountNumber.trim() || 'Chưa cung cấp',
+        account_name: accountName.trim() ? accountName.trim().toUpperCase() : 'Chưa cung cấp'
       })
 
       if (res.success) {
@@ -139,7 +124,7 @@ export function UserWithdrawalForm({ balance }: UserWithdrawalFormProps) {
           {/* Ngân hàng */}
           <div className="space-y-2">
             <Label htmlFor="bankSelect" className="text-slate-700 dark:text-slate-300 font-semibold text-xs">
-              Ngân hàng thụ hưởng *
+              Ngân hàng thụ hưởng <span className="text-slate-400 font-normal">(Tùy chọn)</span>
             </Label>
             <select
               id="bankSelect"
@@ -158,14 +143,13 @@ export function UserWithdrawalForm({ balance }: UserWithdrawalFormProps) {
           {selectedBank === 'Khác (Tự nhập tay)' && (
             <div className="space-y-2">
               <Label htmlFor="customBank" className="text-slate-700 dark:text-slate-300 font-semibold text-xs">
-                Nhập tên ngân hàng *
+                Nhập tên ngân hàng <span className="text-slate-400 font-normal">(Tùy chọn)</span>
               </Label>
               <Input
                 id="customBank"
                 value={customBank}
                 onChange={(e) => setCustomBank(e.target.value)}
                 placeholder="VD: Shinhan Bank, Woori Bank..."
-                required
                 className="bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 rounded-xl"
               />
             </div>
@@ -174,14 +158,13 @@ export function UserWithdrawalForm({ balance }: UserWithdrawalFormProps) {
           {/* Số tài khoản */}
           <div className="space-y-2">
             <Label htmlFor="accountNumber" className="text-slate-700 dark:text-slate-300 font-semibold text-xs">
-              Số tài khoản ngân hàng *
+              Số tài khoản ngân hàng <span className="text-slate-400 font-normal">(Tùy chọn)</span>
             </Label>
             <Input
               id="accountNumber"
               value={accountNumber}
               onChange={(e) => setAccountNumber(e.target.value.replace(/[^a-zA-Z0-9]/g, ''))}
-              placeholder="VD: 0123456789"
-              required
+              placeholder="VD: 0123456789 (Nhập hay không cũng được)"
               className="bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 rounded-xl font-mono text-sm tracking-wider"
             />
           </div>
@@ -189,14 +172,13 @@ export function UserWithdrawalForm({ balance }: UserWithdrawalFormProps) {
           {/* Tên chủ tài khoản */}
           <div className="space-y-2">
             <Label htmlFor="accountName" className="text-slate-700 dark:text-slate-300 font-semibold text-xs">
-              Tên chủ tài khoản (Viết hoa không dấu) *
+              Tên chủ tài khoản <span className="text-slate-400 font-normal">(Tùy chọn)</span>
             </Label>
             <Input
               id="accountName"
               value={accountName}
               onChange={(e) => setAccountName(e.target.value.toUpperCase())}
-              placeholder="VD: NGUYEN VAN A"
-              required
+              placeholder="VD: NGUYEN VAN A (Nhập hay không cũng được)"
               className="bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 rounded-xl uppercase font-bold text-sm tracking-wide"
             />
           </div>

@@ -54,9 +54,9 @@ FOR ALL USING (public.is_admin());
 -- 5. RPC TẠO YÊU CẦU RÚT TIỀN (TRANSACTION & LOCK)
 CREATE OR REPLACE FUNCTION public.request_wallet_withdrawal(
   p_amount NUMERIC,
-  p_bank_name TEXT,
-  p_account_number TEXT,
-  p_account_name TEXT
+  p_bank_name TEXT DEFAULT NULL,
+  p_account_number TEXT DEFAULT NULL,
+  p_account_name TEXT DEFAULT NULL
 )
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -68,6 +68,9 @@ DECLARE
   v_new_balance NUMERIC;
   v_withdrawal_id UUID;
   v_tx_id UUID;
+  v_effective_bank TEXT;
+  v_effective_acc_num TEXT;
+  v_effective_acc_name TEXT;
 BEGIN
   v_user_id := auth.uid();
   IF v_user_id IS NULL THEN
@@ -78,11 +81,9 @@ BEGIN
     RETURN jsonb_build_object('success', false, 'error', 'Số tiền rút phải lớn hơn 0');
   END IF;
 
-  IF p_bank_name IS NULL OR length(trim(p_bank_name)) = 0 OR
-     p_account_number IS NULL OR length(trim(p_account_number)) = 0 OR
-     p_account_name IS NULL OR length(trim(p_account_name)) = 0 THEN
-    RETURN jsonb_build_object('success', false, 'error', 'Vui lòng cung cấp đầy đủ thông tin tài khoản ngân hàng');
-  END IF;
+  v_effective_bank := COALESCE(NULLIF(trim(p_bank_name), ''), 'Chưa cung cấp');
+  v_effective_acc_num := COALESCE(NULLIF(trim(p_account_number), ''), 'Chưa cung cấp');
+  v_effective_acc_name := upper(COALESCE(NULLIF(trim(p_account_name), ''), 'Chưa cung cấp'));
 
   -- 1. Khóa dòng user profile để kiểm tra số dư an toàn
   SELECT * INTO v_user
@@ -117,9 +118,9 @@ BEGIN
   ) VALUES (
     v_user_id,
     p_amount,
-    trim(p_bank_name),
-    trim(p_account_number),
-    upper(trim(p_account_name)),
+    v_effective_bank,
+    v_effective_acc_num,
+    v_effective_acc_name,
     'pending'
   ) RETURNING id INTO v_withdrawal_id;
 
@@ -139,7 +140,7 @@ BEGIN
     v_user.balance,
     v_new_balance,
     v_withdrawal_id,
-    'Yêu cầu rút tiền về ' || trim(p_bank_name) || ' (' || trim(p_account_number) || ')'
+    'Yêu cầu rút tiền về ' || v_effective_bank || ' (' || v_effective_acc_num || ')'
   ) RETURNING id INTO v_tx_id;
 
   RETURN jsonb_build_object(

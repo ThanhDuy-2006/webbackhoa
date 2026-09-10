@@ -18,17 +18,15 @@ export async function submitWithdrawalRequestAction(data: {
     if (!data.amount || data.amount <= 0) {
       return { success: false, error: 'Số tiền rút không hợp lệ' }
     }
-    if (!data.bank_name?.trim()) {
-      return { success: false, error: 'Vui lòng chọn hoặc nhập tên ngân hàng' }
-    }
-    if (!data.account_number?.trim()) {
-      return { success: false, error: 'Vui lòng nhập số tài khoản ngân hàng' }
-    }
-    if (!data.account_name?.trim()) {
-      return { success: false, error: 'Vui lòng nhập tên chủ tài khoản' }
+
+    const sanitizedData = {
+      amount: data.amount,
+      bank_name: data.bank_name?.trim() || 'Chưa cung cấp',
+      account_number: data.account_number?.trim() || 'Chưa cung cấp',
+      account_name: data.account_name?.trim() ? data.account_name.trim().toUpperCase() : 'Chưa cung cấp'
     }
 
-    const result = await WithdrawalRepository.submitWithdrawal(data)
+    const result = await WithdrawalRepository.submitWithdrawal(sanitizedData)
 
     if (result.success) {
       revalidatePath('/tai-khoan/rut-tien')

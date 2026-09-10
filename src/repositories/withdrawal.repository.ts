@@ -106,15 +106,19 @@ export const WithdrawalRepository = {
 
     if (updateErr) return { success: false, error: 'Không thể cập nhật số dư' }
 
+    const bankName = data.bank_name?.trim() || 'Chưa cung cấp'
+    const accNum = data.account_number?.trim() || 'Chưa cung cấp'
+    const accName = data.account_name?.trim() ? data.account_name.trim().toUpperCase() : 'Chưa cung cấp'
+
     // Insert withdrawal request
     const { data: inserted, error: insertErr } = await supabase
       .from('withdrawal_requests')
       .insert({
         user_id: user.id,
         amount: data.amount,
-        bank_name: data.bank_name.trim(),
-        account_number: data.account_number.trim(),
-        account_name: data.account_name.trim().toUpperCase(),
+        bank_name: bankName,
+        account_number: accNum,
+        account_name: accName,
         status: 'pending'
       })
       .select()

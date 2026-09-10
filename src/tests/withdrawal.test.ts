@@ -2,31 +2,39 @@ import { describe, it, expect } from 'vitest'
 
 describe('Manual Withdrawal & Admin Approval Logic Tests', () => {
   describe('Withdrawal Request Validation', () => {
-    it('validates minimum withdrawal amount > 0', () => {
-      const validateWithdrawal = (amount: number, balance: number, bankName: string, accNum: string, accName: string) => {
+    it('validates minimum withdrawal amount > 0 and allows optional bank details', () => {
+      const validateWithdrawal = (amount: number, balance: number, bankName?: string, accNum?: string, accName?: string) => {
         if (amount <= 0) return { valid: false, error: 'Số tiền rút phải lớn hơn 0' }
         if (amount > balance) return { valid: false, error: 'Số dư khả dụng không đủ' }
-        if (!bankName.trim()) return { valid: false, error: 'Vui lòng chọn hoặc nhập tên ngân hàng' }
-        if (!accNum.trim()) return { valid: false, error: 'Vui lòng nhập số tài khoản ngân hàng' }
-        if (!accName.trim()) return { valid: false, error: 'Vui lòng nhập tên chủ tài khoản' }
-        return { valid: true, newBalance: balance - amount }
+        
+        return { 
+          valid: true, 
+          newBalance: balance - amount,
+          bankName: bankName?.trim() || 'Chưa cung cấp',
+          accountNumber: accNum?.trim() || 'Chưa cung cấp',
+          accountName: accName?.trim() ? accName.trim().toUpperCase() : 'Chưa cung cấp'
+        }
       }
 
       // Invalid zero amount
-      expect(validateWithdrawal(0, 1000000, 'MB Bank', '0123456789', 'NGUYEN VAN A').valid).toBe(false)
+      expect(validateWithdrawal(0, 1000000).valid).toBe(false)
       // Invalid negative amount
-      expect(validateWithdrawal(-50000, 1000000, 'MB Bank', '0123456789', 'NGUYEN VAN A').valid).toBe(false)
+      expect(validateWithdrawal(-50000, 1000000).valid).toBe(false)
       // Amount exceeding balance
-      expect(validateWithdrawal(1500000, 1000000, 'MB Bank', '0123456789', 'NGUYEN VAN A').valid).toBe(false)
-      // Missing bank info
-      expect(validateWithdrawal(500000, 1000000, '', '0123456789', 'NGUYEN VAN A').valid).toBe(false)
-      expect(validateWithdrawal(500000, 1000000, 'MB Bank', '', 'NGUYEN VAN A').valid).toBe(false)
-      expect(validateWithdrawal(500000, 1000000, 'MB Bank', '0123456789', '').valid).toBe(false)
+      expect(validateWithdrawal(1500000, 1000000).valid).toBe(false)
       
-      // Valid request
-      const valid = validateWithdrawal(500000, 1000000, 'MB Bank', '0123456789', 'NGUYEN VAN A')
-      expect(valid.valid).toBe(true)
-      expect(valid.newBalance).toBe(500000)
+      // Valid request with optional/empty bank info
+      const validEmptyBank = validateWithdrawal(500000, 1000000, '', '', '')
+      expect(validEmptyBank.valid).toBe(true)
+      expect(validEmptyBank.newBalance).toBe(500000)
+      expect(validEmptyBank.bankName).toBe('Chưa cung cấp')
+      expect(validEmptyBank.accountNumber).toBe('Chưa cung cấp')
+      expect(validEmptyBank.accountName).toBe('Chưa cung cấp')
+
+      // Valid request with full bank info
+      const validFull = validateWithdrawal(500000, 1000000, 'MB Bank', '0123456789', 'nguyen van a')
+      expect(validFull.valid).toBe(true)
+      expect(validFull.accountName).toBe('NGUYEN VAN A')
     })
   })
 
@@ -43,12 +51,6 @@ describe('Manual Withdrawal & Admin Approval Logic Tests', () => {
       const rejectedWithdrawalAmount = 1000000
       const restoredBalance = currentBalance + rejectedWithdrawalAmount
       expect(restoredBalance).toBe(2500000)
-    })
-
-    it('formats uppercase account names properly', () => {
-      const rawName = '  nguyen van a  '
-      const normalizedName = rawName.trim().toUpperCase()
-      expect(normalizedName).toBe('NGUYEN VAN A')
     })
   })
 })
