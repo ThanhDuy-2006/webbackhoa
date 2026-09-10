@@ -28,21 +28,28 @@ const STATUS_COLORS: Record<string, string> = {
   'Chưa có đơn': '#94A3B8'
 }
 
-export function AdminDashboardCharts({ revenueData, statusData }: ChartProps) {
+export function AdminDashboardCharts({ revenueData = [], statusData = { completed: 0, shipping: 0, pending: 0, cancelled: 0 } }: ChartProps) {
   const [isMounted, setIsMounted] = useState(false)
   
   useEffect(() => {
     setIsMounted(true)
   }, [])
 
+  const safeStatusData = {
+    completed: statusData?.completed || 0,
+    shipping: statusData?.shipping || 0,
+    pending: statusData?.pending || 0,
+    cancelled: statusData?.cancelled || 0,
+  }
+
   const pieData = [
-    { name: 'Đã giao', value: statusData.completed, isFallback: false },
-    { name: 'Đang giao', value: statusData.shipping, isFallback: false },
-    { name: 'Chờ xử lý', value: statusData.pending, isFallback: false },
-    { name: 'Đã hủy', value: statusData.cancelled, isFallback: false },
+    { name: 'Đã giao', value: safeStatusData.completed, isFallback: false },
+    { name: 'Đang giao', value: safeStatusData.shipping, isFallback: false },
+    { name: 'Chờ xử lý', value: safeStatusData.pending, isFallback: false },
+    { name: 'Đã hủy', value: safeStatusData.cancelled, isFallback: false },
   ].filter(item => item.value > 0)
 
-  const totalOrders = Object.values(statusData).reduce((a, b) => a + b, 0)
+  const totalOrders = Object.values(safeStatusData).reduce((a, b) => a + b, 0)
   
   if (pieData.length === 0) {
     pieData.push({ name: 'Chưa có đơn', value: 1, isFallback: true })
@@ -69,7 +76,8 @@ export function AdminDashboardCharts({ revenueData, statusData }: ChartProps) {
     return null
   }
 
-  const totalPeriodRevenue = revenueData.reduce((acc, curr) => acc + curr.revenue, 0)
+  const safeRevenueData = Array.isArray(revenueData) ? revenueData : []
+  const totalPeriodRevenue = safeRevenueData.reduce((acc, curr) => acc + (curr?.revenue || 0), 0)
 
   if (!isMounted) {
     return <div className="h-[320px] w-full bg-slate-100/60 animate-pulse rounded-2xl" />

@@ -64,7 +64,7 @@ export default async function AdminDashboardPage() {
   }
 
   // Generate real timeline from recent orders
-  const realTimeline = recentOrders.slice(0, 4).map((order: any) => {
+  const realTimeline = (recentOrders || []).slice(0, 4).map((order: any) => {
     let icon = Clock, color = 'text-amber-500', bg = 'bg-amber-100', title = ''
     
     if (order.status === 'completed') {
@@ -214,7 +214,7 @@ export default async function AdminDashboardPage() {
             </div>
           </div>
           <h3 className="text-lg md:text-xl font-black text-slate-900 font-mono tracking-tight">
-            {formatCurrency(stats.totalRevenue)}
+            {formatCurrency(stats?.totalRevenue || 0)}
           </h3>
           <div className="mt-2 flex items-center text-[11px] font-bold text-emerald-600 gap-1">
             <TrendingUp className="w-3.5 h-3.5" />
@@ -232,11 +232,11 @@ export default async function AdminDashboardPage() {
             </div>
           </div>
           <h3 className="text-lg md:text-xl font-black text-slate-900 font-mono tracking-tight">
-            {stats.totalOrders.toLocaleString('vi-VN')} <span className="text-xs font-semibold text-slate-400">đơn</span>
+            {(stats?.totalOrders || 0).toLocaleString('vi-VN')} <span className="text-xs font-semibold text-slate-400">đơn</span>
           </h3>
           <div className="mt-2 flex items-center text-[11px] font-bold text-blue-600 gap-1">
             <CheckCircle2 className="w-3.5 h-3.5" />
-            <span>{stats.statusCounts?.completed || 0}</span>
+            <span>{stats?.statusCounts?.completed || 0}</span>
             <span className="text-slate-400 font-normal">đã giao thành công</span>
           </div>
         </Card>
@@ -250,7 +250,7 @@ export default async function AdminDashboardPage() {
             </div>
           </div>
           <h3 className="text-lg md:text-xl font-black text-slate-900 font-mono tracking-tight">
-            {stats.totalCustomers.toLocaleString('vi-VN')} <span className="text-xs font-semibold text-slate-400">user</span>
+            {(stats?.totalCustomers || 0).toLocaleString('vi-VN')} <span className="text-xs font-semibold text-slate-400">user</span>
           </h3>
           <div className="mt-2 flex items-center text-[11px] font-bold text-emerald-600 gap-1">
             <TrendingUp className="w-3.5 h-3.5" />
@@ -268,7 +268,7 @@ export default async function AdminDashboardPage() {
             </div>
           </div>
           <h3 className="text-lg md:text-xl font-black text-slate-900 font-mono tracking-tight">
-            {stats.topProducts?.length || 0} <span className="text-xs font-semibold text-slate-400">mặt hàng</span>
+            {stats?.topProducts?.length || 0} <span className="text-xs font-semibold text-slate-400">mặt hàng</span>
           </h3>
           <div className="mt-2 flex items-center text-[11px] font-bold text-amber-600 gap-1">
             <TrendingUp className="w-3.5 h-3.5" />
@@ -336,7 +336,8 @@ export default async function AdminDashboardPage() {
       </div>
 
       {/* Charts Section */}
-      <AdminDashboardCharts revenueData={stats.revenueChart} statusData={stats.statusCounts} />
+      <AdminDashboardCharts revenueData={stats?.revenueChart || []} statusData={stats?.statusCounts || { completed: 0, shipping: 0, pending: 0, cancelled: 0 }} />
+
 
       {/* Bottom Section: Recent Orders (7 cols) & Activity / Top Products (5 cols) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
