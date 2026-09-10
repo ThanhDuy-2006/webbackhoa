@@ -38,6 +38,8 @@ export function UserWalletHistoryList() {
         >
           <option value="all">Tất cả nguồn giao dịch</option>
           <option value="topup">Nạp tiền vào ví (Topup)</option>
+          <option value="withdrawal">Rút tiền về ngân hàng (Withdrawal)</option>
+          <option value="withdrawal_refund">Hoàn tiền rút về ví (Withdrawal Refund)</option>
           <option value="payment">Thanh toán mua hàng (Payment)</option>
           <option value="refund">Hoàn tiền đơn hàng (Refund)</option>
           <option value="revenue_share">Nhận tiền chia sẻ (Revenue Share)</option>
@@ -86,6 +88,12 @@ export function UserWalletHistoryList() {
                 if (tx.type === 'topup') {
                   badgeColor = 'bg-emerald-50 text-emerald-700'
                   badgeLabel = 'Nạp tiền'
+                } else if (tx.type === 'withdrawal') {
+                  badgeColor = 'bg-rose-50 text-rose-700'
+                  badgeLabel = 'Rút tiền'
+                } else if (tx.type === 'withdrawal_refund') {
+                  badgeColor = 'bg-emerald-50 text-emerald-700'
+                  badgeLabel = 'Hoàn tiền rút'
                 } else if (tx.type === 'payment') {
                   badgeColor = 'bg-blue-50 text-blue-700'
                   badgeLabel = 'Thanh toán'

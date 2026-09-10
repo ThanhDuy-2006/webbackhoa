@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { ShoppingCart, User as UserIcon, LogOut, Menu, Package, Settings, Wallet, ShoppingBag, Home, Tag, Sun, Moon, Sprout, Trophy, Store, Camera } from 'lucide-react'
+import { ShoppingCart, User as UserIcon, LogOut, Menu, Package, Settings, Wallet, ShoppingBag, Home, Tag, Sun, Moon, Sprout, Trophy, Store, Camera, Landmark } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -229,7 +229,13 @@ export function NavbarClient({ user, profile }: NavbarClientProps) {
                 <DropdownMenuItem>
                   <Link href="/tai-khoan/nap-tien" className="cursor-pointer flex w-full items-center">
                     <Wallet className="mr-2 h-4 w-4" />
-                    <span>Nạp tiền</span>
+                    <span>Nạp tiền vào ví</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <Link href="/tai-khoan/rut-tien" className="cursor-pointer flex w-full items-center">
+                    <Landmark className="mr-2 h-4 w-4" />
+                    <span>Rút tiền về ngân hàng</span>
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />

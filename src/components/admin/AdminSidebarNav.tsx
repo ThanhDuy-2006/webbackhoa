@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Package, Users, ShoppingBag, LayoutDashboard, CreditCard, Tags, Percent } from 'lucide-react'
+import { Package, Users, ShoppingBag, LayoutDashboard, CreditCard, Tags, Percent, Landmark } from 'lucide-react'
 
 const sidebarLinks = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
@@ -11,6 +11,7 @@ const sidebarLinks = [
   { name: 'Đơn hàng', href: '/admin/orders', icon: ShoppingBag },
   { name: 'Khách hàng', href: '/admin/users', icon: Users },
   { name: 'Duyệt nạp tiền', href: '/admin/topups', icon: CreditCard },
+  { name: 'Duyệt rút tiền', href: '/admin/withdrawals', icon: Landmark },
   { name: 'Chia tiền sản phẩm', href: '/admin/revenue-share', icon: Percent },
 ]
 

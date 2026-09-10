@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { User, ShoppingBag, CreditCard, Lock, LogOut, Activity, Store, PackageCheck, DollarSign, ChevronRight, ArrowLeft } from 'lucide-react'
+import { User, ShoppingBag, CreditCard, Lock, LogOut, Activity, Store, PackageCheck, DollarSign, ChevronRight, ArrowLeft, Landmark } from 'lucide-react'
 import { logout } from '@/app/login/actions'
 import { Button } from '@/components/ui/button'
 
@@ -11,7 +11,8 @@ const sidebarLinks = [
   { name: 'Đơn mua', href: '/tai-khoan/don-hang', icon: ShoppingBag },
   { name: 'Sản phẩm của tôi', href: '/tai-khoan/san-pham-cua-toi', icon: Store },
   { name: 'Đơn bán', href: '/tai-khoan/don-ban', icon: PackageCheck },
-  { name: 'Ví của tôi', href: '/tai-khoan/nap-tien', icon: CreditCard },
+  { name: 'Nạp tiền vào ví', href: '/tai-khoan/nap-tien', icon: CreditCard },
+  { name: 'Rút tiền về ngân hàng', href: '/tai-khoan/rut-tien', icon: Landmark },
   { name: 'Lịch sử giao dịch', href: '/tai-khoan/lich-su-giao-dich', icon: DollarSign },
   { name: 'Lịch sử chung', href: '/tai-khoan/lich-su-chung', icon: Activity },
   { name: 'Mật khẩu', href: '/tai-khoan/mat-khau', icon: Lock },
