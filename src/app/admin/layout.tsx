@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Package, Users, ShoppingBag, LayoutDashboard, Settings, CreditCard, LogOut, Tags, Search, Bell, Calendar, ChevronDown, Ticket, BarChart3, Archive, UserCog, Menu, Percent, Sprout } from 'lucide-react'
+import { Package, Users, ShoppingBag, LayoutDashboard, Settings, CreditCard, LogOut, Tags, Search, Bell, Calendar, ChevronDown, Ticket, BarChart3, Archive, UserCog, Menu, Percent, Sprout, ExternalLink } from 'lucide-react'
 import { logout } from '@/app/login/actions'
 import { Button } from '@/components/ui/button'
 import { createClient } from '@/lib/supabase/server'
