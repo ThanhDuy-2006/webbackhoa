@@ -4,21 +4,25 @@ const nextConfig: NextConfig = {
   // @ts-ignore
   allowedDevOrigins: ['192.168.1.12'],
   compress: true,
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   typescript: {
     ignoreBuildErrors: true,
   },
   experimental: {
+    staleTimes: {
+      dynamic: 30,
+      static: 180,
+    },
     optimizePackageImports: [
       'lucide-react',
+      'lucide',
+      'morphicons',
       'recharts',
       'framer-motion',
       'date-fns',
       'clsx',
       'tailwind-merge',
       'sonner',
+      '@base-ui/react',
     ],
   },
   images: {
@@ -36,6 +40,19 @@ const nextConfig: NextConfig = {
         hostname: '**',
       },
     ],
+  },
+  async headers() {
+    return [
+      {
+        source: '/:all*(svg|jpg|jpeg|png|webp|avif|ico|woff|woff2)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+    ];
   },
   async redirects() {
     return [

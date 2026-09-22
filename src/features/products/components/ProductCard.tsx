@@ -22,8 +22,8 @@ interface ProductCardProps {
 }
 
 const itemVariants: Variants = {
-  hidden: { opacity: 0, y: 30 },
-  show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } }
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { duration: 0.15, ease: 'easeOut' } }
 }
 
 export function ProductCard({ product, index = 0, priority = false }: ProductCardProps) {
