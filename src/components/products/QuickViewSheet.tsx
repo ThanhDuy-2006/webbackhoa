@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Minus, Loader2 } from 'lucide-react'
-import { MorphIcon, X, ShoppingCart, Check } from '@/components/ui/morph-icon'
+import { Plus, Minus, Loader2, X } from 'lucide-react'
+import { MorphAddToCartIcon } from '@/components/ui/morph-icon'
 import { SmartImage } from '@/components/ui/smart-image'
 import { Button } from '@/components/ui/button'
 import { useCartStore } from '@/store/useCartStore'
@@ -251,7 +251,7 @@ export function QuickViewSheet({ product, isOpen, onClose }: QuickViewSheetProps
                 onClick={handleAddToCart}
                 disabled={isOutOfStock}
               >
-                <MorphIcon icon={isAdded ? Check : ShoppingCart} size={18} spring="snappy" />
+                <MorphAddToCartIcon isAdded={isAdded} size={18} />
                 {isAdded ? 'Đã thêm vào giỏ!' : 'Thêm vào giỏ'}
               </Button>
               <Button

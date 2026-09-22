@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react'
 import { SmartImage } from '@/components/ui/smart-image'
 import { Button } from '@/components/ui/button'
-import { Star, Heart, ChevronLeft, ChevronRight } from 'lucide-react'
-import { MorphIcon, ShoppingCart, Check } from '@/components/ui/morph-icon'
+import { Star, Heart, ChevronLeft, ChevronRight, Check } from 'lucide-react'
+import { MorphAddToCartIcon } from '@/components/ui/morph-icon'
 import { cn } from '@/lib/utils'
 import { useCartStore } from '@/store/useCartStore'
 // import { toggleWishlist } from '@/actions/user/wishlist.actions'
@@ -289,7 +289,7 @@ export function ProductDetailClient({ product, variants, initialFavorited = fals
               onClick={handleAddToCart}
               disabled={isOutOfStock}
             >
-              <MorphIcon icon={isAdded ? Check : ShoppingCart} size={22} spring="snappy" />
+              <MorphAddToCartIcon isAdded={isAdded} size={22} />
               {isOutOfStock ? 'Hết hàng' : (isAdded ? 'Đã thêm vào giỏ!' : 'Thêm vào giỏ hàng')}
             </Button>
             {/* Removed wishlist button */}
@@ -323,7 +323,7 @@ export function ProductDetailClient({ product, variants, initialFavorited = fals
           disabled={isOutOfStock}
           style={{ minHeight: '44px' }}
         >
-          <MorphIcon icon={isAdded ? Check : ShoppingCart} size={18} spring="snappy" />
+          <MorphAddToCartIcon isAdded={isAdded} size={18} />
           {isAdded ? 'Đã thêm!' : 'Thêm vào giỏ'}
         </Button>
         <Button 
