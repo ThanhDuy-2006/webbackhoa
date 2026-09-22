@@ -12,7 +12,7 @@ import { motion, Variants } from 'framer-motion'
 import { QuickViewSheet } from '@/components/products/QuickViewSheet'
 import { SmartImage } from '@/components/ui/smart-image'
 import { StorefrontProductSummary } from '@/types/product.type'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, cn } from '@/lib/utils'
 import { ExpiryBadge } from '@/components/products/ExpiryBadge'
 
 interface ProductCardProps {
