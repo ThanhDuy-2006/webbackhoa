@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Plus, Search, Edit3, Trash2, AlertTriangle, Package, ExternalLink, ChevronLeft, ChevronRight, Split, Camera, Sparkles } from 'lucide-react'
+import { MorphStatusIcon } from '@/components/ui/morph-icon'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Product } from '@/types/product.type'
@@ -380,10 +381,9 @@ export function SellerProductList({
                       onClick={() => handleTogglePause(product)}
                       className="rounded-lg h-9 text-xs gap-1.5 cursor-pointer"
                     >
-                      <MorphIcon 
-                        icon={product.listing_status === 'active' ? PauseCircle : PlayCircle} 
+                      <MorphStatusIcon 
+                        status={product.listing_status === 'active' ? 'active' : 'paused'} 
                         size={15} 
-                        spring="snappy"
                         className={product.listing_status === 'active' ? "text-amber-600" : "text-emerald-600"}
                       />
                       <span>{product.listing_status === 'active' ? 'Tạm dừng' : 'Mở lại'}</span>

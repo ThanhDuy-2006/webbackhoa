@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Eye } from 'lucide-react'
-import { MorphIcon, ShoppingCart, Check } from '@/components/ui/morph-icon'
+import { MorphAddToCartIcon } from '@/components/ui/morph-icon'
 import { useCartStore } from '@/store/useCartStore'
 import { toast } from 'sonner'
 import { useState } from 'react'
@@ -158,7 +158,7 @@ export function ProductCard({ product, index = 0, priority = false }: ProductCar
                   onClick={handleAddToCart}
                   style={{ minWidth: '32px', minHeight: '32px' }}
                 >
-                  <MorphIcon icon={isAdded ? Check : ShoppingCart} size={16} spring="snappy" />
+                  <MorphAddToCartIcon isAdded={isAdded} size={16} />
                 </Button>
               </div>
             </div>
