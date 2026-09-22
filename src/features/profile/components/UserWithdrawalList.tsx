@@ -19,10 +19,10 @@ interface UserWithdrawalListProps {
   data: WithdrawalRequest[]
 }
 
-const STATUS_MAP: Record<string, { label: string; color: string; icon: React.ComponentType<{ className?: string }> }> = {
-  pending: { label: 'Chờ duyệt', color: 'bg-amber-100 text-amber-800 border-amber-200', icon: Clock },
-  approved: { label: 'Đã chuyển tiền', color: 'bg-emerald-100 text-emerald-800 border-emerald-200', icon: CheckCircle2 },
-  rejected: { label: 'Từ chối', color: 'bg-rose-100 text-rose-800 border-rose-200', icon: XCircle },
+const STATUS_MAP: Record<string, { label: string; sublabel: string; color: string; icon: React.ComponentType<{ className?: string }> }> = {
+  pending: { label: 'Chờ duyệt', sublabel: 'Đang tạm giữ số dư', color: 'bg-amber-100 text-amber-800 border-amber-200', icon: Clock },
+  approved: { label: 'Đã chuyển tiền', sublabel: 'Chuyển khoản thành công', color: 'bg-emerald-100 text-emerald-800 border-emerald-200', icon: CheckCircle2 },
+  rejected: { label: 'Từ chối', sublabel: 'Đã hoàn tiền về ví', color: 'bg-rose-100 text-rose-800 border-rose-200', icon: XCircle },
 }
 
 export function UserWithdrawalList({ data }: UserWithdrawalListProps) {
@@ -71,10 +71,15 @@ export function UserWithdrawalList({ data }: UserWithdrawalListProps) {
                     -{formatCurrency(req.amount)}
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline" className={`gap-1 font-semibold text-[11px] ${statusInfo.color}`}>
-                      <Icon className="w-3 h-3" />
-                      {statusInfo.label}
-                    </Badge>
+                    <div className="space-y-0.5">
+                      <Badge variant="outline" className={`gap-1 font-semibold text-[11px] ${statusInfo.color}`}>
+                        <Icon className="w-3 h-3" />
+                        {statusInfo.label}
+                      </Badge>
+                      <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">
+                        {statusInfo.sublabel}
+                      </p>
+                    </div>
                   </TableCell>
                   <TableCell className="text-xs text-slate-600 dark:text-slate-400 max-w-xs">
                     {req.admin_note ? (

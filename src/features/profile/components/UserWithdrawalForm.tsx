@@ -34,9 +34,10 @@ const QUICK_AMOUNTS = [100000, 200000, 500000, 1000000, 2000000, 5000000]
 
 interface UserWithdrawalFormProps {
   balance: number
+  pendingAmount?: number
 }
 
-export function UserWithdrawalForm({ balance }: UserWithdrawalFormProps) {
+export function UserWithdrawalForm({ balance, pendingAmount = 0 }: UserWithdrawalFormProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [amount, setAmount] = useState<number>(0)
@@ -119,6 +120,20 @@ export function UserWithdrawalForm({ balance }: UserWithdrawalFormProps) {
             </Button>
           )}
         </div>
+
+        {pendingAmount > 0 && (
+          <div className="p-3.5 rounded-xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-800/50 flex items-start gap-3">
+            <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+            <div className="text-xs text-amber-800 dark:text-amber-300 space-y-0.5">
+              <p className="font-semibold">
+                Bạn đang có {formatCurrency(pendingAmount)} trong các lệnh rút đang chờ Admin duyệt.
+              </p>
+              <p className="text-[11px] text-amber-700/80 dark:text-amber-400/80">
+                Số tiền này đang được hệ thống tạm giữ an toàn. Nếu admin từ chối, tiền sẽ được hoàn trả 100% về ví của bạn.
+              </p>
+            </div>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Ngân hàng */}
