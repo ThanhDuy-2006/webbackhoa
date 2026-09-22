@@ -143,7 +143,14 @@ export function SellerProductList({
     }
   }
 
-  const getStatusBadge = (status?: string, reason?: string | null) => {
+  const getStatusBadge = (status?: string, reason?: string | null, stock?: number) => {
+    if (stock !== undefined && stock <= 0) {
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
+          Hết hàng
+        </span>
+      )
+    }
     switch (status) {
       case 'active':
         return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">Đang bán</span>
@@ -316,7 +323,7 @@ export function SellerProductList({
                 <div className="min-w-0 flex-1 space-y-1">
                   <div className="flex items-center gap-2">
                     <h3 className="font-bold text-slate-900 truncate text-sm">{product.name}</h3>
-                    {getStatusBadge(product.listing_status, product.suspension_reason)}
+                    {getStatusBadge(product.listing_status, product.suspension_reason, product.stock)}
                   </div>
                   <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
                     <span className="font-semibold text-emerald-600 text-sm">{formatCurrency(product.sale_price || product.price)}</span>

@@ -319,7 +319,13 @@ export function ProductList({ initialProducts, totalCount, currentPage, searchTe
                 </TableCell>
               </TableRow>
             ) : (
-              products.map((product) => (
+              products.map((product) => {
+                const totalVariantStock = product.variants && product.variants.length > 0
+                  ? product.variants.reduce((sum, v) => sum + (v.stock || 0), 0)
+                  : (product.stock ?? 0)
+                const isOutOfStock = totalVariantStock <= 0
+
+                return (
                 <TableRow key={product.id}>
                   <TableCell>
                     <Checkbox 
@@ -358,17 +364,31 @@ export function ProductList({ initialProducts, totalCount, currentPage, searchTe
                   <TableCell>
                     {product.variants && product.variants.length > 0 ? (
                       <div>
-                        <div className="font-medium">{product.variants.reduce((sum, v) => sum + (v.stock || 0), 0)}</div>
-                        <div className="text-xs text-emerald-600">{product.variants.length} phân loại</div>
+                        <div className={`font-mono font-bold ${isOutOfStock ? 'text-rose-600' : 'text-slate-900'}`}>
+                          {totalVariantStock} {isOutOfStock && <span className="text-xs font-semibold text-rose-500">(Hết)</span>}
+                        </div>
+                        <div className="text-xs text-slate-500">{product.variants.length} phân loại</div>
                       </div>
                     ) : (
-                      <div>{product.stock}</div>
+                      <div className={`font-mono font-bold ${isOutOfStock ? 'text-rose-600' : 'text-slate-900'}`}>
+                        {product.stock} {isOutOfStock && <span className="text-xs font-semibold text-rose-500">(Hết)</span>}
+                      </div>
                     )}
                   </TableCell>
                   <TableCell>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${product.is_active ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-700'}`}>
-                      {product.is_active ? 'Hiển thị' : 'Đang ẩn'}
-                    </span>
+                    {!product.is_active ? (
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200">
+                        Đang ẩn
+                      </span>
+                    ) : isOutOfStock ? (
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-600 border border-rose-200" title="Sản phẩm đã hết hàng trong kho (Tự động ẩn ngoài shop)">
+                        Hết hàng
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        Đang bán
+                      </span>
+                    )}
                   </TableCell>
                   <TableCell className="text-right space-x-2">
                     <Button 
@@ -399,7 +419,8 @@ export function ProductList({ initialProducts, totalCount, currentPage, searchTe
                     </Button>
                   </TableCell>
                 </TableRow>
-              ))
+                )
+              })
             )}
           </TableBody>
         </Table>
