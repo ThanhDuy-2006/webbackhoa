@@ -4,18 +4,18 @@ import { useState } from 'react'
 import Link from 'next/link'
 import * as Lucide from 'lucide-react'
 import * as SheetUI from '@/components/ui/sheet'
+import { MorphIcon, Menu, X } from '@/components/ui/morph-icon'
 
 export function AdminMobileMenu({ sidebarLinks, fullName, email, avatarUrl, logoutAction }: any) {
   const [open, setOpen] = useState(false)
 
-  const MenuIcon = Lucide.Menu || (() => null)
   const PackageIcon = Lucide.Sprout || (() => null)
   const LogOutIcon = Lucide.LogOut || (() => null)
 
   return (
     <SheetUI.Sheet open={open} onOpenChange={setOpen}>
-      <SheetUI.SheetTrigger className="rounded-full h-10 w-10 hover:bg-white hover:shadow-sm transition-all flex items-center justify-center cursor-pointer">
-        <MenuIcon className="h-5 w-5 text-slate-700" />
+      <SheetUI.SheetTrigger className="rounded-full h-10 w-10 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all flex items-center justify-center cursor-pointer text-slate-700">
+        <MorphIcon icon={open ? X : Menu} size={20} spring="snappy" />
       </SheetUI.SheetTrigger>
       <SheetUI.SheetContent side="left" className="w-[280px] p-0 bg-[#F5F7FB]">
         <div className="h-full bg-white flex flex-col overflow-hidden border-r border-slate-100">

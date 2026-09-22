@@ -9,10 +9,13 @@ import Link from 'next/link'
 import { signup } from '../login/actions'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
+import { MorphPasswordToggle } from '@/components/ui/morph-icon'
 
 export default function RegisterPage() {
   const [loading, setLoading] = useState(false)
   const [infoMessage, setInfoMessage] = useState<string | null>(null)
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const router = useRouter()
 
   async function handleSubmit(formData: FormData) {
@@ -70,11 +73,41 @@ export default function RegisterPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password">Mật khẩu</Label>
-                <Input id="password" name="password" type="password" required minLength={6} />
+                <div className="relative">
+                  <Input 
+                    id="password" 
+                    name="password" 
+                    type={showPassword ? "text" : "password"} 
+                    required 
+                    minLength={6} 
+                    className="pr-10"
+                  />
+                  <div className="absolute right-1 top-1/2 -translate-y-1/2">
+                    <MorphPasswordToggle 
+                      isVisible={showPassword} 
+                      onToggle={() => setShowPassword(!showPassword)} 
+                    />
+                  </div>
+                </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="confirm_password">Nhập lại mật khẩu</Label>
-                <Input id="confirm_password" name="confirm_password" type="password" required minLength={6} />
+                <div className="relative">
+                  <Input 
+                    id="confirm_password" 
+                    name="confirm_password" 
+                    type={showConfirmPassword ? "text" : "password"} 
+                    required 
+                    minLength={6} 
+                    className="pr-10"
+                  />
+                  <div className="absolute right-1 top-1/2 -translate-y-1/2">
+                    <MorphPasswordToggle 
+                      isVisible={showConfirmPassword} 
+                      onToggle={() => setShowConfirmPassword(!showConfirmPassword)} 
+                    />
+                  </div>
+                </div>
               </div>
               <Button className="w-full bg-emerald-600 hover:bg-emerald-700" type="submit" disabled={loading}>
                 {loading ? 'Đang đăng ký...' : 'Đăng ký'}

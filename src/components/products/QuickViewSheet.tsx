@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, ShoppingCart, Plus, Minus, Loader2 } from 'lucide-react'
+import { Plus, Minus, Loader2 } from 'lucide-react'
+import { MorphIcon, X, ShoppingCart, Check } from '@/components/ui/morph-icon'
 import { SmartImage } from '@/components/ui/smart-image'
 import { Button } from '@/components/ui/button'
 import { useCartStore } from '@/store/useCartStore'
@@ -24,6 +25,7 @@ export function QuickViewSheet({ product, isOpen, onClose }: QuickViewSheetProps
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [fullProduct, setFullProduct] = useState<QuickViewProduct | null>(null)
   const [loading, setLoading] = useState(false)
+  const [isAdded, setIsAdded] = useState(false)
 
   // Reset quantity, image index & fetch full product on product change / modal open
   useEffect(() => {
@@ -34,6 +36,7 @@ export function QuickViewSheet({ product, isOpen, onClose }: QuickViewSheetProps
 
     setQuantity(1)
     setCurrentImageIndex(0)
+    setIsAdded(false)
     setLoading(true)
 
     let isCurrent = true
@@ -82,8 +85,12 @@ export function QuickViewSheet({ product, isOpen, onClose }: QuickViewSheetProps
       quantity: quantity,
       stock: product.stock
     })
+    setIsAdded(true)
     toast.success(`Đã thêm ${quantity} sản phẩm vào giỏ hàng`)
-    onClose()
+    setTimeout(() => {
+      setIsAdded(false)
+      onClose()
+    }, 800)
   }
 
   const handleBuyNow = () => {
@@ -235,12 +242,17 @@ export function QuickViewSheet({ product, isOpen, onClose }: QuickViewSheetProps
             <div className="p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 flex gap-4 shrink-0">
               <Button
                 variant="outline"
-                className="flex-1 border-emerald-600 text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950 h-12 text-sm font-bold rounded-xl cursor-pointer"
+                className={cn(
+                  "flex-1 h-12 text-sm font-bold rounded-xl cursor-pointer transition-all gap-2",
+                  isAdded 
+                    ? "border-emerald-500 bg-emerald-50 text-emerald-700" 
+                    : "border-emerald-600 text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950"
+                )}
                 onClick={handleAddToCart}
                 disabled={isOutOfStock}
               >
-                <ShoppingCart className="w-4 h-4 mr-2" />
-                Thêm vào giỏ
+                <MorphIcon icon={isAdded ? Check : ShoppingCart} size={18} spring="snappy" />
+                {isAdded ? 'Đã thêm vào giỏ!' : 'Thêm vào giỏ'}
               </Button>
               <Button
                 className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white h-12 text-sm font-bold rounded-xl shadow-md cursor-pointer"

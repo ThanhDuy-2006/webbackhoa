@@ -8,9 +8,11 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import Link from 'next/link'
 import { login } from './actions'
 import { toast } from 'sonner'
+import { MorphPasswordToggle } from '@/components/ui/morph-icon'
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   async function handleSubmit(formData: FormData) {
     setLoading(true)
@@ -43,7 +45,21 @@ export default function LoginPage() {
                   Quên mật khẩu?
                 </Link>
               </div>
-              <Input id="password" name="password" type="password" required />
+              <div className="relative">
+                <Input 
+                  id="password" 
+                  name="password" 
+                  type={showPassword ? "text" : "password"} 
+                  required 
+                  className="pr-10"
+                />
+                <div className="absolute right-1 top-1/2 -translate-y-1/2">
+                  <MorphPasswordToggle 
+                    isVisible={showPassword} 
+                    onToggle={() => setShowPassword(!showPassword)} 
+                  />
+                </div>
+              </div>
             </div>
             <Button className="w-full bg-emerald-600 hover:bg-emerald-700" type="submit" disabled={loading}>
               {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}

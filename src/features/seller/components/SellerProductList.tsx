@@ -3,7 +3,8 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Plus, Search, Edit3, PauseCircle, PlayCircle, Trash2, AlertTriangle, Package, ExternalLink, ChevronLeft, ChevronRight, Split, Camera, Sparkles } from 'lucide-react'
+import { Plus, Search, Edit3, Trash2, AlertTriangle, Package, ExternalLink, ChevronLeft, ChevronRight, Split, Camera, Sparkles } from 'lucide-react'
+import { MorphIcon, PauseCircle, PlayCircle } from '@/components/ui/morph-icon'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Product } from '@/types/product.type'
@@ -371,17 +372,15 @@ export function SellerProductList({
                       size="sm"
                       disabled={loadingId === product.id}
                       onClick={() => handleTogglePause(product)}
-                      className="rounded-lg h-9 text-xs"
+                      className="rounded-lg h-9 text-xs gap-1.5 cursor-pointer"
                     >
-                      {product.listing_status === 'active' ? (
-                        <>
-                          <PauseCircle className="w-3.5 h-3.5 mr-1 text-amber-600" /> Tạm dừng
-                        </>
-                      ) : (
-                        <>
-                          <PlayCircle className="w-3.5 h-3.5 mr-1 text-emerald-600" /> Mở lại
-                        </>
-                      )}
+                      <MorphIcon 
+                        icon={product.listing_status === 'active' ? PauseCircle : PlayCircle} 
+                        size={15} 
+                        spring="snappy"
+                        className={product.listing_status === 'active' ? "text-amber-600" : "text-emerald-600"}
+                      />
+                      <span>{product.listing_status === 'active' ? 'Tạm dừng' : 'Mở lại'}</span>
                     </Button>
                   </>
                 )}

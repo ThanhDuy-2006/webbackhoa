@@ -2,10 +2,10 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { Search, Loader2, ArrowLeft, X, Flame } from 'lucide-react'
+import { Loader2, ArrowLeft, Flame } from 'lucide-react'
+import { MorphIcon, Search, X } from '@/components/ui/morph-icon'
 import { useDebounce } from '@/hooks/use-debounce'
 import { ProductService } from '@/services/product.service'
-import { Product } from '@/types/product.type'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
 import { SmartImage } from '@/components/ui/smart-image'
@@ -86,17 +86,29 @@ export function StorefrontSearch() {
     <>
       {/* Desktop Search */}
       <div ref={searchRef} className="relative w-full max-w-md mx-4 hidden md:block z-40">
-        <form onSubmit={handleSubmit} className={`relative flex items-center bg-slate-100 rounded-full transition-all duration-300 ${isFocused ? 'ring-2 ring-emerald-500/20 bg-white shadow-sm' : ''}`}>
-          <Search className="absolute left-4 h-5 w-5 text-slate-400" />
+        <form onSubmit={handleSubmit} className={`relative flex items-center bg-slate-100 dark:bg-slate-900 rounded-full transition-all duration-300 ${isFocused ? 'ring-2 ring-emerald-500/20 bg-white dark:bg-slate-950 shadow-sm' : ''}`}>
+          <div className="absolute left-4 text-slate-400 flex items-center pointer-events-none">
+            <MorphIcon icon={Search} size={18} spring="snappy" />
+          </div>
           <input
             type="text"
             placeholder="Tìm kiếm sản phẩm tươi ngon..."
-            className="w-full bg-transparent border-none py-2.5 pl-12 pr-12 text-sm text-slate-700 outline-none placeholder:text-slate-500 rounded-full"
+            className="w-full bg-transparent border-none py-2.5 pl-12 pr-12 text-sm text-slate-700 dark:text-slate-200 outline-none placeholder:text-slate-500 rounded-full"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             onFocus={() => setIsFocused(true)}
           />
-          {loading && (
+          {searchTerm && (
+            <button
+              type="button"
+              onClick={() => setSearchTerm('')}
+              className="absolute right-4 p-1 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200/70 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              title="Xóa tìm kiếm"
+            >
+              <MorphIcon icon={X} size={16} spring="snappy" />
+            </button>
+          )}
+          {loading && !searchTerm && (
             <div className="absolute right-4">
               <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
             </div>
@@ -105,17 +117,17 @@ export function StorefrontSearch() {
 
         {/* Suggestions Dropdown (Desktop) */}
         {isFocused && debouncedSearch.trim().length >= 2 && (
-          <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden z-50">
+          <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-900 rounded-2xl shadow-lg border border-slate-100 dark:border-slate-800 overflow-hidden z-50">
             {suggestions.length > 0 ? (
               <ul>
                 {suggestions.map(product => (
                   <li key={product.id}>
                     <Link 
                       href={`/san-pham/${product.slug}`}
-                      className="flex items-center gap-3 p-3 hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-0"
+                      className="flex items-center gap-3 p-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors border-b border-slate-50 dark:border-slate-800/50 last:border-0"
                       onClick={() => setIsFocused(false)}
                     >
-                      <div className="h-12 w-12 rounded-lg overflow-hidden bg-slate-100 shrink-0 relative">
+                      <div className="h-12 w-12 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-800 shrink-0 relative">
                         <SmartImage 
                           productId={product.id}
                           src={product.image_url} 
@@ -126,9 +138,9 @@ export function StorefrontSearch() {
                         />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-slate-900 truncate">{product.name}</p>
+                        <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">{product.name}</p>
                         <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-sm font-bold text-emerald-600">
+                          <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
                             {formatCurrency((product.sale_price || product.price))}
                           </span>
                           {product.sale_price && (
@@ -144,7 +156,7 @@ export function StorefrontSearch() {
                 <li>
                   <button 
                     onClick={handleSubmit}
-                    className="w-full p-3 text-center text-sm font-medium text-emerald-600 hover:bg-emerald-50 transition-colors border-t border-slate-100 cursor-pointer"
+                    className="w-full p-3 text-center text-sm font-medium text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors border-t border-slate-100 dark:border-slate-800 cursor-pointer"
                   >
                     Xem tất cả kết quả cho "{debouncedSearch}"
                   </button>
@@ -162,10 +174,10 @@ export function StorefrontSearch() {
       {/* Mobile Search Trigger Button */}
       <button
         onClick={() => setIsMobileOpen(true)}
-        className="md:hidden flex items-center justify-center w-10 h-10 rounded-full hover:bg-slate-100 text-slate-700 shrink-0 cursor-pointer"
+        className="md:hidden flex items-center justify-center w-10 h-10 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 shrink-0 cursor-pointer"
         style={{ minWidth: '44px', minHeight: '44px' }}
       >
-        <Search className="w-5 h-5" />
+        <MorphIcon icon={Search} size={20} spring="snappy" />
       </button>
 
       {/* Mobile Fullscreen Search Overlay */}
@@ -176,28 +188,30 @@ export function StorefrontSearch() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 bg-white z-[999] flex flex-col md:hidden"
+            className="fixed inset-0 bg-white dark:bg-slate-950 z-[999] flex flex-col md:hidden"
           >
             {/* Overlay Header */}
-            <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-100 pt-[calc(12px+env(safe-area-inset-top))]">
+            <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-100 dark:border-slate-800 pt-[calc(12px+env(safe-area-inset-top))]">
               <button
                 onClick={() => {
                   setIsMobileOpen(false)
                   setSearchTerm('')
                 }}
-                className="p-1 rounded-full text-slate-500 hover:bg-slate-100 cursor-pointer"
+                className="p-1 rounded-full text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
                 style={{ minWidth: '44px', minHeight: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
               >
                 <ArrowLeft className="w-6 h-6" />
               </button>
-              
-              <form onSubmit={handleSubmit} className="flex-1 relative flex items-center bg-slate-100 rounded-full py-1">
-                <Search className="absolute left-4 h-4 w-4 text-slate-400" />
+
+              <form onSubmit={handleSubmit} className="flex-1 relative flex items-center">
+                <div className="absolute left-3.5 text-slate-400 pointer-events-none">
+                  <MorphIcon icon={Search} size={16} spring="snappy" />
+                </div>
                 <input
                   ref={mobileInputRef}
                   type="text"
                   placeholder="Tìm kiếm sản phẩm..."
-                  className="w-full bg-transparent border-none py-2 pl-10 pr-10 text-sm text-slate-700 outline-none rounded-full"
+                  className="w-full bg-slate-100 dark:bg-slate-900 border-none py-2 pl-10 pr-10 text-sm text-slate-700 dark:text-slate-200 outline-none rounded-full"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -205,9 +219,9 @@ export function StorefrontSearch() {
                   <button
                     type="button"
                     onClick={() => setSearchTerm('')}
-                    className="absolute right-3 p-1 rounded-full text-slate-400 hover:bg-slate-200 cursor-pointer"
+                    className="absolute right-3 p-1 rounded-full text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 cursor-pointer"
                   >
-                    <X className="w-3.5 h-3.5" />
+                    <MorphIcon icon={X} size={14} spring="snappy" />
                   </button>
                 )}
               </form>
@@ -223,7 +237,7 @@ export function StorefrontSearch() {
                       <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
                     </div>
                   ) : suggestions.length > 0 ? (
-                    <div className="divide-y divide-slate-50">
+                    <div className="divide-y divide-slate-50 dark:divide-slate-800">
                       {suggestions.map(product => (
                         <Link
                           key={product.id}
@@ -231,7 +245,7 @@ export function StorefrontSearch() {
                           className="flex items-center gap-3 py-3"
                           onClick={() => setIsMobileOpen(false)}
                         >
-                          <div className="h-10 w-10 rounded bg-slate-100 overflow-hidden shrink-0 relative">
+                          <div className="h-10 w-10 rounded bg-slate-100 dark:bg-slate-800 overflow-hidden shrink-0 relative">
                             <SmartImage
                               productId={product.id}
                               src={product.image_url}
@@ -241,13 +255,13 @@ export function StorefrontSearch() {
                               className="object-cover"
                             />
                           </div>
-                          <span className="text-sm font-medium text-slate-700 truncate flex-1">{product.name}</span>
+                          <span className="text-sm font-medium text-slate-700 dark:text-slate-200 truncate flex-1">{product.name}</span>
                         </Link>
                       ))}
                       <button
                         type="submit"
                         onClick={handleSubmit}
-                        className="w-full text-center text-sm font-medium text-emerald-600 py-3 block cursor-pointer"
+                        className="w-full text-center text-sm font-medium text-emerald-600 dark:text-emerald-400 py-3 block cursor-pointer"
                       >
                         Xem tất cả kết quả
                       </button>
@@ -260,16 +274,15 @@ export function StorefrontSearch() {
                 <>
                   {/* Hot Searches */}
                   <div>
-                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
-                      <Flame className="w-4 h-4 text-orange-500 fill-orange-500" />
-                      Tìm kiếm phổ biến
+                    <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                      <Flame className="w-4 h-4 text-orange-500" /> Tìm kiếm phổ biến
                     </h4>
                     <div className="flex flex-wrap gap-2">
-                      {hotSearches.map(keyword => (
+                      {hotSearches.map((keyword, index) => (
                         <button
-                          key={keyword}
+                          key={index}
                           onClick={() => handleHotSearchClick(keyword)}
-                          className="px-3.5 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-medium rounded-full cursor-pointer border border-slate-100"
+                          className="px-3 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-slate-600 dark:text-slate-300 text-xs rounded-full hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-200 transition-colors cursor-pointer"
                         >
                           {keyword}
                         </button>

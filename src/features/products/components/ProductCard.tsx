@@ -3,7 +3,8 @@
 import Link from 'next/link'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { ShoppingCart, Eye } from 'lucide-react'
+import { Eye } from 'lucide-react'
+import { MorphIcon, ShoppingCart, Check } from '@/components/ui/morph-icon'
 import { useCartStore } from '@/store/useCartStore'
 import { toast } from 'sonner'
 import { useState } from 'react'
@@ -28,6 +29,7 @@ const itemVariants: Variants = {
 export function ProductCard({ product, index = 0, priority = false }: ProductCardProps) {
   const { addItem } = useCartStore()
   const [isQuickViewOpen, setIsQuickViewOpen] = useState(false)
+  const [isAdded, setIsAdded] = useState(false)
   const isOutOfStock = product.stock <= 0
   const price = Number(product.price)
   const finalPrice = product.sale_price ? Number(product.sale_price) : price
@@ -46,7 +48,9 @@ export function ProductCard({ product, index = 0, priority = false }: ProductCar
       quantity: 1,
       stock: product.stock
     })
+    setIsAdded(true)
     toast.success('Đã thêm vào giỏ hàng')
+    setTimeout(() => setIsAdded(false), 1600)
   }
 
   return (
@@ -143,13 +147,18 @@ export function ProductCard({ product, index = 0, priority = false }: ProductCar
 
                 <Button 
                   size="icon"
-                  className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl bg-emerald-600 hover:bg-emerald-700 transition-colors shadow-sm shrink-0 cursor-pointer" 
+                  className={cn(
+                    "h-8 w-8 sm:h-9 sm:w-9 rounded-xl transition-all shadow-sm shrink-0 cursor-pointer",
+                    isAdded 
+                      ? "bg-emerald-500 text-white scale-105" 
+                      : "bg-emerald-600 hover:bg-emerald-700 text-white"
+                  )}
                   disabled={isOutOfStock}
-                  aria-label="Thêm vào giỏ hàng"
+                  aria-label={isAdded ? "Đã thêm vào giỏ" : "Thêm vào giỏ hàng"}
                   onClick={handleAddToCart}
                   style={{ minWidth: '32px', minHeight: '32px' }}
                 >
-                  <ShoppingCart className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-white" />
+                  <MorphIcon icon={isAdded ? Check : ShoppingCart} size={16} spring="snappy" />
                 </Button>
               </div>
             </div>

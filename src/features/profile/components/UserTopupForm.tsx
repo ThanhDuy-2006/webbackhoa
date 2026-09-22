@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Loader2, Info, Landmark } from 'lucide-react'
 import { motion } from 'framer-motion'
+import { MorphCopyButton } from '@/components/ui/morph-icon'
 
 export function UserTopupForm({ userId }: { userId: string }) {
   const [loading, setLoading] = useState(false)
@@ -61,15 +62,24 @@ export function UserTopupForm({ userId }: { userId: string }) {
             <Landmark className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
             <h4 className="font-extrabold text-sm text-slate-800 dark:text-slate-200">Thông tin chuyển khoản</h4>
           </div>
-          <div className="grid grid-cols-2 gap-y-2.5 text-xs">
+          <div className="grid grid-cols-2 gap-y-3 text-xs items-center">
             <span className="text-slate-500">Ngân hàng:</span>
             <strong className="text-right text-slate-800 dark:text-slate-200">MB Bank (Quân Đội)</strong>
+            
             <span className="text-slate-500">Số tài khoản:</span>
-            <strong className="text-right text-slate-800 dark:text-slate-200 font-mono tracking-wider">0123456789</strong>
+            <div className="flex items-center justify-end gap-1.5">
+              <strong className="text-slate-800 dark:text-slate-200 font-mono tracking-wider text-sm">0123456789</strong>
+              <MorphCopyButton textToCopy="0123456789" successMessage="Đã chép số tài khoản" size={14} />
+            </div>
+            
             <span className="text-slate-500">Chủ tài khoản:</span>
-            <strong className="text-right text-slate-800 dark:text-slate-200">NGUYEN VAN A</strong>
+            <strong className="text-right text-slate-800 dark:text-slate-200 font-semibold">NGUYEN VAN A</strong>
+            
             <span className="text-slate-500">Nội dung CK:</span>
-            <strong className="text-right text-emerald-600 dark:text-emerald-400 font-mono">{content}</strong>
+            <div className="flex items-center justify-end gap-1.5">
+              <strong className="text-emerald-600 dark:text-emerald-400 font-mono font-bold">{content}</strong>
+              <MorphCopyButton textToCopy={content} successMessage="Đã chép nội dung chuyển khoản" size={14} />
+            </div>
           </div>
         </div>
 

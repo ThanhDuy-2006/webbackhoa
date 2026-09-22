@@ -22,6 +22,7 @@ import { CartSheet } from './CartSheet'
 import { cn } from '@/lib/utils'
 import { StorefrontSearch } from './StorefrontSearch'
 import { useTheme } from 'next-themes'
+import { MorphThemeToggle } from '@/components/ui/morph-icon'
 
 import { useState, useEffect } from 'react'
 import { User } from '@supabase/supabase-js'
@@ -146,18 +147,12 @@ export function NavbarClient({ user, profile }: NavbarClientProps) {
             </Link>
           )}
 
-          {/* Theme Toggle Button */}
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} 
-            className="hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full h-11 w-11 transition-colors relative cursor-pointer"
-            style={{ minWidth: '44px', minHeight: '44px' }}
-          >
-            <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0 text-slate-700 dark:text-slate-200 animate-in fade-in" />
-            <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100 text-slate-700 dark:text-slate-200 animate-in fade-in" />
-            <span className="sr-only">Chế độ tối</span>
-          </Button>
+          {/* Theme Toggle Button with MorphIcon */}
+          <MorphThemeToggle 
+            theme={theme} 
+            onToggle={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            className="h-11 w-11 flex items-center justify-center"
+          />
 
           <Button 
             variant="ghost" 

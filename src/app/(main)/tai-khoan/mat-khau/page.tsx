@@ -7,10 +7,13 @@ import { Label } from '@/components/ui/label'
 import { updatePassword } from './actions'
 import { toast } from 'sonner'
 import { CheckCircle2 } from 'lucide-react'
+import { MorphPasswordToggle } from '@/components/ui/morph-icon'
 
 export default function MatKhauPage() {
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [showNewPassword, setShowNewPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   async function handleSubmit(formData: FormData) {
     setLoading(true)
@@ -51,24 +54,42 @@ export default function MatKhauPage() {
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="new_password">Mật khẩu mới</Label>
-              <Input 
-                id="new_password" 
-                name="new_password" 
-                type="password" 
-                required 
-                placeholder="Nhập mật khẩu mới..."
-              />
+              <div className="relative">
+                <Input 
+                  id="new_password" 
+                  name="new_password" 
+                  type={showNewPassword ? "text" : "password"} 
+                  required 
+                  placeholder="Nhập mật khẩu mới..."
+                  className="pr-10"
+                />
+                <div className="absolute right-1 top-1/2 -translate-y-1/2">
+                  <MorphPasswordToggle 
+                    isVisible={showNewPassword} 
+                    onToggle={() => setShowNewPassword(!showNewPassword)} 
+                  />
+                </div>
+              </div>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="confirm_password">Xác nhận mật khẩu mới</Label>
-              <Input 
-                id="confirm_password" 
-                name="confirm_password" 
-                type="password" 
-                required 
-                placeholder="Nhập lại mật khẩu mới..."
-              />
+              <div className="relative">
+                <Input 
+                  id="confirm_password" 
+                  name="confirm_password" 
+                  type={showConfirmPassword ? "text" : "password"} 
+                  required 
+                  placeholder="Nhập lại mật khẩu mới..."
+                  className="pr-10"
+                />
+                <div className="absolute right-1 top-1/2 -translate-y-1/2">
+                  <MorphPasswordToggle 
+                    isVisible={showConfirmPassword} 
+                    onToggle={() => setShowConfirmPassword(!showConfirmPassword)} 
+                  />
+                </div>
+              </div>
             </div>
           </div>
 

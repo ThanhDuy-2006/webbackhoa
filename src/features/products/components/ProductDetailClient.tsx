@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react'
 import { SmartImage } from '@/components/ui/smart-image'
 import { Button } from '@/components/ui/button'
-import { ShoppingCart, Star, Heart, Check, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Star, Heart, ChevronLeft, ChevronRight } from 'lucide-react'
+import { MorphIcon, ShoppingCart, Check } from '@/components/ui/morph-icon'
 import { cn } from '@/lib/utils'
 import { useCartStore } from '@/store/useCartStore'
 // import { toggleWishlist } from '@/actions/user/wishlist.actions'
@@ -50,6 +51,7 @@ export function ProductDetailClient({ product, variants, initialFavorited = fals
   
   const [selectedVariant, setSelectedVariant] = useState<any>(variants.length > 0 ? variants[0] : null)
   const [quantity, setQuantity] = useState(1)
+  const [isAdded, setIsAdded] = useState(false)
   // const [isWishlisting, setIsWishlisting] = useState(false)
   // const [isFavorited, setIsFavorited] = useState(initialFavorited)
 
@@ -75,7 +77,9 @@ export function ProductDetailClient({ product, variants, initialFavorited = fals
       variantName: selectedVariant?.name,
       stock: maxStock
     })
+    setIsAdded(true)
     toast.success('Đã thêm vào giỏ hàng')
+    setTimeout(() => setIsAdded(false), 1600)
   }
 
   // const handleToggleWishlist = async () => {
@@ -276,12 +280,17 @@ export function ProductDetailClient({ product, variants, initialFavorited = fals
           <div className="flex gap-4">
             <Button 
               size="lg" 
-              className="flex-1 bg-emerald-600 hover:bg-emerald-700 h-14 text-lg rounded-xl shadow-sm cursor-pointer"
+              className={cn(
+                "flex-1 h-14 text-lg rounded-xl shadow-sm cursor-pointer transition-all duration-300 gap-2",
+                isAdded 
+                  ? "bg-emerald-500 hover:bg-emerald-600 text-white scale-[1.01]" 
+                  : "bg-emerald-600 hover:bg-emerald-700 text-white"
+              )}
               onClick={handleAddToCart}
               disabled={isOutOfStock}
             >
-              <ShoppingCart className="mr-2 w-5 h-5" />
-              {isOutOfStock ? 'Hết hàng' : 'Thêm vào giỏ hàng'}
+              <MorphIcon icon={isAdded ? Check : ShoppingCart} size={22} spring="snappy" />
+              {isOutOfStock ? 'Hết hàng' : (isAdded ? 'Đã thêm vào giỏ!' : 'Thêm vào giỏ hàng')}
             </Button>
             {/* Removed wishlist button */}
           </div>
@@ -304,12 +313,18 @@ export function ProductDetailClient({ product, variants, initialFavorited = fals
         {/* Removed mobile wishlist button */}
         <Button 
           variant="outline"
-          className="flex-1 border-emerald-600 text-emerald-700 hover:bg-emerald-50 h-12 text-sm font-semibold rounded-xl cursor-pointer"
+          className={cn(
+            "flex-1 h-12 text-sm font-semibold rounded-xl cursor-pointer transition-all gap-1.5",
+            isAdded
+              ? "border-emerald-500 bg-emerald-50 text-emerald-700 font-bold"
+              : "border-emerald-600 text-emerald-700 hover:bg-emerald-50"
+          )}
           onClick={handleAddToCart}
           disabled={isOutOfStock}
           style={{ minHeight: '44px' }}
         >
-          Thêm vào giỏ
+          <MorphIcon icon={isAdded ? Check : ShoppingCart} size={18} spring="snappy" />
+          {isAdded ? 'Đã thêm!' : 'Thêm vào giỏ'}
         </Button>
         <Button 
           className="flex-1 bg-emerald-600 hover:bg-emerald-700 h-12 text-sm font-semibold rounded-xl text-white shadow-sm cursor-pointer"
