@@ -4,9 +4,11 @@ import { CategoryService } from '@/services/category.service'
 import { CategoryFormData } from '@/schemas/category.schema'
 import { revalidatePath, revalidateTag } from 'next/cache'
 import { CACHE_TAGS } from '@/lib/cache-tags'
+import { assertAdmin } from '@/lib/supabase/auth-guard'
 
 export async function createCategoryAction(data: CategoryFormData) {
   try {
+    await assertAdmin()
     const category = await CategoryService.createCategory(data)
     revalidatePath('/admin/categories')
     revalidateTag(CACHE_TAGS.CATEGORIES, 'max')
@@ -23,6 +25,7 @@ export async function createCategoryAction(data: CategoryFormData) {
 
 export async function updateCategoryAction(id: string, data: CategoryFormData) {
   try {
+    await assertAdmin()
     const category = await CategoryService.updateCategory(id, data)
     revalidatePath('/admin/categories')
     revalidateTag(CACHE_TAGS.CATEGORIES, 'max')
@@ -39,6 +42,7 @@ export async function updateCategoryAction(id: string, data: CategoryFormData) {
 
 export async function deleteCategoryAction(id: string) {
   try {
+    await assertAdmin()
     await CategoryService.deleteCategory(id)
     revalidatePath('/admin/categories')
     revalidateTag(CACHE_TAGS.CATEGORIES, 'max')
@@ -49,3 +53,4 @@ export async function deleteCategoryAction(id: string) {
     return { success: false, error: error?.message || 'Có lỗi xảy ra khi xóa danh mục' }
   }
 }
+

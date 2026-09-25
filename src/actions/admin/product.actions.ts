@@ -3,20 +3,13 @@
 import { ProductService } from '@/services/product.service'
 import { ProductFormData } from '@/schemas/product.schema'
 import { revalidatePath, revalidateTag } from 'next/cache'
-import { createClient } from '@/lib/supabase/server'
 import { CACHE_TAGS } from '@/lib/cache-tags'
-
-async function getAdminId() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Unauthorized')
-  return user.id
-}
+import { assertAdmin } from '@/lib/supabase/auth-guard'
 
 export async function createProductAction(data: ProductFormData) {
   try {
-    const adminId = await getAdminId()
-    const product = await ProductService.createProduct(data, adminId)
+    const { user } = await assertAdmin()
+    const product = await ProductService.createProduct(data, user.id)
     revalidatePath('/admin/products')
     revalidateTag(CACHE_TAGS.STOREFRONT_PRODUCTS, 'max')
     return { success: true, data: product }
@@ -31,8 +24,8 @@ export async function createProductAction(data: ProductFormData) {
 
 export async function updateProductAction(id: string, data: ProductFormData, oldSlug?: string) {
   try {
-    const adminId = await getAdminId()
-    const product = await ProductService.updateProduct(id, data, adminId)
+    const { user } = await assertAdmin()
+    const product = await ProductService.updateProduct(id, data, user.id)
     revalidatePath('/admin/products')
     revalidatePath(`/admin/products/${id}`)
     
@@ -56,6 +49,7 @@ export async function updateProductAction(id: string, data: ProductFormData, old
 
 export async function deleteProductAction(id: string) {
   try {
+    await assertAdmin()
     await ProductService.deleteProduct(id)
     revalidatePath('/admin/products')
     revalidateTag(CACHE_TAGS.STOREFRONT_PRODUCTS, 'max')
@@ -68,6 +62,7 @@ export async function deleteProductAction(id: string) {
 
 export async function bulkDeleteProductsAction(ids: string[]) {
   try {
+    await assertAdmin()
     await ProductService.bulkDeleteProducts(ids)
     revalidatePath('/admin/products')
     revalidateTag(CACHE_TAGS.STOREFRONT_PRODUCTS, 'max')
@@ -80,7 +75,7 @@ export async function bulkDeleteProductsAction(ids: string[]) {
 
 export async function bulkCreateProductsAction(productsData: ProductFormData[]) {
   try {
-    const adminId = await getAdminId()
+    const { user } = await assertAdmin()
     const results = { success: 0, merged: 0, failed: 0, errors: [] as string[] }
     
     // Deduplicate in batch array first
@@ -103,7 +98,7 @@ export async function bulkCreateProductsAction(productsData: ProductFormData[]) 
 
     for (const data of Array.from(mergedMap.values())) {
       try {
-        const res = await ProductService.upsertImportProduct(data, adminId)
+        const res = await ProductService.upsertImportProduct(data, user.id)
         if (res.action === 'merged') {
           results.merged++
         } else {
@@ -125,3 +120,4 @@ export async function bulkCreateProductsAction(productsData: ProductFormData[]) 
     return { success: false, error: error?.message || 'Có lỗi xảy ra khi thực hiện import' }
   }
 }
+

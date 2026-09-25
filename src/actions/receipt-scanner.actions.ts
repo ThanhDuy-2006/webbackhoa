@@ -3,6 +3,7 @@
 import { GoogleGenAI } from '@google/genai'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { addDaysFromNow } from '@/lib/expiry-utils'
+import { assertAuthenticatedUser } from '@/lib/supabase/auth-guard'
 
 export interface ScannedReceiptItem {
   tempId: string
@@ -46,6 +47,8 @@ function parseVietnameseNumber(val: any): number {
 
 export async function scanReceiptAction(base64ImageWithHeader: string): Promise<ScanReceiptResult> {
   try {
+    await assertAuthenticatedUser()
+
     const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY
     if (!apiKey) {
       return {

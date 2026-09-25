@@ -61,7 +61,7 @@ export async function processCheckout(
     }
 
     // Invalidate product cache & storefront tags
-    revalidateTag(CACHE_TAGS.STOREFRONT_PRODUCTS)
+    revalidateTag(CACHE_TAGS.STOREFRONT_PRODUCTS, 'max')
     revalidatePath('/')
     revalidatePath('/san-pham')
 

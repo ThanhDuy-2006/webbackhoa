@@ -191,7 +191,7 @@ export function ProductImportClient({ categories, initialScan = false }: Props) 
           tempId: `import-${idx}-${Date.now()}`,
           name,
           slug: '',
-          category_id,
+          category_id: category_id ?? '',
           description: row['Mô tả'] ? String(row['Mô tả']) : '',
           price: globalPriceMode === 'total' && stock > 0 ? Math.round(price / stock) : price,
           sale_price: globalPriceMode === 'total' && stock > 0 && sale_price ? Math.round(sale_price / stock) : (sale_price || null),
@@ -365,7 +365,7 @@ export function ProductImportClient({ categories, initialScan = false }: Props) 
       tempId: `new-${Date.now()}`,
       name: '',
       slug: '',
-      category_id: categories.length > 0 ? categories[0].id : null,
+      category_id: categories.length > 0 ? categories[0].id : '',
       description: '',
       price: 0,
       sale_price: null,
@@ -402,9 +402,12 @@ export function ProductImportClient({ categories, initialScan = false }: Props) 
         true
       )
 
-      const resolvedCandidates = (res.candidates && res.candidates.length > 0)
-        ? res.candidates
-        : (res.url ? [{ id: 'cand-auto', url: res.url, thumbnailUrl: res.url, metadataScore: 90, provider: 'auto' }] : [])
+      let resolvedCandidates: ImageCandidate[] = []
+      if ('candidates' in res && Array.isArray(res.candidates) && res.candidates.length > 0) {
+        resolvedCandidates = res.candidates
+      } else if ('url' in res && res.url) {
+        resolvedCandidates = [{ id: 'cand-auto', url: res.url, thumbnailUrl: res.url, metadataScore: 90 }]
+      }
 
       handleUpdateRow(row.tempId, 'candidates', resolvedCandidates)
 

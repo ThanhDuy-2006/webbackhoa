@@ -60,10 +60,10 @@ export function DatabaseMaintenanceClient({ initialStats, initialHistory }: Prop
         getDatabaseMaintenanceHistory(15)
       ])
 
-      if (statsRes.success) {
+      if (statsRes.success && statsRes.data) {
         setStatsData(statsRes.data)
       }
-      if (historyRes.success) {
+      if (historyRes.success && historyRes.data) {
         setHistory(historyRes.data)
       }
       toast.success('Đã làm mới thông số database & lịch sử')
@@ -104,8 +104,8 @@ export function DatabaseMaintenanceClient({ initialStats, initialHistory }: Prop
           getDatabaseMaintenanceStats(),
           getDatabaseMaintenanceHistory(15)
         ])
-        if (statsRes.success) setStatsData(statsRes.data)
-        if (historyRes.success) setHistory(historyRes.data)
+        if (statsRes.success && statsRes.data) setStatsData(statsRes.data)
+        if (historyRes.success && historyRes.data) setHistory(historyRes.data)
       } else {
         toast.error(res.error || 'Lỗi khi thực hiện dọn dẹp')
       }

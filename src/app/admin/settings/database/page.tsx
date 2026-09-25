@@ -10,7 +10,7 @@ export default async function AdminDatabaseSettingsPage() {
   ])
 
   const initialStats = statsRes.success ? statsRes.data : null
-  const initialHistory = historyRes.success ? historyRes.data : []
+  const initialHistory = (historyRes.success && historyRes.data) ? historyRes.data : []
 
   return (
     <div className="py-2">

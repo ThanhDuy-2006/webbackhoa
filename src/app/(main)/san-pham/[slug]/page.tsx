@@ -12,19 +12,20 @@ export default async function ProductDetailPage({
 }) {
   const resolvedParams = await params
 
+  let product: any = null
+  let user: any = null
+  let isFavorited = false
+
   try {
     const supabase = await createClient()
-    const [product, { data: { user } }] = await Promise.all([
+    const [productData, authRes] = await Promise.all([
       ProductService.getProductBySlug(resolvedParams.slug),
       supabase.auth.getUser()
     ])
-    
-    if (!product) {
-      notFound()
-    }
+    product = productData
+    user = authRes.data.user
 
-    let isFavorited = false
-    if (user) {
+    if (user && product) {
       const { data } = await supabase
         .from('wishlists')
         .select('id')
@@ -33,13 +34,17 @@ export default async function ProductDetailPage({
         .maybeSingle()
       if (data) isFavorited = true
     }
-
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <ProductDetailClient product={product} variants={product.variants || []} initialFavorited={isFavorited} />
-      </div>
-    )
   } catch (error) {
+    console.error('Error loading product detail:', error)
+  }
+
+  if (!product) {
     notFound()
   }
+
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <ProductDetailClient product={product} variants={product.variants || []} initialFavorited={isFavorited} />
+    </div>
+  )
 }

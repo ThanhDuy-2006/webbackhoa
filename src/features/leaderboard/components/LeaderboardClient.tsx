@@ -19,6 +19,7 @@ export function LeaderboardClient() {
   const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>([])
   const [myRank, setMyRank] = useState<LeaderboardEntry | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [refreshKey, setRefreshKey] = useState(0)
 
   // Generate valid months (don't allow future months of current year)
   const availableMonths = Array.from({ length: 12 }, (_, i) => i + 1).filter(m => {
@@ -37,31 +38,38 @@ export function LeaderboardClient() {
     if (selectedYear === currentDate.getFullYear() && selectedMonth > currentDate.getMonth() + 1) {
       setSelectedMonth(currentDate.getMonth() + 1)
     }
-    loadData()
-  }, [selectedMonth, selectedYear, activeTab])
 
-  const loadData = async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const action = activeTab === 'topup' 
-        ? getTopupLeaderboardAction 
-        : getConsumptionLeaderboardAction
+    let isMounted = true
+    const fetchData = async () => {
+      setLoading(true)
+      setError(null)
+      try {
+        const action = activeTab === 'topup' 
+          ? getTopupLeaderboardAction 
+          : getConsumptionLeaderboardAction
+          
+        const res = await action(selectedMonth, selectedYear)
         
-      const res = await action(selectedMonth, selectedYear)
-      
-      if (res.success) {
-        setLeaderboardData(res.data || [])
-        setMyRank(res.myRank || null)
-      } else {
-        setError(res.error || 'Có lỗi xảy ra khi tải dữ liệu')
+        if (!isMounted) return
+        if (res.success) {
+          setLeaderboardData(res.data || [])
+          setMyRank(res.myRank || null)
+        } else {
+          setError(res.error || 'Có lỗi xảy ra khi tải dữ liệu')
+        }
+      } catch {
+        if (isMounted) setError('Lỗi kết nối')
+      } finally {
+        if (isMounted) setLoading(false)
       }
-    } catch (err) {
-      setError('Lỗi kết nối')
-    } finally {
-      setLoading(false)
     }
-  }
+
+    fetchData()
+
+    return () => {
+      isMounted = false
+    }
+  }, [selectedMonth, selectedYear, activeTab, refreshKey])
 
   const renderRankIcon = (rank: number) => {
     switch (rank) {
@@ -161,7 +169,7 @@ export function LeaderboardClient() {
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="text-center space-y-2 text-rose-500 bg-rose-50 p-6 rounded-2xl border border-rose-100">
               <p className="font-semibold">{error}</p>
-              <button onClick={loadData} className="text-sm underline">Thử lại</button>
+              <button onClick={() => setRefreshKey(k => k + 1)} className="text-sm underline">Thử lại</button>
             </div>
           </div>
         ) : leaderboardData.length === 0 ? (

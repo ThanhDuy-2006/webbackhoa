@@ -1,12 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // @ts-ignore
   allowedDevOrigins: ['192.168.1.12'],
   compress: true,
-  typescript: {
-    ignoreBuildErrors: true,
-  },
   experimental: {
     staleTimes: {
       dynamic: 30,
@@ -33,10 +29,6 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: '**',
-      },
-      {
-        protocol: 'http',
         hostname: '**',
       },
     ],

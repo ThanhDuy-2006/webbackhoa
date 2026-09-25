@@ -136,9 +136,12 @@ export function SellerProductForm({ categories, initialData }: SellerProductForm
 
           if (currentRequestId !== requestIdRef.current) return
 
-          const list = (res.candidates && res.candidates.length > 0)
-            ? res.candidates
-            : (res.url ? [{ id: 'cand-auto', url: res.url, thumbnailUrl: res.url, metadataScore: 90, provider: 'auto' }] : [])
+          let list: ImageCandidate[] = []
+          if ('candidates' in res && Array.isArray(res.candidates) && res.candidates.length > 0) {
+            list = res.candidates
+          } else if ('url' in res && res.url) {
+            list = [{ id: 'cand-auto', url: res.url, thumbnailUrl: res.url, metadataScore: 90 }]
+          }
 
           if (res.status === 'auto_selected' && res.url) {
             if (!watch('image_url')) {
@@ -201,9 +204,12 @@ export function SellerProductForm({ categories, initialData }: SellerProductForm
 
       if (currentRequestId !== requestIdRef.current) return
 
-      const list = (res.candidates && res.candidates.length > 0)
-        ? res.candidates
-        : (res.url ? [{ id: 'cand-auto', url: res.url, thumbnailUrl: res.url, metadataScore: 90, provider: 'auto' }] : [])
+      let list: ImageCandidate[] = []
+      if ('candidates' in res && Array.isArray(res.candidates) && res.candidates.length > 0) {
+        list = res.candidates
+      } else if ('url' in res && res.url) {
+        list = [{ id: 'cand-auto', url: res.url, thumbnailUrl: res.url, metadataScore: 90 }]
+      }
 
       if (res.status === 'auto_selected' && res.url) {
         setValue('image_url', res.url, { shouldValidate: true })

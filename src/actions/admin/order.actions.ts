@@ -2,10 +2,11 @@
 
 import { OrderRepository } from '@/repositories/order.repository'
 import { revalidatePath } from 'next/cache'
+import { assertAdmin } from '@/lib/supabase/auth-guard'
 
 export async function updateOrderStatusAction(id: string, status: string) {
   try {
-    // Ideally we would also check admin role here
+    await assertAdmin()
     
     // Valid statuses based on DB check constraint:
     // 'pending', 'confirmed', 'shipping', 'completed', 'cancelled', 'refunded'
@@ -29,3 +30,4 @@ export async function updateOrderStatusAction(id: string, status: string) {
     return { success: false, error: error.message || 'Có lỗi xảy ra' }
   }
 }
+

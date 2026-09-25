@@ -3,9 +3,11 @@
 import { SettingService } from '@/services/setting.service'
 import { GeneralSettingsFormData } from '@/schemas/setting.schema'
 import { revalidatePath } from 'next/cache'
+import { assertAdmin } from '@/lib/supabase/auth-guard'
 
 export async function updateGeneralSettingsAction(data: GeneralSettingsFormData) {
   try {
+    await assertAdmin()
     await SettingService.updateGeneralSettings(data)
     revalidatePath('/')
     revalidatePath('/admin/settings')
@@ -15,3 +17,4 @@ export async function updateGeneralSettingsAction(data: GeneralSettingsFormData)
     return { success: false, error: error?.message || 'Có lỗi xảy ra khi lưu cài đặt' }
   }
 }
+

@@ -82,7 +82,7 @@ export function UserWithdrawalForm({ balance, pendingAmount = 0 }: UserWithdrawa
         setAccountName('')
         router.refresh()
       } else {
-        toast.error(res.error || 'Có lỗi xảy ra khi gửi yêu cầu')
+        toast.error(('error' in res && typeof res.error === 'string' ? res.error : undefined) || 'Có lỗi xảy ra khi gửi yêu cầu')
       }
     } catch (error: any) {
       toast.error(error.message || 'Lỗi kết nối')

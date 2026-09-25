@@ -1,14 +1,12 @@
 'use server'
 
 import { UserRepository } from '@/repositories/user.repository'
-import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { assertAdmin } from '@/lib/supabase/auth-guard'
 
 export async function updateUserRoleAction(id: string, role: string) {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { success: false, error: 'Chưa đăng nhập' }
+    const { user } = await assertAdmin()
 
     if (user.id === id) {
       return { success: false, error: 'Không thể tự đổi quyền của chính mình' }
@@ -33,9 +31,7 @@ export async function updateUserRoleAction(id: string, role: string) {
 
 export async function updateUserBlockStatusAction(id: string, is_blocked: boolean) {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { success: false, error: 'Chưa đăng nhập' }
+    const { user } = await assertAdmin()
 
     if (user.id === id) {
       return { success: false, error: 'Không thể tự khóa chính mình' }
@@ -53,3 +49,4 @@ export async function updateUserBlockStatusAction(id: string, is_blocked: boolea
     return { success: false, error: error.message || 'Có lỗi xảy ra' }
   }
 }
+

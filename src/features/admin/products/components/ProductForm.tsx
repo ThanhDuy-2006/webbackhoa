@@ -189,9 +189,12 @@ export function ProductForm({ initialData, categories }: Props) {
 
       if (currentRequestId !== requestIdRef.current) return
 
-      const list = (res.candidates && res.candidates.length > 0)
-        ? res.candidates
-        : (res.url ? [{ id: 'cand-auto', url: res.url, thumbnailUrl: res.url, metadataScore: 90, provider: 'auto' }] : [])
+      let list: ImageCandidate[] = []
+      if ('candidates' in res && Array.isArray(res.candidates) && res.candidates.length > 0) {
+        list = res.candidates
+      } else if ('url' in res && res.url) {
+        list = [{ id: 'cand-auto', url: res.url, thumbnailUrl: res.url, metadataScore: 90 }]
+      }
 
       if (res.status === 'auto_selected' && res.url) {
         setValue('image_url', res.url, { shouldValidate: true })
@@ -391,9 +394,9 @@ export function ProductForm({ initialData, categories }: Props) {
                       />
                     )}
                   />
-                  {priceMode === 'total' && watch('sale_price') > 0 && watch('stock') > 0 && (
+                  {priceMode === 'total' && Number(watch('sale_price')) > 0 && Number(watch('stock')) > 0 && (
                     <p className="text-xs text-blue-600 font-medium">
-                      =&gt; KM 1 SP: <span className="font-bold">{new Intl.NumberFormat('vi-VN').format(Math.round(watch('sale_price') / watch('stock')))}đ</span>
+                      =&gt; KM 1 SP: <span className="font-bold">{new Intl.NumberFormat('vi-VN').format(Math.round(Number(watch('sale_price')) / Number(watch('stock'))))}đ</span>
                     </p>
                   )}
                 </div>

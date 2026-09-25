@@ -167,6 +167,18 @@ export async function selectManualCandidateAction({
     if (productId) {
       const supabaseAdmin = createAdminClient();
 
+      // Verify permission: caller must be admin or the seller owner of this product
+      const supabaseUserClient = await createClient();
+      const { data: profile } = await supabaseUserClient.from('profiles').select('role').eq('id', userId).single();
+      const isAdmin = profile?.role === 'admin';
+
+      if (!isAdmin) {
+        const { data: prod } = await supabaseAdmin.from('products').select('seller_id').eq('id', productId).single();
+        if (!prod || prod.seller_id !== userId) {
+          return { success: false, error: 'Bạn không có quyền cập nhật ảnh cho sản phẩm này.' };
+        }
+      }
+
       let query = supabaseAdmin
         .from('products')
         .update({

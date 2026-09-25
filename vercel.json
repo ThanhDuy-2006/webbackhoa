@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/image-health",
       "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/db-cleanup",
+      "schedule": "0 3 * * *"
     }
   ]
 }
