@@ -37,17 +37,21 @@ export function CheckoutClient({ user, profile, settings }: CheckoutClientProps)
     note: ''
   })
 
-  const totalAmount = items.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  const totalAmount = items.reduce((sum, item) => {
+    const price = typeof item.price === 'number' && !isNaN(item.price) ? item.price : 0
+    const qty = typeof item.quantity === 'number' && !isNaN(item.quantity) ? item.quantity : 1
+    return sum + price * qty
+  }, 0)
   
   let discountAmount = 0
   if (coupon) {
     if (coupon.discount_type === 'percent') {
-      discountAmount = (totalAmount * coupon.discount_value) / 100
+      discountAmount = (totalAmount * (coupon.discount_value || 0)) / 100
       if (coupon.max_discount_amount) {
         discountAmount = Math.min(discountAmount, coupon.max_discount_amount)
       }
     } else {
-      discountAmount = coupon.discount_value
+      discountAmount = Number(coupon.discount_value) || 0
     }
   }
   
@@ -108,28 +112,33 @@ export function CheckoutClient({ user, profile, settings }: CheckoutClientProps)
     }
 
     setIsSubmitting(true)
-    const result = await processCheckout(
-      user.id,
-      items,
-      formData,
-      coupon?.code || null,
-      totalAmount,
-      discountAmount,
-      finalAmount
-    )
+    try {
+      const result = await processCheckout(
+        user.id,
+        items,
+        formData,
+        coupon?.code || null,
+        totalAmount,
+        discountAmount,
+        finalAmount
+      )
 
-    if (result.success) {
-      toast.success('Đặt hàng thành công!')
-      clearCart()
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('wallet-balance-changed', {
-          detail: { newBalance: (profile?.balance || 0) - finalAmount }
-        }))
+      if (result.success) {
+        toast.success('Đặt hàng thành công!')
+        clearCart()
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('wallet-balance-changed', {
+            detail: { newBalance: (profile?.balance || 0) - finalAmount }
+          }))
+        }
+        router.refresh()
+        router.push('/tai-khoan/don-hang')
+      } else {
+        toast.error(result.error || 'Có lỗi xảy ra khi xử lý đặt hàng')
       }
-      router.refresh()
-      router.push('/tai-khoan/don-hang')
-    } else {
-      toast.error(result.error)
+    } catch (err: any) {
+      toast.error(err?.message || 'Có lỗi xảy ra khi đặt hàng')
+    } finally {
       setIsSubmitting(false)
     }
   }

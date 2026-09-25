@@ -8,7 +8,7 @@ import { AdminRealtimeListener } from '@/components/admin/AdminRealtimeListener'
 import { AdminSidebarNav } from '@/components/admin/AdminSidebarNav'
 import { PageTransition } from '@/components/ui/PageTransition'
 
-const mobileSidebarLinks: { name: string; href: string; iconName: 'LayoutDashboard' | 'Package' | 'Tags' | 'ShoppingBag' | 'Users' | 'CreditCard' | 'Percent' | 'Landmark' }[] = [
+const mobileSidebarLinks: { name: string; href: string; iconName: 'LayoutDashboard' | 'Package' | 'Tags' | 'ShoppingBag' | 'Users' | 'CreditCard' | 'Percent' | 'Landmark' | 'Database' | 'Settings' }[] = [
   { name: 'Dashboard', href: '/admin', iconName: 'LayoutDashboard' },
   { name: 'Sản phẩm', href: '/admin/products', iconName: 'Package' },
   { name: 'Danh mục', href: '/admin/categories', iconName: 'Tags' },
@@ -17,6 +17,8 @@ const mobileSidebarLinks: { name: string; href: string; iconName: 'LayoutDashboa
   { name: 'Duyệt nạp tiền', href: '/admin/topups', iconName: 'CreditCard' },
   { name: 'Duyệt rút tiền', href: '/admin/withdrawals', iconName: 'Landmark' },
   { name: 'Chia tiền sản phẩm', href: '/admin/revenue-share', iconName: 'Percent' },
+  { name: 'Dọn dẹp Database', href: '/admin/settings/database', iconName: 'Database' },
+  { name: 'Cài đặt hệ thống', href: '/admin/settings', iconName: 'Settings' },
 ]
 
 export default async function AdminLayout({
