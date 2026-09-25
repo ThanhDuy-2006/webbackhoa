@@ -193,6 +193,16 @@ export function ProductDetailClient({ product, variants, initialFavorited = fals
         <div className="mb-6">
           <div className="flex flex-wrap items-center gap-3 mb-2">
             <span className="text-sm text-emerald-600 font-medium">{product.categories?.name}</span>
+            <span className={cn(
+              "text-xs px-2.5 py-0.5 rounded-full font-semibold border",
+              isOutOfStock 
+                ? "text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border-rose-200/60 dark:border-rose-900/50" 
+                : maxStock <= 5 
+                ? "text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 border-amber-200/60 dark:border-amber-900/50"
+                : "text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200/60 dark:border-emerald-900/50"
+            )}>
+              {isOutOfStock ? 'Hết hàng (0)' : maxStock <= 5 ? `Chỉ còn ${maxStock}` : `Số lượng: ${maxStock}`}
+            </span>
             {product.expiry_date && (
               <ExpiryBadge expiryDate={product.expiry_date} size="md" />
             )}

@@ -30,8 +30,9 @@ export function ProductCard({ product, index = 0, priority = false }: ProductCar
   const { addItem } = useCartStore()
   const [isQuickViewOpen, setIsQuickViewOpen] = useState(false)
   const [isAdded, setIsAdded] = useState(false)
-  const isOutOfStock = product.stock <= 0
-  const isLowStock = product.stock > 0 && product.stock <= 5
+  const stockCount = typeof product.stock === 'number' && !isNaN(product.stock) ? product.stock : 0
+  const isOutOfStock = stockCount <= 0
+  const isLowStock = stockCount > 0 && stockCount <= 5
   const price = Number(product.price)
   const finalPrice = product.sale_price ? Number(product.sale_price) : price
   const hasDiscount = product.sale_price !== null && Number(product.sale_price) < price
@@ -47,7 +48,7 @@ export function ProductCard({ product, index = 0, priority = false }: ProductCar
       price: finalPrice,
       image: displayImage,
       quantity: 1,
-      stock: product.stock
+      stock: stockCount
     })
     setIsAdded(true)
     toast.success('Đã thêm vào giỏ hàng')
@@ -117,11 +118,19 @@ export function ProductCard({ product, index = 0, priority = false }: ProductCar
                 </h3>
               </Link>
 
-              {/* Dynamic Badges: Low Stock & Expiry */}
+              {/* Stock Quantity & Expiry Badges */}
               <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
-                {isLowStock && (
+                {isOutOfStock ? (
+                  <span className="text-[10px] font-bold text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 px-2 py-0.5 rounded-full border border-rose-200/60 dark:border-rose-900/50">
+                    Hết hàng (0)
+                  </span>
+                ) : isLowStock ? (
                   <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded-full border border-amber-200/60 dark:border-amber-900/50">
-                    Chỉ còn {product.stock}
+                    Chỉ còn {stockCount}
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-200/60 dark:border-emerald-900/50">
+                    Số lượng: {stockCount}
                   </span>
                 )}
                 {product.expiry_date && (
