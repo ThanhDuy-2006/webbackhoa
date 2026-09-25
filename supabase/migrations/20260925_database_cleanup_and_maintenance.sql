@@ -28,23 +28,27 @@ CREATE INDEX IF NOT EXISTS idx_maintenance_runs_started_at
 ON public.database_maintenance_runs (started_at DESC);
 
 -- 2. INDEX TỐI ƯU HÓA CHO CÁC TRUY VẤN CLEANUP (CLEANUP INDEXES)
-CREATE INDEX IF NOT EXISTS idx_notifications_cleanup 
-ON public.notifications (created_at, is_read);
-
-CREATE INDEX IF NOT EXISTS idx_admin_logs_cleanup 
-ON public.admin_logs (created_at);
-
-CREATE INDEX IF NOT EXISTS idx_inventory_logs_cleanup 
-ON public.inventory_logs (created_at);
-
-CREATE INDEX IF NOT EXISTS idx_candidate_sessions_cleanup 
-ON public.product_image_candidate_sessions (expires_at);
-
-CREATE INDEX IF NOT EXISTS idx_carts_cleanup 
-ON public.carts (updated_at);
-
-CREATE INDEX IF NOT EXISTS idx_image_cache_cleanup 
-ON public.product_image_cache (usage_count, created_at);
+DO $$
+BEGIN
+  IF to_regclass('public.notifications') IS NOT NULL THEN
+    CREATE INDEX IF NOT EXISTS idx_notifications_cleanup ON public.notifications (created_at, is_read);
+  END IF;
+  IF to_regclass('public.admin_logs') IS NOT NULL THEN
+    CREATE INDEX IF NOT EXISTS idx_admin_logs_cleanup ON public.admin_logs (created_at);
+  END IF;
+  IF to_regclass('public.inventory_logs') IS NOT NULL THEN
+    CREATE INDEX IF NOT EXISTS idx_inventory_logs_cleanup ON public.inventory_logs (created_at);
+  END IF;
+  IF to_regclass('public.product_image_candidate_sessions') IS NOT NULL THEN
+    CREATE INDEX IF NOT EXISTS idx_candidate_sessions_cleanup ON public.product_image_candidate_sessions (expires_at);
+  END IF;
+  IF to_regclass('public.carts') IS NOT NULL THEN
+    CREATE INDEX IF NOT EXISTS idx_carts_cleanup ON public.carts (updated_at);
+  END IF;
+  IF to_regclass('public.product_image_cache') IS NOT NULL THEN
+    CREATE INDEX IF NOT EXISTS idx_image_cache_cleanup ON public.product_image_cache (usage_count, created_at);
+  END IF;
+END $$;
 
 -- 3. HÀM LẤY THỐNG KÊ CHI TIẾT POSTGRESQL (TUPLES & STORAGE STATISTICS)
 CREATE OR REPLACE FUNCTION public.get_database_maintenance_stats()
@@ -211,237 +215,265 @@ BEGIN
   -- =========================================================================
 
   -- A. AI Candidate Sessions & Candidates (Session hết hạn > 24 giờ)
-  IF p_dry_run THEN
-    SELECT count(*) INTO v_count_candidate_items
-    FROM public.product_image_candidates c
-    WHERE c.session_id IN (
-      SELECT s.id FROM public.product_image_candidate_sessions s
-      WHERE s.expires_at < now() - interval '24 hours'
-    );
-
-    SELECT count(*) INTO v_count_candidate_sessions
-    FROM public.product_image_candidate_sessions s
-    WHERE s.expires_at < now() - interval '24 hours';
-  ELSE
-    -- Xóa candidates dựa trên session hết hạn
-    WITH deleted_candidates AS (
-      DELETE FROM public.product_image_candidates
-      WHERE id IN (
-        SELECT c.id FROM public.product_image_candidates c
-        WHERE c.session_id IN (
-          SELECT s.id FROM public.product_image_candidate_sessions s
-          WHERE s.expires_at < now() - interval '24 hours'
-        )
-        LIMIT v_batch_limit
-      )
-      RETURNING id
-    )
-    SELECT count(*) INTO v_count_candidate_items FROM deleted_candidates;
-
-    WITH deleted_sessions AS (
-      DELETE FROM public.product_image_candidate_sessions
-      WHERE id IN (
+  IF to_regclass('public.product_image_candidate_sessions') IS NOT NULL AND to_regclass('public.product_image_candidates') IS NOT NULL THEN
+    IF p_dry_run THEN
+      SELECT count(*) INTO v_count_candidate_items
+      FROM public.product_image_candidates c
+      WHERE c.session_id IN (
         SELECT s.id FROM public.product_image_candidate_sessions s
         WHERE s.expires_at < now() - interval '24 hours'
-        LIMIT v_batch_limit
+      );
+
+      SELECT count(*) INTO v_count_candidate_sessions
+      FROM public.product_image_candidate_sessions s
+      WHERE s.expires_at < now() - interval '24 hours';
+    ELSE
+      -- Xóa candidates dựa trên session hết hạn
+      WITH deleted_candidates AS (
+        DELETE FROM public.product_image_candidates
+        WHERE id IN (
+          SELECT c.id FROM public.product_image_candidates c
+          WHERE c.session_id IN (
+            SELECT s.id FROM public.product_image_candidate_sessions s
+            WHERE s.expires_at < now() - interval '24 hours'
+          )
+          LIMIT v_batch_limit
+        )
+        RETURNING id
       )
-      RETURNING id
-    )
-    SELECT count(*) INTO v_count_candidate_sessions FROM deleted_sessions;
+      SELECT count(*) INTO v_count_candidate_items FROM deleted_candidates;
+
+      WITH deleted_sessions AS (
+        DELETE FROM public.product_image_candidate_sessions
+        WHERE id IN (
+          SELECT s.id FROM public.product_image_candidate_sessions s
+          WHERE s.expires_at < now() - interval '24 hours'
+          LIMIT v_batch_limit
+        )
+        RETURNING id
+      )
+      SELECT count(*) INTO v_count_candidate_sessions FROM deleted_sessions;
+    END IF;
   END IF;
 
   -- B. Giỏ hàng bỏ quên (Carts không cập nhật > 30 ngày)
-  IF p_dry_run THEN
-    SELECT count(*) INTO v_count_abandoned_carts
-    FROM public.carts
-    WHERE updated_at < now() - interval '30 days';
-  ELSE
-    WITH deleted_carts AS (
-      DELETE FROM public.carts
-      WHERE id IN (
-        SELECT id FROM public.carts
-        WHERE updated_at < now() - interval '30 days'
-        LIMIT v_batch_limit
+  IF to_regclass('public.carts') IS NOT NULL THEN
+    IF p_dry_run THEN
+      SELECT count(*) INTO v_count_abandoned_carts
+      FROM public.carts
+      WHERE updated_at < now() - interval '30 days';
+    ELSE
+      WITH deleted_carts AS (
+        DELETE FROM public.carts
+        WHERE id IN (
+          SELECT id FROM public.carts
+          WHERE updated_at < now() - interval '30 days'
+          LIMIT v_batch_limit
+        )
+        RETURNING id
       )
-      RETURNING id
-    )
-    SELECT count(*) INTO v_count_abandoned_carts FROM deleted_carts;
+      SELECT count(*) INTO v_count_abandoned_carts FROM deleted_carts;
+    END IF;
   END IF;
 
   -- C. Notifications (Đã đọc > 45 ngày HOẶC cũ bất kể trạng thái > 120 ngày)
   -- Sử dụng đồng nhất một mệnh đề WHERE để không bao giờ bị đếm trùng
-  IF p_dry_run THEN
-    SELECT count(*) INTO v_count_notifications
-    FROM public.notifications
-    WHERE (is_read = true AND created_at < now() - interval '45 days')
-       OR (created_at < now() - interval '120 days');
-  ELSE
-    WITH deleted_notifs AS (
-      DELETE FROM public.notifications
-      WHERE id IN (
-        SELECT id FROM public.notifications
-        WHERE (is_read = true AND created_at < now() - interval '45 days')
-           OR (created_at < now() - interval '120 days')
-        LIMIT v_batch_limit
+  IF to_regclass('public.notifications') IS NOT NULL THEN
+    IF p_dry_run THEN
+      SELECT count(*) INTO v_count_notifications
+      FROM public.notifications
+      WHERE (is_read = true AND created_at < now() - interval '45 days')
+         OR (created_at < now() - interval '120 days');
+    ELSE
+      WITH deleted_notifs AS (
+        DELETE FROM public.notifications
+        WHERE id IN (
+          SELECT id FROM public.notifications
+          WHERE (is_read = true AND created_at < now() - interval '45 days')
+             OR (created_at < now() - interval '120 days')
+          LIMIT v_batch_limit
+        )
+        RETURNING id
       )
-      RETURNING id
-    )
-    SELECT count(*) INTO v_count_notifications FROM deleted_notifs;
+      SELECT count(*) INTO v_count_notifications FROM deleted_notifs;
+    END IF;
   END IF;
 
   -- D. Admin Logs (Cũ hơn v_retention_days ngày)
-  IF p_dry_run THEN
-    SELECT count(*) INTO v_count_admin_logs
-    FROM public.admin_logs
-    WHERE created_at < now() - v_retention_interval;
-  ELSE
-    WITH deleted_admin_logs AS (
-      DELETE FROM public.admin_logs
-      WHERE id IN (
-        SELECT id FROM public.admin_logs
-        WHERE created_at < now() - v_retention_interval
-        LIMIT v_batch_limit
+  IF to_regclass('public.admin_logs') IS NOT NULL THEN
+    IF p_dry_run THEN
+      SELECT count(*) INTO v_count_admin_logs
+      FROM public.admin_logs
+      WHERE created_at < now() - v_retention_interval;
+    ELSE
+      WITH deleted_admin_logs AS (
+        DELETE FROM public.admin_logs
+        WHERE id IN (
+          SELECT id FROM public.admin_logs
+          WHERE created_at < now() - v_retention_interval
+          LIMIT v_batch_limit
+        )
+        RETURNING id
       )
-      RETURNING id
-    )
-    SELECT count(*) INTO v_count_admin_logs FROM deleted_admin_logs;
+      SELECT count(*) INTO v_count_admin_logs FROM deleted_admin_logs;
+    END IF;
   END IF;
 
   -- E. Inventory Logs (Cũ hơn v_inventory_interval ngày - tối thiểu 180 ngày)
-  IF p_dry_run THEN
-    SELECT count(*) INTO v_count_inventory_logs
-    FROM public.inventory_logs
-    WHERE created_at < now() - v_inventory_interval;
-  ELSE
-    WITH deleted_inv_logs AS (
-      DELETE FROM public.inventory_logs
-      WHERE id IN (
-        SELECT id FROM public.inventory_logs
-        WHERE created_at < now() - v_inventory_interval
-        LIMIT v_batch_limit
+  IF to_regclass('public.inventory_logs') IS NOT NULL THEN
+    IF p_dry_run THEN
+      SELECT count(*) INTO v_count_inventory_logs
+      FROM public.inventory_logs
+      WHERE created_at < now() - v_inventory_interval;
+    ELSE
+      WITH deleted_inv_logs AS (
+        DELETE FROM public.inventory_logs
+        WHERE id IN (
+          SELECT id FROM public.inventory_logs
+          WHERE created_at < now() - v_inventory_interval
+          LIMIT v_batch_limit
+        )
+        RETURNING id
       )
-      RETURNING id
-    )
-    SELECT count(*) INTO v_count_inventory_logs FROM deleted_inv_logs;
+      SELECT count(*) INTO v_count_inventory_logs FROM deleted_inv_logs;
+    END IF;
   END IF;
 
   -- F. Product Image Cache (usage_count = 0 và tạo > 60 ngày)
-  IF p_dry_run THEN
-    SELECT count(*) INTO v_count_image_cache
-    FROM public.product_image_cache
-    WHERE usage_count = 0 AND created_at < now() - interval '60 days';
-  ELSE
-    WITH deleted_cache AS (
-      DELETE FROM public.product_image_cache
-      WHERE id IN (
-        SELECT id FROM public.product_image_cache
-        WHERE usage_count = 0 AND created_at < now() - interval '60 days'
-        LIMIT v_batch_limit
+  IF to_regclass('public.product_image_cache') IS NOT NULL THEN
+    IF p_dry_run THEN
+      SELECT count(*) INTO v_count_image_cache
+      FROM public.product_image_cache
+      WHERE usage_count = 0 AND created_at < now() - interval '60 days';
+    ELSE
+      WITH deleted_cache AS (
+        DELETE FROM public.product_image_cache
+        WHERE id IN (
+          SELECT id FROM public.product_image_cache
+          WHERE usage_count = 0 AND created_at < now() - interval '60 days'
+          LIMIT v_batch_limit
+        )
+        RETURNING id
       )
-      RETURNING id
-    )
-    SELECT count(*) INTO v_count_image_cache FROM deleted_cache;
+      SELECT count(*) INTO v_count_image_cache FROM deleted_cache;
+    END IF;
   END IF;
 
   -- G. SOFT DELETE SAFETY PURGE (Tuyệt đối bảo vệ dữ liệu lịch sử giao dịch)
-  -- 1. Sản phẩm: CHỈ purge nếu đã soft delete > 60 ngày VÀ CHƯA TỪNG có order_item / review / revenue share
-  IF p_dry_run THEN
-    SELECT count(*) INTO v_count_soft_products
-    FROM public.products p
-    WHERE p.is_deleted = true 
-      AND p.deleted_at < now() - interval '60 days'
-      AND NOT EXISTS (SELECT 1 FROM public.order_items oi WHERE oi.product_id = p.id)
-      AND NOT EXISTS (SELECT 1 FROM public.product_reviews pr WHERE pr.product_id = p.id)
-      AND NOT EXISTS (SELECT 1 FROM public.product_revenue_rules prr WHERE prr.product_id = p.id);
-  ELSE
-    WITH deleted_products AS (
-      DELETE FROM public.products p
-      WHERE p.id IN (
-        SELECT p_sub.id FROM public.products p_sub
-        WHERE p_sub.is_deleted = true 
-          AND p_sub.deleted_at < now() - interval '60 days'
-          AND NOT EXISTS (SELECT 1 FROM public.order_items oi WHERE oi.product_id = p_sub.id)
-          AND NOT EXISTS (SELECT 1 FROM public.product_reviews pr WHERE pr.product_id = p_sub.id)
-          AND NOT EXISTS (SELECT 1 FROM public.product_revenue_rules prr WHERE prr.product_id = p_sub.id)
-        LIMIT v_batch_limit
+  -- 1. Sản phẩm: CHỈ purge nếu đã soft delete > 60 ngày VÀ CHƯA TỪNG có order_item / revenue rules
+  IF to_regclass('public.products') IS NOT NULL AND to_regclass('public.order_items') IS NOT NULL THEN
+    IF p_dry_run THEN
+      SELECT count(*) INTO v_count_soft_products
+      FROM public.products p
+      WHERE p.is_deleted = true 
+        AND p.deleted_at < now() - interval '60 days'
+        AND NOT EXISTS (SELECT 1 FROM public.order_items oi WHERE oi.product_id = p.id)
+        AND (
+          to_regclass('public.product_revenue_rules') IS NULL 
+          OR NOT EXISTS (SELECT 1 FROM public.product_revenue_rules prr WHERE prr.product_id = p.id)
+        );
+    ELSE
+      WITH deleted_products AS (
+        DELETE FROM public.products p
+        WHERE p.id IN (
+          SELECT p_sub.id FROM public.products p_sub
+          WHERE p_sub.is_deleted = true 
+            AND p_sub.deleted_at < now() - interval '60 days'
+            AND NOT EXISTS (SELECT 1 FROM public.order_items oi WHERE oi.product_id = p_sub.id)
+            AND (
+              to_regclass('public.product_revenue_rules') IS NULL 
+              OR NOT EXISTS (SELECT 1 FROM public.product_revenue_rules prr WHERE prr.product_id = p_sub.id)
+            )
+          LIMIT v_batch_limit
+        )
+        RETURNING id
       )
-      RETURNING id
-    )
-    SELECT count(*) INTO v_count_soft_products FROM deleted_products;
+      SELECT count(*) INTO v_count_soft_products FROM deleted_products;
+    END IF;
   END IF;
 
   -- 2. Mã giảm giá (Coupons): CHỈ purge nếu xóa > 60 ngày, used_count = 0 và không có đơn hàng nào áp dụng
-  IF p_dry_run THEN
-    SELECT count(*) INTO v_count_soft_coupons
-    FROM public.coupons c
-    WHERE c.is_deleted = true 
-      AND c.deleted_at < now() - interval '60 days'
-      AND c.used_count = 0
-      AND NOT EXISTS (SELECT 1 FROM public.orders o WHERE o.note ILIKE '%' || c.code || '%');
-  ELSE
-    WITH deleted_coupons AS (
-      DELETE FROM public.coupons c
-      WHERE c.id IN (
-        SELECT c_sub.id FROM public.coupons c_sub
-        WHERE c_sub.is_deleted = true 
-          AND c_sub.deleted_at < now() - interval '60 days'
-          AND c_sub.used_count = 0
-          AND NOT EXISTS (SELECT 1 FROM public.orders o WHERE o.note ILIKE '%' || c_sub.code || '%')
-        LIMIT v_batch_limit
+  IF to_regclass('public.coupons') IS NOT NULL AND to_regclass('public.orders') IS NOT NULL THEN
+    IF p_dry_run THEN
+      SELECT count(*) INTO v_count_soft_coupons
+      FROM public.coupons c
+      WHERE c.is_deleted = true 
+        AND c.deleted_at < now() - interval '60 days'
+        AND c.used_count = 0
+        AND NOT EXISTS (SELECT 1 FROM public.orders o WHERE o.note ILIKE '%' || c.code || '%');
+    ELSE
+      WITH deleted_coupons AS (
+        DELETE FROM public.coupons c
+        WHERE c.id IN (
+          SELECT c_sub.id FROM public.coupons c_sub
+          WHERE c_sub.is_deleted = true 
+            AND c_sub.deleted_at < now() - interval '60 days'
+            AND c_sub.used_count = 0
+            AND NOT EXISTS (SELECT 1 FROM public.orders o WHERE o.note ILIKE '%' || c_sub.code || '%')
+          LIMIT v_batch_limit
+        )
+        RETURNING id
       )
-      RETURNING id
-    )
-    SELECT count(*) INTO v_count_soft_coupons FROM deleted_coupons;
+      SELECT count(*) INTO v_count_soft_coupons FROM deleted_coupons;
+    END IF;
   END IF;
 
   -- 3. Danh mục (Categories): CHỈ purge nếu xóa > 60 ngày VÀ không còn sản phẩm nào trỏ tới
-  IF p_dry_run THEN
-    SELECT count(*) INTO v_count_soft_categories
-    FROM public.categories cat
-    WHERE cat.is_deleted = true 
-      AND cat.deleted_at < now() - interval '60 days'
-      AND NOT EXISTS (SELECT 1 FROM public.products p WHERE p.category_id = cat.id);
-  ELSE
-    WITH deleted_categories AS (
-      DELETE FROM public.categories cat
-      WHERE cat.id IN (
-        SELECT cat_sub.id FROM public.categories cat_sub
-        WHERE cat_sub.is_deleted = true 
-          AND cat_sub.deleted_at < now() - interval '60 days'
-          AND NOT EXISTS (SELECT 1 FROM public.products p WHERE p.category_id = cat_sub.id)
-        LIMIT v_batch_limit
+  IF to_regclass('public.categories') IS NOT NULL AND to_regclass('public.products') IS NOT NULL THEN
+    IF p_dry_run THEN
+      SELECT count(*) INTO v_count_soft_categories
+      FROM public.categories cat
+      WHERE cat.is_deleted = true 
+        AND cat.deleted_at < now() - interval '60 days'
+        AND NOT EXISTS (SELECT 1 FROM public.products p WHERE p.category_id = cat.id);
+    ELSE
+      WITH deleted_categories AS (
+        DELETE FROM public.categories cat
+        WHERE cat.id IN (
+          SELECT cat_sub.id FROM public.categories cat_sub
+          WHERE cat_sub.is_deleted = true 
+            AND cat_sub.deleted_at < now() - interval '60 days'
+            AND NOT EXISTS (SELECT 1 FROM public.products p WHERE p.category_id = cat_sub.id)
+          LIMIT v_batch_limit
+        )
+        RETURNING id
       )
-      RETURNING id
-    )
-    SELECT count(*) INTO v_count_soft_categories FROM deleted_categories;
+      SELECT count(*) INTO v_count_soft_categories FROM deleted_categories;
+    END IF;
   END IF;
 
   -- 4. Luật chia tiền (Revenue Rules): CHỈ purge nếu xóa > 60 ngày, status = archived VÀ không có revenue share
-  IF p_dry_run THEN
-    SELECT count(*) INTO v_count_soft_revenue_rules
-    FROM public.product_revenue_rules prr
-    WHERE prr.deleted_at < now() - interval '60 days'
-      AND prr.status = 'archived'
-      AND NOT EXISTS (SELECT 1 FROM public.product_revenue_shares prs WHERE prs.rule_id = prr.id);
-  ELSE
-    WITH deleted_revenue_rules AS (
-      DELETE FROM public.product_revenue_rules prr
-      WHERE prr.id IN (
-        SELECT prr_sub.id FROM public.product_revenue_rules prr_sub
-        WHERE prr_sub.deleted_at < now() - interval '60 days'
-          AND prr_sub.status = 'archived'
-          AND NOT EXISTS (SELECT 1 FROM public.product_revenue_shares prs WHERE prs.rule_id = prr_sub.id)
-        LIMIT v_batch_limit
+  IF to_regclass('public.product_revenue_rules') IS NOT NULL AND to_regclass('public.product_revenue_shares') IS NOT NULL THEN
+    IF p_dry_run THEN
+      SELECT count(*) INTO v_count_soft_revenue_rules
+      FROM public.product_revenue_rules prr
+      WHERE prr.deleted_at < now() - interval '60 days'
+        AND prr.status = 'archived'
+        AND NOT EXISTS (SELECT 1 FROM public.product_revenue_shares prs WHERE prs.rule_id = prr.id);
+    ELSE
+      WITH deleted_revenue_rules AS (
+        DELETE FROM public.product_revenue_rules prr
+        WHERE prr.id IN (
+          SELECT prr_sub.id FROM public.product_revenue_rules prr_sub
+          WHERE prr_sub.deleted_at < now() - interval '60 days'
+            AND prr_sub.status = 'archived'
+            AND NOT EXISTS (SELECT 1 FROM public.product_revenue_shares prs WHERE prs.rule_id = prr_sub.id)
+          LIMIT v_batch_limit
+        )
+        RETURNING id
       )
-      RETURNING id
-    )
-    SELECT count(*) INTO v_count_soft_revenue_rules FROM deleted_revenue_rules;
+      SELECT count(*) INTO v_count_soft_revenue_rules FROM deleted_revenue_rules;
+    END IF;
   END IF;
 
   -- H. Dọn dẹp chính bảng Maintenance Runs (> 365 ngày để bảng không phình to)
   IF NOT p_dry_run THEN
     DELETE FROM public.database_maintenance_runs
-    WHERE created_at < now() - interval '365 days';
+    WHERE id IN (
+      SELECT id FROM public.database_maintenance_runs
+      WHERE created_at < now() - interval '365 days'
+      LIMIT v_batch_limit
+    );
   END IF;
 
   -- =========================================================================
