@@ -145,9 +145,20 @@ export function CheckoutClient({ user, profile, settings }: CheckoutClientProps)
 
   if (items.length === 0) {
     return (
-      <div className="text-center py-20 bg-white rounded-xl border">
-        <h2 className="text-2xl font-bold mb-4">Giỏ hàng trống</h2>
-        <Button onClick={() => router.push('/')}>Mua sắm ngay</Button>
+      <div className="text-center py-20 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm max-w-lg mx-auto p-8 space-y-4">
+        <div className="w-16 h-16 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 mx-auto flex items-center justify-center">
+          <Ticket className="w-8 h-8" />
+        </div>
+        <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">Giỏ hàng của bạn đang trống</h2>
+        <p className="text-sm text-slate-500 dark:text-slate-400">
+          Hãy khám phá các sản phẩm nổi bật và chọn cho mình những món đồ ưng ý nhé.
+        </p>
+        <Button 
+          onClick={() => router.push('/')}
+          className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold rounded-xl h-11 px-6 shadow-sm"
+        >
+          Mua sắm ngay
+        </Button>
       </div>
     )
   }
@@ -156,57 +167,72 @@ export function CheckoutClient({ user, profile, settings }: CheckoutClientProps)
     <div className="grid lg:grid-cols-3 gap-8">
       {/* Form and Info */}
       <div className="lg:col-span-2 space-y-6">
-        <form id="checkout-form" onSubmit={handleSubmit} className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-6">
-          <h2 className="text-xl font-bold text-slate-900 border-b pb-4">Thông tin nhận hàng</h2>
+        <form id="checkout-form" onSubmit={handleSubmit} className="bg-white dark:bg-slate-900 p-6 md:p-8 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-6">
+          <div className="flex items-center gap-2 pb-4 border-b border-slate-100 dark:border-slate-800">
+            <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-sm">
+              1
+            </div>
+            <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Thông tin nhận hàng</h2>
+          </div>
           
           <div className="space-y-4">
             <div className="grid sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="receiver_name" className="flex items-center gap-2">
-                  <UserIcon className="w-4 h-4 text-slate-500" />
-                  Họ tên người nhận
+                <Label htmlFor="receiver_name" className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  <UserIcon className="w-3.5 h-3.5 text-slate-400" />
+                  Họ tên người nhận <span className="text-red-500">*</span>
                 </Label>
                 <Input 
                   id="receiver_name" 
                   value={formData.receiver_name}
                   onChange={(e) => setFormData(p => ({ ...p, receiver_name: e.target.value }))}
                   required
+                  placeholder="Nguyễn Văn A"
+                  className="rounded-xl border-slate-200 dark:border-slate-800 focus-visible:ring-emerald-500"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="receiver_phone" className="flex items-center gap-2">
-                  <Phone className="w-4 h-4 text-slate-500" />
-                  Số điện thoại
+                <Label htmlFor="receiver_phone" className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  <Phone className="w-3.5 h-3.5 text-slate-400" />
+                  Số điện thoại <span className="text-red-500">*</span>
                 </Label>
                 <Input 
                   id="receiver_phone" 
                   value={formData.receiver_phone}
                   onChange={(e) => setFormData(p => ({ ...p, receiver_phone: e.target.value }))}
                   required
+                  placeholder="0912345678"
+                  className="rounded-xl border-slate-200 dark:border-slate-800 focus-visible:ring-emerald-500"
                 />
               </div>
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="receiver_address" className="flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-slate-500" />
-                Địa chỉ chi tiết
+              <Label htmlFor="receiver_address" className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                Địa chỉ chi tiết <span className="text-red-500">*</span>
               </Label>
               <Input 
                 id="receiver_address" 
                 value={formData.receiver_address}
                 onChange={(e) => setFormData(p => ({ ...p, receiver_address: e.target.value }))}
                 required
+                placeholder="Số nhà, tên đường, phường/xã, quận/huyện..."
+                className="rounded-xl border-slate-200 dark:border-slate-800 focus-visible:ring-emerald-500"
               />
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="note">Ghi chú đơn hàng (Tùy chọn)</Label>
+              <Label htmlFor="note" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                Ghi chú đơn hàng (Tùy chọn)
+              </Label>
               <Textarea 
                 id="note" 
                 rows={3}
                 value={formData.note}
                 onChange={(e) => setFormData(p => ({ ...p, note: e.target.value }))}
+                placeholder="Ghi chú thêm cho người bán hoặc người giao hàng..."
+                className="rounded-xl border-slate-200 dark:border-slate-800 focus-visible:ring-emerald-500 resize-none"
               />
             </div>
           </div>
@@ -215,79 +241,94 @@ export function CheckoutClient({ user, profile, settings }: CheckoutClientProps)
 
       {/* Summary Sidebar */}
       <div className="space-y-6">
-        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-6 sticky top-24">
-          <h2 className="text-xl font-bold text-slate-900 border-b pb-4">Đơn hàng của bạn</h2>
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-6 sticky top-20">
+          <div className="flex items-center gap-2 pb-4 border-b border-slate-100 dark:border-slate-800">
+            <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-sm">
+              2
+            </div>
+            <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Đơn hàng của bạn</h2>
+          </div>
           
-          <div className="space-y-4 max-h-60 overflow-y-auto pr-2">
+          <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
             {items.map(item => (
-              <div key={`${item.id}-${item.variantId}`} className="flex gap-3">
-                <div className="relative w-16 h-16 rounded-md overflow-hidden shrink-0 border">
+              <div key={`${item.id}-${item.variantId}`} className="flex gap-3 items-center">
+                <div className="relative w-14 h-14 rounded-xl overflow-hidden shrink-0 border border-slate-100 dark:border-slate-800">
                   <SmartImage productId={item.id} src={item.image} alt={item.name} fill className="object-cover" />
                 </div>
-                <div className="flex-1 text-sm">
-                  <p className="font-medium text-slate-900 line-clamp-2">{item.name}</p>
-                  {item.variantName && <p className="text-xs text-slate-500">{item.variantName}</p>}
-                  <div className="flex justify-between items-center mt-1">
-                    <span className="text-slate-500">x{item.quantity}</span>
-                    <span className="font-medium text-red-600">{formatCurrency((item.price * item.quantity))}</span>
+                <div className="flex-1 min-w-0 text-sm">
+                  <p className="font-semibold text-slate-900 dark:text-slate-100 truncate">{item.name}</p>
+                  {item.variantName && <p className="text-xs text-slate-500 dark:text-slate-400">{item.variantName}</p>}
+                  <div className="flex justify-between items-center mt-0.5">
+                    <span className="text-xs text-slate-500 dark:text-slate-400">SL: {item.quantity}</span>
+                    <span className="font-bold text-slate-900 dark:text-slate-100">{formatCurrency((item.price * item.quantity))}</span>
                   </div>
                 </div>
               </div>
             ))}
           </div>
           
-          <div className="border-t pt-4 space-y-4">
+          <div className="border-t border-slate-100 dark:border-slate-800 pt-4 space-y-4">
             <div className="flex gap-2">
               <div className="relative flex-1">
                 <Ticket className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <Input 
                   placeholder="Mã giảm giá" 
-                  className="pl-9"
+                  className="pl-9 rounded-xl border-slate-200 dark:border-slate-800"
                   value={couponCode}
                   onChange={(e) => setCouponCode(e.target.value)}
                 />
               </div>
-              <Button variant="secondary" onClick={handleApplyCoupon} disabled={isCheckingCoupon || !couponCode}>
-                Áp dụng
+              <Button 
+                variant="outline" 
+                onClick={handleApplyCoupon} 
+                disabled={isCheckingCoupon || !couponCode}
+                className="rounded-xl border-slate-200 dark:border-slate-800 font-semibold"
+              >
+                {isCheckingCoupon ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Áp dụng'}
               </Button>
             </div>
             
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between text-slate-600">
+            <div className="space-y-2 text-sm pt-2">
+              <div className="flex justify-between text-slate-600 dark:text-slate-400">
                 <span>Tạm tính</span>
-                <span>{formatCurrency(totalAmount)}</span>
+                <span className="font-medium">{formatCurrency(totalAmount)}</span>
               </div>
               {discountAmount > 0 && (
-                <div className="flex justify-between text-green-600">
+                <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-medium">
                   <span>Giảm giá</span>
                   <span>-{formatCurrency(discountAmount)}</span>
                 </div>
               )}
-              <div className="flex justify-between font-bold text-lg pt-2 border-t text-slate-900">
+              <div className="flex justify-between font-bold text-base pt-3 border-t border-slate-100 dark:border-slate-800 text-slate-900 dark:text-slate-100">
                 <span>Tổng cộng</span>
-                <span className="text-red-600">{formatCurrency(finalAmount)}</span>
+                <span className="text-lg text-emerald-600 dark:text-emerald-400">{formatCurrency(finalAmount)}</span>
               </div>
             </div>
             
-            <div className="bg-slate-50 p-4 rounded-lg space-y-2 border">
-              <div className="flex justify-between text-sm">
-                <span className="text-slate-600">Số dư ví hiện tại:</span>
-                <span className={`font-medium ${(profile?.balance || 0) < 0 ? 'text-red-600' : ''}`}>
+            <div className="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-700/60 space-y-1.5">
+              <div className="flex justify-between text-xs">
+                <span className="text-slate-600 dark:text-slate-400">Số dư ví hiện tại:</span>
+                <span className={`font-semibold ${(profile?.balance || 0) < finalAmount ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
                   {formatCurrency(profile?.balance || 0)}
                 </span>
               </div>
+              {(profile?.balance || 0) < finalAmount && (
+                <p className="text-[11px] text-amber-600 dark:text-amber-400">
+                  Số dư ví không đủ, vui lòng nạp thêm tiền hoặc đơn hàng sẽ bị từ chối.
+                </p>
+              )}
             </div>
             
             <Button 
               type="submit" 
               form="checkout-form"
-              className="w-full bg-emerald-600 hover:bg-emerald-700 h-12 text-base font-semibold cursor-pointer"
+              className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold rounded-xl h-12 shadow-sm shadow-emerald-600/20 cursor-pointer text-base"
               disabled={isSubmitting}
             >
               {isSubmitting ? (
                 <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Đang xử lý...</>
               ) : (
-                'Thanh toán ngay'
+                'Xác nhận thanh toán'
               )}
             </Button>
           </div>
@@ -296,3 +337,4 @@ export function CheckoutClient({ user, profile, settings }: CheckoutClientProps)
     </div>
   )
 }
+

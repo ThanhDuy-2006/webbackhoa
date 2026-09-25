@@ -8,19 +8,6 @@ import { AdminRealtimeListener } from '@/components/admin/AdminRealtimeListener'
 import { AdminSidebarNav } from '@/components/admin/AdminSidebarNav'
 import { PageTransition } from '@/components/ui/PageTransition'
 
-const mobileSidebarLinks: { name: string; href: string; iconName: 'LayoutDashboard' | 'Package' | 'Tags' | 'ShoppingBag' | 'Users' | 'CreditCard' | 'Percent' | 'Landmark' | 'Database' | 'Settings' }[] = [
-  { name: 'Dashboard', href: '/admin', iconName: 'LayoutDashboard' },
-  { name: 'Sản phẩm', href: '/admin/products', iconName: 'Package' },
-  { name: 'Danh mục', href: '/admin/categories', iconName: 'Tags' },
-  { name: 'Đơn hàng', href: '/admin/orders', iconName: 'ShoppingBag' },
-  { name: 'Khách hàng', href: '/admin/users', iconName: 'Users' },
-  { name: 'Duyệt nạp tiền', href: '/admin/topups', iconName: 'CreditCard' },
-  { name: 'Duyệt rút tiền', href: '/admin/withdrawals', iconName: 'Landmark' },
-  { name: 'Chia tiền sản phẩm', href: '/admin/revenue-share', iconName: 'Percent' },
-  { name: 'Dọn dẹp Database', href: '/admin/settings/database', iconName: 'Database' },
-  { name: 'Cài đặt hệ thống', href: '/admin/settings', iconName: 'Settings' },
-]
-
 export default async function AdminLayout({
   children,
 }: {
@@ -42,9 +29,9 @@ export default async function AdminLayout({
     <div className="flex h-screen bg-[#F5F7FB] overflow-hidden font-sans">
       <AdminRealtimeListener />
       {/* Sidebar - Floating Glass Card */}
-      <aside className="w-64 my-3 ml-3 bg-white rounded-[24px] shadow-sm flex-col hidden md:flex overflow-hidden border border-slate-100 shrink-0">
+      <aside className="w-64 my-3 ml-3 bg-white rounded-2xl shadow-sm flex-col hidden md:flex overflow-hidden border border-slate-100 shrink-0">
         <div className="h-16 flex items-center px-6 border-b border-slate-50">
-          <div className="relative flex items-center justify-center w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 shadow-sm shadow-emerald-200 mr-2.5">
+          <div className="relative flex items-center justify-center w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 shadow-sm shadow-emerald-200 mr-2.5">
              <Sprout className="h-4 w-4 text-white" />
           </div>
           <span className="font-extrabold text-base tracking-tight bg-gradient-to-r from-emerald-700 to-teal-600 bg-clip-text text-transparent">Bách Hóa Admin</span>
@@ -55,7 +42,7 @@ export default async function AdminLayout({
 
         {/* User Profile */}
         <form action={logout} className="m-2 shrink-0">
-          <button type="submit" className="w-full p-3 border-t border-slate-100 flex items-center justify-between hover:bg-slate-50 transition-colors rounded-2xl text-left cursor-pointer">
+          <button type="submit" className="w-full p-3 border-t border-slate-100 flex items-center justify-between hover:bg-slate-50 transition-colors rounded-xl text-left cursor-pointer">
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="h-8 w-8 rounded-full overflow-hidden border border-slate-200 shrink-0">
                 <img src={avatarUrl} alt={fullName} className="h-full w-full object-cover" />
@@ -77,7 +64,6 @@ export default async function AdminLayout({
           {/* Mobile Menu Toggle */}
           <div className="md:hidden">
             <AdminMobileMenu
-              sidebarLinks={mobileSidebarLinks}
               fullName={fullName}
               email={email}
               avatarUrl={avatarUrl}

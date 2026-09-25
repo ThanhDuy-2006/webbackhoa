@@ -2,46 +2,49 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Package, Users, ShoppingBag, LayoutDashboard, CreditCard, Tags, Percent, Landmark, Database, Settings } from 'lucide-react'
-
-const sidebarLinks = [
-  { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
-  { name: 'Sản phẩm', href: '/admin/products', icon: Package },
-  { name: 'Danh mục', href: '/admin/categories', icon: Tags },
-  { name: 'Đơn hàng', href: '/admin/orders', icon: ShoppingBag },
-  { name: 'Khách hàng', href: '/admin/users', icon: Users },
-  { name: 'Duyệt nạp tiền', href: '/admin/topups', icon: CreditCard },
-  { name: 'Duyệt rút tiền', href: '/admin/withdrawals', icon: Landmark },
-  { name: 'Chia tiền sản phẩm', href: '/admin/revenue-share', icon: Percent },
-  { name: 'Dọn dẹp Database', href: '/admin/settings/database', icon: Database },
-  { name: 'Cài đặt hệ thống', href: '/admin/settings', icon: Settings },
-]
+import { ADMIN_NAV_SECTIONS } from '@/config/admin-navigation'
+import { cn } from '@/lib/utils'
 
 export function AdminSidebarNav() {
   const pathname = usePathname()
 
   return (
-    <ul className="space-y-1 px-4">
-      {sidebarLinks.map((link) => {
-        const Icon = link.icon
-        const isActive = pathname === link.href || (link.href !== '/admin' && pathname?.startsWith(link.href))
-        
-        return (
-          <li key={link.href}>
-            <Link
-              href={link.href}
-              className={`flex items-center px-4 py-3 rounded-2xl transition-all duration-300 group ${
-                isActive 
-                  ? 'bg-blue-50 text-blue-600 font-medium' 
-                  : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'
-              }`}
-            >
-              <Icon className={`h-5 w-5 mr-3 transition-colors ${isActive ? 'text-blue-600' : 'text-slate-400 group-hover:text-slate-600'}`} />
-              <span className="text-sm">{link.name}</span>
-            </Link>
-          </li>
-        )
-      })}
-    </ul>
+    <div className="space-y-4 px-3">
+      {ADMIN_NAV_SECTIONS.map((section) => (
+        <div key={section.title} className="space-y-1">
+          <div className="px-3 py-1">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              {section.title}
+            </span>
+          </div>
+          <ul className="space-y-0.5">
+            {section.items.map((item) => {
+              const Icon = item.icon
+              const isActive = pathname === item.href || (item.href !== '/admin' && pathname?.startsWith(item.href))
+              
+              return (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    className={cn(
+                      "flex items-center px-3 py-2 rounded-xl transition-all duration-200 text-xs font-semibold group",
+                      isActive 
+                        ? "bg-emerald-50 text-emerald-700 font-bold shadow-2xs" 
+                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                    )}
+                  >
+                    <Icon className={cn(
+                      "h-4 w-4 mr-2.5 transition-colors shrink-0",
+                      isActive ? "text-emerald-600" : "text-slate-400 group-hover:text-slate-600"
+                    )} />
+                    <span className="truncate">{item.name}</span>
+                  </Link>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      ))}
+    </div>
   )
 }

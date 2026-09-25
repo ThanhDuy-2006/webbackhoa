@@ -216,10 +216,8 @@ export default async function AdminDashboardPage() {
           <h3 className="text-lg md:text-xl font-black text-slate-900 font-mono tracking-tight">
             {formatCurrency(stats?.totalRevenue || 0)}
           </h3>
-          <div className="mt-2 flex items-center text-[11px] font-bold text-emerald-600 gap-1">
-            <TrendingUp className="w-3.5 h-3.5" />
-            <span>+18.2%</span>
-            <span className="text-slate-400 font-normal">so với hôm qua</span>
+          <div className="mt-2 flex items-center text-[11px] text-slate-500 gap-1 font-medium">
+            <span>Doanh thu tích lũy toàn hệ thống</span>
           </div>
         </Card>
 
@@ -253,8 +251,8 @@ export default async function AdminDashboardPage() {
             {(stats?.totalCustomers || 0).toLocaleString('vi-VN')} <span className="text-xs font-semibold text-slate-400">user</span>
           </h3>
           <div className="mt-2 flex items-center text-[11px] font-bold text-emerald-600 gap-1">
-            <TrendingUp className="w-3.5 h-3.5" />
-            <span>+8.7%</span>
+            <Users className="w-3.5 h-3.5" />
+            <span>{(stats?.totalCustomers || 0).toLocaleString('vi-VN')}</span>
             <span className="text-slate-400 font-normal">tài khoản hoạt động</span>
           </div>
         </Card>
@@ -262,7 +260,7 @@ export default async function AdminDashboardPage() {
         {/* Card 4: Top Products */}
         <Card className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm hover:shadow-md transition-all">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-slate-500">Sản phẩm bán chạy</span>
+            <span className="text-xs font-semibold text-slate-500">Mặt hàng bán chạy</span>
             <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
               <Package className="w-4 h-4" />
             </div>
@@ -270,10 +268,10 @@ export default async function AdminDashboardPage() {
           <h3 className="text-lg md:text-xl font-black text-slate-900 font-mono tracking-tight">
             {stats?.topProducts?.length || 0} <span className="text-xs font-semibold text-slate-400">mặt hàng</span>
           </h3>
-          <div className="mt-2 flex items-center text-[11px] font-bold text-amber-600 gap-1">
-            <TrendingUp className="w-3.5 h-3.5" />
-            <span>+15.3%</span>
-            <span className="text-slate-400 font-normal">sản lượng bán</span>
+          <div className="mt-2 flex items-center text-[11px] font-bold text-amber-700 gap-1">
+            <Package className="w-3.5 h-3.5 text-amber-500" />
+            <span>{stats?.topProducts?.length || 0}</span>
+            <span className="text-slate-400 font-normal">sản phẩm phát sinh đơn</span>
           </div>
         </Card>
       </div>

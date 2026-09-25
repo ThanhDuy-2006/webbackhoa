@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { ProductCard } from './ProductCard'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Search, SlidersHorizontal, ChevronLeft, ChevronRight, AlertTriangle, Sparkles } from 'lucide-react'
+import { Search, SlidersHorizontal, ChevronLeft, ChevronRight, AlertTriangle, Sparkles, X } from 'lucide-react'
 import {
   Select,
   SelectContent,
@@ -152,24 +152,29 @@ export function ProductListClient({
 
         {/* Main Content */}
         <main className="flex-1 space-y-6">
-          <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
-            <div className="relative w-full sm:w-72">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-              <Input 
-                placeholder="Tìm kiếm sản phẩm..." 
-                className="pl-9 bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus-visible:ring-emerald-600"
-                defaultValue={searchParams.get('q') || ''}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    updateFilters('q', e.currentTarget.value)
-                  }
-                }}
-              />
+          <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs">
+            <div className="flex flex-wrap items-center gap-2.5">
+              {searchParams.get('q') && (
+                <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 rounded-full text-xs font-bold">
+                  <span>Tìm kiếm: "{searchParams.get('q')}"</span>
+                  <button 
+                    onClick={() => updateFilters('q', null)}
+                    className="text-emerald-600 hover:text-emerald-800 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900 rounded-full p-0.5 cursor-pointer"
+                    aria-label="Xóa tìm kiếm"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+              <span className="text-xs text-slate-500 font-medium">
+                Tìm thấy <strong className="text-slate-800 dark:text-slate-200 font-bold">{totalCount || displayedProducts.length}</strong> sản phẩm
+              </span>
             </div>
-            <div className="flex items-center gap-3 w-full sm:w-auto">
-              <Label className="shrink-0 text-sm font-medium text-slate-500">Sắp xếp:</Label>
+
+            <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
+              <Label className="shrink-0 text-xs font-semibold text-slate-500">Sắp xếp:</Label>
               <Select value={currentSort} onValueChange={(val) => updateFilters('sort', val)}>
-                <SelectTrigger className="w-full sm:w-[180px] bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus:ring-emerald-600">
+                <SelectTrigger className="w-full sm:w-[170px] bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus:ring-emerald-600 rounded-xl text-xs font-semibold h-9">
                   <SelectValue placeholder="Mới nhất">
                     {currentSort === 'newest' && 'Mới nhất'}
                     {currentSort === 'price_asc' && 'Giá: Thấp đến cao'}
@@ -177,7 +182,7 @@ export function ProductListClient({
                     {currentSort === 'name_asc' && 'Tên: A-Z'}
                   </SelectValue>
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="rounded-xl">
                   <SelectItem value="newest">Mới nhất</SelectItem>
                   <SelectItem value="price_asc">Giá: Thấp đến cao</SelectItem>
                   <SelectItem value="price_desc">Giá: Cao đến thấp</SelectItem>
