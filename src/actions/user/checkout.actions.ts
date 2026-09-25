@@ -37,6 +37,11 @@ export async function processCheckout(
     const payloadToHash = JSON.stringify({ userId, items: items.map(i => ({ id: i.id, variantId: i.variantId, qty: i.quantity })), form })
     const requestHash = crypto.createHash('sha256').update(payloadToHash).digest('hex')
 
+    // Safe fallbacks for receiver information
+    const receiverName = form.receiver_name?.trim() || user.user_metadata?.full_name || user.email?.split('@')[0] || 'Khách hàng'
+    const receiverPhone = form.receiver_phone?.trim() || '0000000000'
+    const receiverAddress = form.receiver_address?.trim() || 'Địa chỉ mặc định'
+
     // Format items payload for atomic RPC
     const rpcItemsPayload = items.map(item => ({
       product_id: item.id,
@@ -49,9 +54,9 @@ export async function processCheckout(
       p_idempotency_key: idempotencyKey,
       p_request_hash: requestHash,
       p_items: rpcItemsPayload,
-      p_receiver_name: form.receiver_name,
-      p_receiver_phone: form.receiver_phone,
-      p_receiver_address: form.receiver_address,
+      p_receiver_name: receiverName,
+      p_receiver_phone: receiverPhone,
+      p_receiver_address: receiverAddress,
       p_note: form.note || '',
       p_coupon_code: couponCode || null
     })
