@@ -227,21 +227,21 @@ export function ProductList({ initialProducts, totalCount, currentPage, searchTe
               placeholder="Tìm kiếm sản phẩm..." 
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              className="pl-9 rounded-xl border-slate-200 focus-visible:ring-emerald-500/30 focus-visible:border-emerald-500 bg-white hover:border-emerald-300 transition-all shadow-sm"
+              className="pl-9 rounded-xl border-slate-200 dark:border-slate-800 focus-visible:ring-emerald-500/30 focus-visible:border-emerald-500 bg-white dark:bg-slate-900 hover:border-emerald-300 transition-all shadow-2xs"
             />
-            <Button type="submit" variant="secondary" className="rounded-xl bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 text-slate-700 shadow-sm border border-slate-200 transition-all">
+            <Button type="submit" variant="secondary" className="rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-emerald-50 hover:text-emerald-700 text-slate-700 dark:text-slate-200 shadow-2xs border border-slate-200 dark:border-slate-700 transition-all cursor-pointer">
               Tìm
             </Button>
           </form>
           {categories.length > 0 && (
             <Select value={selectedCategory || 'all'} onValueChange={handleCategoryChange}>
-              <SelectTrigger className="w-[200px] rounded-xl border-slate-200 bg-white hover:border-emerald-300 focus:ring-emerald-500/30 focus:border-emerald-500 shadow-sm transition-all data-[state=open]:border-emerald-500">
+              <SelectTrigger className="w-[200px] rounded-xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-emerald-300 focus:ring-emerald-500/30 focus:border-emerald-500 shadow-2xs transition-all">
                 <SelectValue placeholder="Tất cả danh mục" />
               </SelectTrigger>
-              <SelectContent className="rounded-xl border-slate-100 shadow-lg shadow-emerald-900/5">
-                <SelectItem value="all" className="rounded-lg focus:bg-emerald-50 focus:text-emerald-700 cursor-pointer">Tất cả danh mục</SelectItem>
+              <SelectContent className="rounded-xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+                <SelectItem value="all" className="rounded-lg focus:bg-emerald-50 dark:focus:bg-emerald-950/50 focus:text-emerald-700 dark:focus:text-emerald-300 cursor-pointer">Tất cả danh mục</SelectItem>
                 {categories.map(c => (
-                  <SelectItem key={c.id} value={c.id} className="rounded-lg focus:bg-emerald-50 focus:text-emerald-700 cursor-pointer">{c.name}</SelectItem>
+                  <SelectItem key={c.id} value={c.id} className="rounded-lg focus:bg-emerald-50 dark:focus:bg-emerald-950/50 focus:text-emerald-700 dark:focus:text-emerald-300 cursor-pointer">{c.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -252,7 +252,7 @@ export function ProductList({ initialProducts, totalCount, currentPage, searchTe
                 variant="destructive" 
                 onClick={handleBulkDelete} 
                 disabled={isBulkDeleting}
-                className="rounded-xl shadow-sm transition-all"
+                className="rounded-xl shadow-2xs transition-all cursor-pointer"
               >
                 <Trash2 className="w-4 h-4 mr-2" />
                 Xóa ({selectedIds.length})
@@ -263,7 +263,7 @@ export function ProductList({ initialProducts, totalCount, currentPage, searchTe
                   setShareRecipients([])
                   setShareMethod('equal')
                 }}
-                className="rounded-xl shadow-sm bg-orange-500 hover:bg-orange-600 text-white transition-all font-medium"
+                className="rounded-xl shadow-2xs bg-amber-600 hover:bg-amber-700 text-white transition-all font-medium cursor-pointer"
               >
                 <Coins className="w-4 h-4 mr-2" />
                 Chia tiền ({selectedIds.length})
@@ -273,18 +273,18 @@ export function ProductList({ initialProducts, totalCount, currentPage, searchTe
         </div>
         <div className="space-x-2 flex flex-wrap items-center gap-2">
           <Link href="/admin/products/import?scan=true">
-            <Button className="gap-2 bg-gradient-to-r from-amber-500 to-emerald-600 hover:from-amber-600 hover:to-emerald-700 text-white font-semibold shadow-sm">
+            <Button className="gap-2 bg-gradient-to-r from-amber-500 to-emerald-600 hover:from-amber-600 hover:to-emerald-700 text-white font-semibold shadow-2xs">
               <Camera className="w-4 h-4" />
               Quét hóa đơn AI
             </Button>
           </Link>
           <Link href="/admin/products/import">
-            <Button variant="outline" className="text-emerald-600 border-emerald-600 hover:bg-emerald-50">
-              Nhập từ file Excel
+            <Button variant="outline" className="text-emerald-600 dark:text-emerald-400 border-emerald-600/30 dark:border-emerald-600/50 hover:bg-emerald-50 dark:hover:bg-emerald-950/50">
+              Nhập từ Excel
             </Button>
           </Link>
           <Link href="/admin/products/create">
-            <Button className="bg-emerald-600 hover:bg-emerald-700">
+            <Button className="bg-emerald-600 hover:bg-emerald-700 text-white">
               <Plus className="h-4 w-4 mr-2" />
               Thêm sản phẩm
             </Button>
@@ -292,10 +292,10 @@ export function ProductList({ initialProducts, totalCount, currentPage, searchTe
         </div>
       </div>
 
-      <div className="border rounded-md bg-white">
+      <div className="border border-slate-200/80 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-900 overflow-hidden shadow-2xs">
         <Table>
           <TableHeader>
-            <TableRow>
+            <TableRow className="bg-slate-50/70 dark:bg-slate-950/50 border-b border-slate-100 dark:border-slate-800">
               <TableHead className="w-[50px]">
                 <Checkbox 
                   checked={products.length > 0 && selectedIds.length === products.length}
@@ -311,10 +311,10 @@ export function ProductList({ initialProducts, totalCount, currentPage, searchTe
               <TableHead className="text-right">Thao tác</TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody>
+          <TableBody className="divide-y divide-slate-100 dark:divide-slate-800">
             {products.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center h-24 text-slate-500">
+                <TableCell colSpan={8} className="text-center h-24 text-slate-400 dark:text-slate-500 text-xs">
                   Không tìm thấy sản phẩm nào.
                 </TableCell>
               </TableRow>
@@ -326,7 +326,7 @@ export function ProductList({ initialProducts, totalCount, currentPage, searchTe
                 const isOutOfStock = totalVariantStock <= 0
 
                 return (
-                <TableRow key={product.id}>
+                <TableRow key={product.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
                   <TableCell>
                     <Checkbox 
                       checked={selectedIds.includes(product.id)}
@@ -337,11 +337,11 @@ export function ProductList({ initialProducts, totalCount, currentPage, searchTe
                     {product.image_url ? (
                       <AdminProductRowImage src={product.image_url} alt={product.name} />
                     ) : (
-                      <div className="w-10 h-10 rounded border bg-slate-100 flex items-center justify-center text-xs text-slate-400">Trống</div>
+                      <div className="w-10 h-10 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-xs text-slate-400">Trống</div>
                     )}
                   </TableCell>
                   <TableCell className="max-w-[220px]">
-                    <div className="font-medium text-slate-900 truncate" title={product.name}>
+                    <div className="font-bold text-slate-900 dark:text-slate-100 truncate text-sm" title={product.name}>
                       {product.name}
                     </div>
                     {product.expiry_date && (
@@ -350,47 +350,47 @@ export function ProductList({ initialProducts, totalCount, currentPage, searchTe
                       </div>
                     )}
                   </TableCell>
-                  <TableCell className="text-slate-500">{product.category?.name || 'Không có'}</TableCell>
+                  <TableCell className="text-slate-500 dark:text-slate-400 text-xs">{product.category?.name || 'Không có'}</TableCell>
                   <TableCell>
                     {product.sale_price ? (
                       <div>
-                        <div className="text-red-600 font-medium">{formatCurrency(product.sale_price)}</div>
-                        <div className="text-xs text-slate-400 line-through">{formatCurrency(product.price)}</div>
+                        <div className="text-emerald-600 dark:text-emerald-400 font-bold font-mono text-sm">{formatCurrency(product.sale_price)}</div>
+                        <div className="text-xs text-slate-400 line-through font-mono">{formatCurrency(product.price)}</div>
                       </div>
                     ) : (
-                      <div className="font-medium">{formatCurrency(product.price)}</div>
+                      <div className="font-bold font-mono text-slate-800 dark:text-slate-200 text-sm">{formatCurrency(product.price)}</div>
                     )}
                   </TableCell>
                   <TableCell>
                     {product.variants && product.variants.length > 0 ? (
                       <div>
-                        <div className={`font-mono font-bold ${isOutOfStock ? 'text-rose-600' : 'text-slate-900'}`}>
+                        <div className={`font-mono font-bold ${isOutOfStock ? 'text-rose-600 dark:text-rose-400' : 'text-slate-900 dark:text-slate-100'}`}>
                           {totalVariantStock} {isOutOfStock && <span className="text-xs font-semibold text-rose-500">(Hết)</span>}
                         </div>
-                        <div className="text-xs text-slate-500">{product.variants.length} phân loại</div>
+                        <div className="text-xs text-slate-400">{product.variants.length} phân loại</div>
                       </div>
                     ) : (
-                      <div className={`font-mono font-bold ${isOutOfStock ? 'text-rose-600' : 'text-slate-900'}`}>
+                      <div className={`font-mono font-bold ${isOutOfStock ? 'text-rose-600 dark:text-rose-400' : 'text-slate-900 dark:text-slate-100'}`}>
                         {product.stock} {isOutOfStock && <span className="text-xs font-semibold text-rose-500">(Hết)</span>}
                       </div>
                     )}
                   </TableCell>
                   <TableCell>
                     {!product.is_active ? (
-                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
                         Đang ẩn
                       </span>
                     ) : isOutOfStock ? (
-                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-600 border border-rose-200" title="Sản phẩm đã hết hàng trong kho (Tự động ẩn ngoài shop)">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900" title="Sản phẩm đã hết hàng trong kho">
                         Hết hàng
                       </span>
                     ) : (
-                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
                         Đang bán
                       </span>
                     )}
                   </TableCell>
-                  <TableCell className="text-right space-x-2">
+                  <TableCell className="text-right space-x-1.5">
                     <Button 
                       variant="outline" 
                       size="icon"
@@ -400,12 +400,13 @@ export function ProductList({ initialProducts, totalCount, currentPage, searchTe
                         setShareRecipients([])
                         setShareMethod('equal')
                       }}
+                      className="border-slate-200 dark:border-slate-800 text-amber-600 hover:text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-950/50"
                     >
-                      <Coins className="h-4 w-4 text-orange-500" />
+                      <Coins className="h-4 w-4" />
                     </Button>
                     <Link href={`/admin/products/${product.id}/edit`}>
-                      <Button variant="outline" size="icon" title="Chỉnh sửa">
-                        <Pencil className="h-4 w-4 text-emerald-600" />
+                      <Button variant="outline" size="icon" title="Chỉnh sửa" className="border-slate-200 dark:border-slate-800 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/50">
+                        <Pencil className="h-4 w-4" />
                       </Button>
                     </Link>
                     <Button 
@@ -414,8 +415,9 @@ export function ProductList({ initialProducts, totalCount, currentPage, searchTe
                       title="Xóa"
                       onClick={() => handleDelete(product.id)}
                       disabled={isDeleting === product.id}
+                      className="border-slate-200 dark:border-slate-800 text-red-600 hover:text-red-700 hover:bg-rose-50 dark:hover:bg-rose-950/50"
                     >
-                      <Trash2 className="h-4 w-4 text-red-600" />
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </TableCell>
                 </TableRow>

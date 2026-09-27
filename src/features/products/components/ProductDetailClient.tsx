@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { SmartImage } from '@/components/ui/smart-image'
 import { Button } from '@/components/ui/button'
-import { Star, Heart, ChevronLeft, ChevronRight, Check } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Check } from 'lucide-react'
 import { MorphAddToCartIcon } from '@/components/ui/morph-icon'
 import { cn } from '@/lib/utils'
 import { useCartStore } from '@/store/useCartStore'
@@ -192,7 +192,7 @@ export function ProductDetailClient({ product, variants, initialFavorited = fals
       <div className="flex flex-col">
         <div className="mb-6">
           <div className="flex flex-wrap items-center gap-3 mb-2">
-            <span className="text-sm text-emerald-600 font-medium">{product.categories?.name}</span>
+            <span className="text-sm text-emerald-600 dark:text-emerald-400 font-semibold">{product.categories?.name}</span>
             <span className={cn(
               "text-xs px-2.5 py-0.5 rounded-full font-semibold border",
               isOutOfStock 
@@ -206,36 +206,28 @@ export function ProductDetailClient({ product, variants, initialFavorited = fals
             {product.expiry_date && (
               <ExpiryBadge expiryDate={product.expiry_date} size="md" />
             )}
-            <div className="flex items-center text-amber-400 text-sm">
-              <Star className="w-4 h-4 fill-current" />
-              <Star className="w-4 h-4 fill-current" />
-              <Star className="w-4 h-4 fill-current" />
-              <Star className="w-4 h-4 fill-current" />
-              <Star className="w-4 h-4 fill-current" />
-              <span className="text-slate-500 ml-1">(0 đánh giá)</span>
-            </div>
           </div>
-          <h1 className="text-2xl md:text-3xl font-bold text-slate-900 mb-4">{product.name}</h1>
+          <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-slate-100 mb-4">{product.name}</h1>
           
           <div className="flex items-end gap-3 mb-6">
-            <span className="text-2xl md:text-3xl font-bold text-red-600">
+            <span className="text-2xl md:text-3xl font-extrabold text-emerald-700 dark:text-emerald-400">
               {formatCurrency(Number(finalPrice))}
             </span>
             {hasDiscount && (
-              <span className="text-lg md:text-xl text-slate-400 line-through mb-1">
+              <span className="text-lg md:text-xl text-slate-400 dark:text-slate-500 line-through mb-1">
                 {formatCurrency(Number(basePrice))}
               </span>
             )}
           </div>
           
-          <div className="prose prose-sm text-slate-600 mb-8" dangerouslySetInnerHTML={{ __html: product.description || 'Chưa có mô tả' }} />
+          <div className="prose prose-sm text-slate-600 dark:text-slate-400 dark:prose-invert mb-8" dangerouslySetInnerHTML={{ __html: product.description || 'Chưa có mô tả chi tiết cho sản phẩm này.' }} />
         </div>
 
         {/* Variants */}
         {variants.length > 0 && (
-          <div className="mb-8 space-y-4">
-            <h3 className="font-medium text-slate-900">Tùy chọn:</h3>
-            <div className="flex flex-wrap gap-3">
+          <div className="mb-8 space-y-3">
+            <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100">Tùy chọn:</h3>
+            <div className="flex flex-wrap gap-2.5">
               {variants.map(variant => (
                 <button
                   key={variant.id}
@@ -244,16 +236,16 @@ export function ProductDetailClient({ product, variants, initialFavorited = fals
                     setQuantity(1)
                   }}
                   className={cn(
-                    "px-4 py-2 border rounded-xl text-sm font-medium transition-all cursor-pointer",
+                    "px-4 py-2 border rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer",
                     selectedVariant?.id === variant.id 
-                      ? "border-emerald-600 bg-emerald-50 text-emerald-700 font-semibold" 
-                      : "border-slate-200 text-slate-700 hover:border-slate-300",
+                      ? "border-emerald-600 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 shadow-2xs" 
+                      : "border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-700 bg-white dark:bg-slate-900",
                     variant.stock <= 0 && "opacity-50 cursor-not-allowed"
                   )}
                   disabled={variant.stock <= 0}
                   style={{ minHeight: '44px' }}
                 >
-                  {variant.name}
+                  {variant.name} {variant.price ? `(${formatCurrency(variant.price)})` : ''}
                 </button>
               ))}
             </div>
@@ -261,29 +253,29 @@ export function ProductDetailClient({ product, variants, initialFavorited = fals
         )}
 
         {/* Actions (Desktop Only) */}
-        <div className="mt-auto space-y-6 border-t pt-8 hidden md:block">
+        <div className="mt-auto space-y-6 border-t border-slate-100 dark:border-slate-800 pt-6 hidden md:block">
           <div className="flex items-center gap-4">
-            <div className="flex items-center border border-slate-200 rounded-xl overflow-hidden h-12">
+            <div className="flex items-center border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl overflow-hidden h-12">
               <button 
                 onClick={() => setQuantity(q => Math.max(1, q - 1))}
-                className="w-12 h-full flex items-center justify-center hover:bg-slate-50 text-slate-600 transition-colors cursor-pointer"
+                className="w-12 h-full flex items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
                 disabled={quantity <= 1}
               >
                 -
               </button>
-              <div className="w-12 h-full flex items-center justify-center font-medium border-x border-slate-200">
+              <div className="w-12 h-full flex items-center justify-center font-bold text-sm border-x border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100">
                 {quantity}
               </div>
               <button 
                 onClick={() => setQuantity(q => Math.min(maxStock, q + 1))}
-                className="w-12 h-full flex items-center justify-center hover:bg-slate-50 text-slate-600 transition-colors cursor-pointer"
+                className="w-12 h-full flex items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
                 disabled={quantity >= maxStock}
               >
                 +
               </button>
             </div>
-            <div className="text-sm text-slate-500">
-              {maxStock > 0 ? `Còn ${maxStock} sản phẩm` : 'Hết hàng'}
+            <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+              {maxStock > 0 ? `Còn ${maxStock} sản phẩm trong kho` : 'Hết hàng'}
             </div>
           </div>
 
@@ -291,53 +283,49 @@ export function ProductDetailClient({ product, variants, initialFavorited = fals
             <Button 
               size="lg" 
               className={cn(
-                "flex-1 h-14 text-lg rounded-xl shadow-sm cursor-pointer transition-all duration-300 gap-2",
+                "flex-1 h-13 text-base font-bold rounded-xl shadow-xs cursor-pointer transition-all duration-300 gap-2",
                 isAdded 
                   ? "bg-emerald-500 hover:bg-emerald-600 text-white scale-[1.01]" 
-                  : "bg-emerald-600 hover:bg-emerald-700 text-white"
+                  : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20"
               )}
               onClick={handleAddToCart}
               disabled={isOutOfStock}
             >
-              <MorphAddToCartIcon isAdded={isAdded} size={22} />
+              <MorphAddToCartIcon isAdded={isAdded} size={20} />
               {isOutOfStock ? 'Hết hàng' : (isAdded ? 'Đã thêm vào giỏ!' : 'Thêm vào giỏ hàng')}
             </Button>
-            {/* Removed wishlist button */}
           </div>
 
-          <div className="grid grid-cols-2 gap-4 text-sm text-slate-600 pt-4">
+          <div className="grid grid-cols-2 gap-4 text-xs font-semibold text-slate-500 dark:text-slate-400 pt-2">
             <div className="flex items-center gap-2">
-              <Check className="w-4 h-4 text-green-500" />
-              <span>Giao hàng toàn quốc</span>
+              <Check className="w-4 h-4 text-emerald-500 shrink-0" />
+              <span>Sản phẩm gia đình tươi sạch</span>
             </div>
             <div className="flex items-center gap-2">
-              <Check className="w-4 h-4 text-green-500" />
-              <span>Đổi trả trong 7 ngày</span>
+              <Check className="w-4 h-4 text-emerald-500 shrink-0" />
+              <span>Kiểm định hạn dùng thường xuyên</span>
             </div>
           </div>
         </div>
       </div>
 
       {/* Mobile Sticky Add To Cart / Buy Now Bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-100 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] flex items-center justify-between gap-3 md:hidden">
-        {/* Removed mobile wishlist button */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-slate-950/95 backdrop-blur-md border-t border-slate-200/80 dark:border-slate-800/80 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] flex items-center justify-between gap-3 md:hidden">
         <Button 
           variant="outline"
           className={cn(
-            "flex-1 h-12 text-sm font-semibold rounded-xl cursor-pointer transition-all gap-1.5",
-            isAdded
-              ? "border-emerald-500 bg-emerald-50 text-emerald-700 font-bold"
-              : "border-emerald-600 text-emerald-700 hover:bg-emerald-50"
+            "flex-1 h-12 text-xs font-bold rounded-xl cursor-pointer transition-all gap-1.5 border-emerald-600 text-emerald-700 dark:text-emerald-400 dark:border-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/40",
+            isAdded && "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300"
           )}
           onClick={handleAddToCart}
           disabled={isOutOfStock}
           style={{ minHeight: '44px' }}
         >
-          <MorphAddToCartIcon isAdded={isAdded} size={18} />
+          <MorphAddToCartIcon isAdded={isAdded} size={16} />
           {isAdded ? 'Đã thêm!' : 'Thêm vào giỏ'}
         </Button>
         <Button 
-          className="flex-1 bg-emerald-600 hover:bg-emerald-700 h-12 text-sm font-semibold rounded-xl text-white shadow-sm cursor-pointer"
+          className="flex-1 bg-emerald-600 hover:bg-emerald-700 h-12 text-xs font-bold rounded-xl text-white shadow-sm cursor-pointer"
           onClick={() => {
             if (isOutOfStock) return
             addItem({

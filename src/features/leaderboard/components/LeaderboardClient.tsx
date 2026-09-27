@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Trophy, Medal, Crown, Calendar, TrendingUp, CreditCard, ChevronDown } from 'lucide-react'
+import { Trophy, Medal, Crown, Calendar, TrendingUp, CreditCard } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { LeaderboardEntry } from '@/types/leaderboard.type'
 import { getTopupLeaderboardAction, getConsumptionLeaderboardAction } from '@/actions/leaderboard.actions'
@@ -80,23 +80,23 @@ export function LeaderboardClient() {
       case 3:
         return <Medal className="w-6 h-6 text-amber-700 drop-shadow-md" />
       default:
-        return <span className="text-lg font-bold text-slate-500">#{rank}</span>
+        return <span className="text-lg font-bold text-slate-500 dark:text-slate-400">#{rank}</span>
     }
   }
 
   const renderAvatar = (url: string | null, name: string | null, rank: number) => {
     const size = rank <= 3 ? 56 : 40
-    let ringColor = 'ring-slate-100'
-    if (rank === 1) ringColor = 'ring-yellow-400 ring-offset-2'
-    if (rank === 2) ringColor = 'ring-slate-300 ring-offset-2'
-    if (rank === 3) ringColor = 'ring-amber-600 ring-offset-2'
+    let ringColor = 'ring-slate-100 dark:ring-slate-800'
+    if (rank === 1) ringColor = 'ring-yellow-400 ring-offset-2 dark:ring-offset-slate-900'
+    if (rank === 2) ringColor = 'ring-slate-300 dark:ring-slate-600 ring-offset-2 dark:ring-offset-slate-900'
+    if (rank === 3) ringColor = 'ring-amber-600 ring-offset-2 dark:ring-offset-slate-900'
 
     return (
-      <div className={`relative rounded-full ring-2 ${ringColor} flex items-center justify-center bg-slate-100 overflow-hidden shrink-0`} style={{ width: size, height: size }}>
+      <div className={`relative rounded-full ring-2 ${ringColor} flex items-center justify-center bg-slate-100 dark:bg-slate-800 overflow-hidden shrink-0`} style={{ width: size, height: size }}>
         {url ? (
           <Image src={url} alt={name || 'User'} fill className="object-cover" />
         ) : (
-          <span className="text-slate-500 font-bold uppercase text-lg">
+          <span className="text-slate-500 dark:text-slate-400 font-bold uppercase text-lg">
             {(name || 'U').charAt(0)}
           </span>
         )}
@@ -107,52 +107,52 @@ export function LeaderboardClient() {
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-12">
       {/* Header & Controls */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-slate-900 p-5 rounded-2xl shadow-2xs border border-slate-200/80 dark:border-slate-800">
         <div className="flex items-center gap-3">
-          <div className="p-3 rounded-xl bg-indigo-50 text-indigo-600">
+          <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400">
             <Trophy className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-slate-800">Bảng Xếp Hạng</h1>
-            <p className="text-xs text-slate-500">Vinh danh những thành viên nổi bật nhất</p>
+            <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">Bảng Xếp Hạng Gia Đình</h1>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Vinh danh các thành viên nạp và tiêu dùng năng nổ nhất</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-xl border border-slate-200">
-          <Calendar className="w-4 h-4 text-slate-500 ml-2" />
+        <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-950 p-1.5 rounded-xl border border-slate-200 dark:border-slate-800">
+          <Calendar className="w-4 h-4 text-slate-500 dark:text-slate-400 ml-2" />
           <select 
             value={selectedMonth}
             onChange={(e) => setSelectedMonth(Number(e.target.value))}
-            className="bg-transparent border-none text-sm font-semibold text-slate-700 focus:ring-0 cursor-pointer"
+            className="bg-transparent border-none text-sm font-semibold text-slate-700 dark:text-slate-300 focus:ring-0 cursor-pointer"
           >
             {availableMonths.map(m => (
-              <option key={m} value={m}>Tháng {m}</option>
+              <option key={m} value={m} className="bg-white dark:bg-slate-900">Tháng {m}</option>
             ))}
           </select>
-          <span className="text-slate-300">/</span>
+          <span className="text-slate-300 dark:text-slate-600">/</span>
           <select 
             value={selectedYear}
             onChange={(e) => setSelectedYear(Number(e.target.value))}
-            className="bg-transparent border-none text-sm font-semibold text-slate-700 focus:ring-0 cursor-pointer pl-0"
+            className="bg-transparent border-none text-sm font-semibold text-slate-700 dark:text-slate-300 focus:ring-0 cursor-pointer pl-0"
           >
             {availableYears.map(y => (
-              <option key={y} value={y}>{y}</option>
+              <option key={y} value={y} className="bg-white dark:bg-slate-900">{y}</option>
             ))}
           </select>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex bg-slate-100 p-1 rounded-xl w-full max-w-md mx-auto">
+      <div className="flex bg-slate-100 dark:bg-slate-900 p-1 rounded-xl w-full max-w-md mx-auto border border-slate-200/60 dark:border-slate-800">
         <button
           onClick={() => setActiveTab('topup')}
-          className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-semibold rounded-lg transition-all ${activeTab === 'topup' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+          className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-semibold rounded-lg transition-all cursor-pointer ${activeTab === 'topup' ? 'bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-2xs' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
         >
           <CreditCard className="w-4 h-4" /> Nạp nhiều nhất
         </button>
         <button
           onClick={() => setActiveTab('consumption')}
-          className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-semibold rounded-lg transition-all ${activeTab === 'consumption' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+          className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-semibold rounded-lg transition-all cursor-pointer ${activeTab === 'consumption' ? 'bg-white dark:bg-slate-800 text-teal-600 dark:text-teal-400 shadow-2xs' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
         >
           <TrendingUp className="w-4 h-4" /> Tiêu dùng nhiều nhất
         </button>
@@ -161,21 +161,21 @@ export function LeaderboardClient() {
       {/* Leaderboard List */}
       <div className="relative min-h-[400px]">
         {loading ? (
-          <div className="absolute inset-0 flex flex-col items-center justify-center text-indigo-600 space-y-4">
-            <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-emerald-600 dark:text-emerald-400 space-y-4">
+            <div className="w-8 h-8 border-4 border-emerald-200 dark:border-emerald-800 border-t-emerald-600 rounded-full animate-spin"></div>
             <p className="text-sm font-medium animate-pulse">Đang tải bảng xếp hạng...</p>
           </div>
         ) : error ? (
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="text-center space-y-2 text-rose-500 bg-rose-50 p-6 rounded-2xl border border-rose-100">
+            <div className="text-center space-y-2 text-rose-500 bg-rose-50 dark:bg-rose-950/50 p-6 rounded-2xl border border-rose-100 dark:border-rose-900">
               <p className="font-semibold">{error}</p>
-              <button onClick={() => setRefreshKey(k => k + 1)} className="text-sm underline">Thử lại</button>
+              <button onClick={() => setRefreshKey(k => k + 1)} className="text-sm underline cursor-pointer">Thử lại</button>
             </div>
           </div>
         ) : leaderboardData.length === 0 ? (
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="text-center space-y-2 text-slate-500">
-              <Trophy className="w-12 h-12 mx-auto text-slate-200" />
+            <div className="text-center space-y-2 text-slate-500 dark:text-slate-400">
+              <Trophy className="w-12 h-12 mx-auto text-slate-200 dark:text-slate-700" />
               <p className="font-medium">Chưa có dữ liệu cho tháng này</p>
             </div>
           </div>
@@ -192,43 +192,43 @@ export function LeaderboardClient() {
               <div className="flex flex-col md:flex-row justify-center items-stretch gap-8 md:gap-4 mb-8 pt-6">
                 {/* 2nd Place */}
                 {leaderboardData[1] && (
-                  <Card className="flex-1 w-full max-w-xs mx-auto md:mx-0 order-2 md:order-1 relative p-4 flex flex-col items-center justify-center bg-gradient-to-b from-slate-50 to-slate-100/50 border-slate-200 shadow-sm md:translate-y-4">
+                  <Card className="flex-1 w-full max-w-xs mx-auto md:mx-0 order-2 md:order-1 relative p-4 flex flex-col items-center justify-center bg-gradient-to-b from-slate-50 to-slate-100/50 dark:from-slate-900 dark:to-slate-950/80 border-slate-200 dark:border-slate-800 shadow-2xs md:translate-y-4 rounded-2xl">
                     <div className="absolute -top-5">{renderRankIcon(2)}</div>
                     {renderAvatar(leaderboardData[1].avatar_url, leaderboardData[1].full_name, 2)}
-                    <p className="font-bold text-slate-700 mt-3 truncate w-full text-center">{leaderboardData[1].full_name || 'Người dùng ẩn danh'}</p>
-                    <p className="text-sm font-bold text-slate-500 mt-1">{formatCurrency(leaderboardData[1].total_amount)}</p>
+                    <p className="font-bold text-slate-700 dark:text-slate-300 mt-3 truncate w-full text-center">{leaderboardData[1].full_name || 'Người dùng ẩn danh'}</p>
+                    <p className="text-sm font-bold text-slate-500 dark:text-slate-400 mt-1 font-mono">{formatCurrency(leaderboardData[1].total_amount)}</p>
                   </Card>
                 )}
                 {/* 1st Place */}
                 {leaderboardData[0] && (
-                  <Card className="flex-1 w-full max-w-xs mx-auto md:mx-0 order-1 md:order-2 relative p-6 flex flex-col items-center justify-center bg-gradient-to-b from-yellow-50 to-yellow-100/30 border-yellow-200 shadow-md transform md:-translate-y-2">
+                  <Card className="flex-1 w-full max-w-xs mx-auto md:mx-0 order-1 md:order-2 relative p-6 flex flex-col items-center justify-center bg-gradient-to-b from-amber-50 to-amber-100/30 dark:from-slate-900 dark:to-amber-950/30 border-amber-200 dark:border-amber-800/60 shadow-md transform md:-translate-y-2 rounded-2xl">
                     <div className="absolute -top-7">{renderRankIcon(1)}</div>
                     {renderAvatar(leaderboardData[0].avatar_url, leaderboardData[0].full_name, 1)}
-                    <p className="font-black text-slate-800 mt-4 text-lg truncate w-full text-center">{leaderboardData[0].full_name || 'Người dùng ẩn danh'}</p>
-                    <p className="text-base font-black text-yellow-600 mt-1">{formatCurrency(leaderboardData[0].total_amount)}</p>
+                    <p className="font-black text-slate-800 dark:text-slate-100 mt-4 text-lg truncate w-full text-center">{leaderboardData[0].full_name || 'Người dùng ẩn danh'}</p>
+                    <p className="text-base font-black text-amber-600 dark:text-amber-400 mt-1 font-mono">{formatCurrency(leaderboardData[0].total_amount)}</p>
                   </Card>
                 )}
                 {/* 3rd Place */}
                 {leaderboardData[2] && (
-                  <Card className="flex-1 w-full max-w-xs mx-auto md:mx-0 order-3 relative p-4 flex flex-col items-center justify-center bg-gradient-to-b from-amber-50/50 to-amber-100/30 border-amber-200/60 shadow-sm md:translate-y-6">
+                  <Card className="flex-1 w-full max-w-xs mx-auto md:mx-0 order-3 relative p-4 flex flex-col items-center justify-center bg-gradient-to-b from-amber-50/50 to-amber-100/30 dark:from-slate-900 dark:to-slate-950/80 border-amber-200/60 dark:border-slate-800 shadow-2xs md:translate-y-6 rounded-2xl">
                     <div className="absolute -top-5">{renderRankIcon(3)}</div>
                     {renderAvatar(leaderboardData[2].avatar_url, leaderboardData[2].full_name, 3)}
-                    <p className="font-bold text-slate-700 mt-3 truncate w-full text-center">{leaderboardData[2].full_name || 'Người dùng ẩn danh'}</p>
-                    <p className="text-sm font-bold text-amber-700/70 mt-1">{formatCurrency(leaderboardData[2].total_amount)}</p>
+                    <p className="font-bold text-slate-700 dark:text-slate-300 mt-3 truncate w-full text-center">{leaderboardData[2].full_name || 'Người dùng ẩn danh'}</p>
+                    <p className="text-sm font-bold text-amber-700 dark:text-amber-500/80 mt-1 font-mono">{formatCurrency(leaderboardData[2].total_amount)}</p>
                   </Card>
                 )}
               </div>
 
               {/* 4th to 20th */}
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden pb-32 md:pb-0 mb-32 md:mb-0">
+              <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xs border border-slate-200/80 dark:border-slate-800 overflow-hidden pb-32 md:pb-0 mb-32 md:mb-0 divide-y divide-slate-100 dark:divide-slate-800">
                 {leaderboardData.slice(3).map((entry) => (
-                  <div key={entry.user_id} className="flex items-center gap-4 p-4 border-b border-slate-50 last:border-0 hover:bg-slate-50 transition-colors">
-                    <div className="w-8 text-center font-bold text-slate-400">{entry.rank}</div>
+                  <div key={entry.user_id} className="flex items-center gap-4 p-4 hover:bg-slate-50/60 dark:hover:bg-slate-800/50 transition-colors">
+                    <div className="w-8 text-center font-bold text-slate-400 dark:text-slate-500">#{entry.rank}</div>
                     {renderAvatar(entry.avatar_url, entry.full_name, entry.rank)}
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-slate-700 truncate">{entry.full_name || 'Người dùng ẩn danh'}</p>
+                      <p className="font-semibold text-slate-700 dark:text-slate-300 truncate">{entry.full_name || 'Người dùng ẩn danh'}</p>
                     </div>
-                    <div className="font-bold text-slate-600">
+                    <div className="font-bold text-slate-800 dark:text-slate-200 font-mono">
                       {formatCurrency(entry.total_amount)}
                     </div>
                   </div>
@@ -246,8 +246,8 @@ export function LeaderboardClient() {
           animate={{ opacity: 1, y: 0 }}
           className="fixed bottom-[80px] left-0 right-0 p-4 z-50 md:sticky md:bottom-4 pointer-events-none"
         >
-          <div className="max-w-2xl mx-auto pointer-events-auto shadow-[0_-10px_40px_-10px_rgba(0,0,0,0.2)] rounded-xl">
-            <Card className="p-4 bg-slate-900/95 backdrop-blur-md text-white border-slate-800 flex items-center gap-4">
+          <div className="max-w-2xl mx-auto pointer-events-auto shadow-2xl rounded-2xl overflow-hidden">
+            <Card className="p-4 bg-slate-900/95 dark:bg-slate-950/95 backdrop-blur-md text-white border-slate-800 flex items-center gap-4 rounded-2xl">
               <div className="flex items-center justify-center w-10 h-10 rounded-full bg-white/10 font-bold">
                 {myRank.rank <= 20 ? (
                   <Trophy className="w-5 h-5 text-yellow-400" />
@@ -261,7 +261,7 @@ export function LeaderboardClient() {
               </div>
               <div className="text-right">
                 <p className="text-xs text-slate-400">{activeTab === 'topup' ? 'Đã nạp' : 'Đã tiêu'}</p>
-                <p className="font-bold text-emerald-400">{formatCurrency(myRank.total_amount)}</p>
+                <p className="font-bold text-emerald-400 font-mono">{formatCurrency(myRank.total_amount)}</p>
               </div>
             </Card>
           </div>

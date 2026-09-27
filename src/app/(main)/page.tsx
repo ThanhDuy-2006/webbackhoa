@@ -32,10 +32,15 @@ export default async function ProductsPage({
   ])
 
   return (
-    <div className="container mx-auto px-4 pt-8 pb-24 lg:pb-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Sản phẩm</h1>
-        <p className="mt-2 text-slate-600 dark:text-slate-400">Khám phá các sản phẩm thực phẩm tươi sạch, an toàn mỗi ngày với giá tốt nhất.</p>
+    <div className="container mx-auto px-4 pt-6 pb-24 lg:pb-12 max-w-7xl">
+      {/* Header Banner - Subtle, product-focused */}
+      <div className="mb-6 md:mb-8 bg-gradient-to-r from-emerald-500/10 via-teal-500/5 to-transparent dark:from-emerald-950/30 dark:via-teal-950/20 dark:to-transparent p-5 md:p-6 rounded-2xl border border-emerald-100/60 dark:border-emerald-900/40">
+        <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100">
+          Tủ đồ & Sản phẩm Bách Hóa
+        </h1>
+        <p className="mt-1 text-xs md:text-sm text-slate-600 dark:text-slate-400 max-w-2xl">
+          Quản lý thực phẩm tươi sạch, kiểm tra số lượng tồn kho và hạn sử dụng gia đình mỗi ngày.
+        </p>
       </div>
       
       <ProductListClient 

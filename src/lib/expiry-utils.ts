@@ -49,7 +49,7 @@ export function getExpiryInfo(expiryDate: string | Date | null | undefined): Exp
       daysLeft,
       label: overdueDays === 1 ? 'Đã quá hạn 1 ngày' : `Đã quá hạn ${overdueDays} ngày`,
       formattedDate,
-      badgeClass: 'bg-rose-100 text-rose-700 border-rose-300 font-semibold',
+      badgeClass: 'bg-rose-100 dark:bg-rose-950/50 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-900/60 font-semibold',
       isUrgent: true,
     }
   }
@@ -60,7 +60,7 @@ export function getExpiryInfo(expiryDate: string | Date | null | undefined): Exp
       daysLeft: 0,
       label: 'Hết hạn hôm nay!',
       formattedDate,
-      badgeClass: 'bg-amber-500 text-white border-amber-600 font-bold animate-pulse',
+      badgeClass: 'bg-amber-500 text-white border-amber-600 font-bold',
       isUrgent: true,
     }
   }
@@ -71,7 +71,7 @@ export function getExpiryInfo(expiryDate: string | Date | null | undefined): Exp
       daysLeft,
       label: `Cận date: Còn ${daysLeft} ngày`,
       formattedDate,
-      badgeClass: 'bg-amber-100 text-amber-800 border-amber-300 font-semibold',
+      badgeClass: 'bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-900/60 font-semibold',
       isUrgent: true,
     }
   }
@@ -82,7 +82,7 @@ export function getExpiryInfo(expiryDate: string | Date | null | undefined): Exp
       daysLeft,
       label: `Còn ${daysLeft} ngày`,
       formattedDate,
-      badgeClass: 'bg-yellow-100 text-yellow-800 border-yellow-300',
+      badgeClass: 'bg-yellow-100 dark:bg-yellow-950/40 text-yellow-800 dark:text-yellow-300 border-yellow-300 dark:border-yellow-900/50',
       isUrgent: true,
     }
   }
@@ -92,7 +92,7 @@ export function getExpiryInfo(expiryDate: string | Date | null | undefined): Exp
     daysLeft,
     label: `HSD: ${formattedDate}`,
     formattedDate,
-    badgeClass: 'bg-slate-100 text-slate-600 border-slate-200',
+    badgeClass: 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700',
     isUrgent: false,
   }
 }

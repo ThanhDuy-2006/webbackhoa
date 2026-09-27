@@ -147,26 +147,26 @@ export function SellerProductList({
   const getStatusBadge = (status?: string, reason?: string | null, stock?: number) => {
     if (stock !== undefined && stock <= 0) {
       return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-900">
           Hết hàng
         </span>
       )
     }
     switch (status) {
       case 'active':
-        return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">Đang bán</span>
+        return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">Đang bán</span>
       case 'paused':
-        return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">Tạm dừng</span>
+        return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800">Tạm dừng</span>
       case 'draft':
-        return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">Nháp</span>
+        return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">Nháp</span>
       case 'suspended':
         return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-rose-100 text-rose-800" title={reason || 'Vi phạm chính sách'}>
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-800" title={reason || 'Vi phạm chính sách'}>
             <AlertTriangle className="w-3 h-3 mr-1" /> Bị tạm khóa
           </span>
         )
       default:
-        return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">Hoạt động</span>
+        return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">Hoạt động</span>
     }
   }
 
@@ -199,10 +199,10 @@ export function SellerProductList({
   return (
     <div className="space-y-6">
       {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs">
         <div>
-          <h1 className="text-xl font-bold text-slate-900">Sản phẩm của tôi</h1>
-          <p className="text-sm text-slate-500 mt-1">Quản lý và đăng bán sản phẩm cá nhân công khai tức thì</p>
+          <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">Sản phẩm của tôi</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Quản lý và đăng bán sản phẩm cá nhân trong gia đình/nội bộ</p>
         </div>
         <div className="flex flex-wrap items-center gap-2.5">
           <Link href="/tai-khoan/san-pham-cua-toi/import?scan=true">
@@ -211,12 +211,12 @@ export function SellerProductList({
             </Button>
           </Link>
           <Link href="/tai-khoan/san-pham-cua-toi/import">
-            <Button variant="outline" className="gap-2 border-slate-200 text-slate-700 hover:bg-slate-50">
+            <Button variant="outline" className="gap-2 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">
               Nhập từ Excel
             </Button>
           </Link>
           <Link href="/tai-khoan/san-pham-cua-toi/dang-ban">
-            <Button className="gap-2 bg-emerald-600 hover:bg-emerald-700 shadow-sm shadow-emerald-200">
+            <Button className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm shadow-emerald-200 dark:shadow-none">
               <Plus className="w-4 h-4" /> Đăng bán mới
             </Button>
           </Link>
@@ -224,7 +224,7 @@ export function SellerProductList({
       </div>
 
       {/* Search & Tabs */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-4">
+      <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs space-y-4">
         <form onSubmit={handleSearchSubmit} className="flex gap-2">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -232,13 +232,13 @@ export function SellerProductList({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Tìm kiếm theo tên sản phẩm..."
-              className="pl-9 rounded-xl border-slate-200"
+              className="pl-9 rounded-xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950"
             />
           </div>
           <Button type="submit" variant="secondary" className="rounded-xl">Tìm kiếm</Button>
         </form>
 
-        <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-100">
+        <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
           {[
             { id: 'all', label: 'Tất cả' },
             { id: 'active', label: 'Đang bán' },
@@ -249,10 +249,10 @@ export function SellerProductList({
             <button
               key={tab.id}
               onClick={() => handleStatusFilter(tab.id)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                 currentStatus === tab.id
                   ? 'bg-emerald-600 text-white shadow-sm'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
               }`}
             >
               {tab.label}
@@ -263,10 +263,10 @@ export function SellerProductList({
 
       {/* Product List */}
       {products.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-slate-100 p-12 text-center space-y-3">
-          <Package className="w-12 h-12 text-slate-300 mx-auto" />
-          <h3 className="text-base font-semibold text-slate-800">Chưa có sản phẩm nào</h3>
-          <p className="text-sm text-slate-500 max-w-sm mx-auto">Bạn chưa có sản phẩm nào trong danh mục này. Hãy bắt đầu đăng bán ngay hôm nay!</p>
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-12 text-center space-y-3">
+          <Package className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto" />
+          <h3 className="text-base font-semibold text-slate-800 dark:text-slate-200">Chưa có sản phẩm nào</h3>
+          <p className="text-sm text-slate-500 dark:text-slate-400 max-w-sm mx-auto">Bạn chưa có sản phẩm nào trong danh mục này. Hãy bắt đầu đăng bán ngay hôm nay!</p>
           <Link href="/tai-khoan/san-pham-cua-toi/dang-ban" className="inline-block mt-2">
             <Button className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold">
               <Plus className="w-4 h-4 mr-2" /> Đăng bán sản phẩm đầu tiên
@@ -274,9 +274,9 @@ export function SellerProductList({
           </Link>
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden divide-y divide-slate-100">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs overflow-hidden divide-y divide-slate-100 dark:divide-slate-800">
           {/* Batch Actions Bar */}
-          <div className="flex items-center justify-between px-4 py-3 bg-slate-50 border-b border-slate-100">
+          <div className="flex items-center justify-between px-4 py-3 bg-slate-50/70 dark:bg-slate-950/50 border-b border-slate-100 dark:border-slate-800">
             <div className="flex items-center gap-2.5">
               <Checkbox
                 checked={products.length > 0 && selectedIds.length === products.length}
@@ -285,7 +285,7 @@ export function SellerProductList({
               />
               <label 
                 htmlFor="select-all-seller-products" 
-                className="cursor-pointer text-xs font-semibold text-slate-700 select-none"
+                className="cursor-pointer text-xs font-semibold text-slate-700 dark:text-slate-300 select-none"
               >
                 Chọn tất cả ({products.length})
               </label>
@@ -306,14 +306,14 @@ export function SellerProductList({
           </div>
 
           {products.map((product) => (
-            <div key={product.id} className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:bg-slate-50/50 transition-colors">
+            <div key={product.id} className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
               <div className="flex items-center gap-3.5 min-w-0 flex-1">
                 <Checkbox
                   checked={selectedIds.includes(product.id)}
                   onCheckedChange={() => handleToggleSelect(product.id)}
                   className="shrink-0"
                 />
-                <div className="w-16 h-16 rounded-xl bg-slate-100 overflow-hidden relative shrink-0 border border-slate-200">
+                <div className="w-16 h-16 rounded-xl bg-slate-100 dark:bg-slate-800 overflow-hidden relative shrink-0 border border-slate-200/80 dark:border-slate-700">
                   <SmartImage
                     src={product.image_url}
                     alt={product.name}
@@ -323,19 +323,19 @@ export function SellerProductList({
                 </div>
                 <div className="min-w-0 flex-1 space-y-1">
                   <div className="flex items-center gap-2">
-                    <h3 className="font-bold text-slate-900 truncate text-sm">{product.name}</h3>
+                    <h3 className="font-bold text-slate-900 dark:text-slate-100 truncate text-sm">{product.name}</h3>
                     {getStatusBadge(product.listing_status, product.suspension_reason, product.stock)}
                   </div>
-                  <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
-                    <span className="font-semibold text-emerald-600 text-sm">{formatCurrency(product.sale_price || product.price)}</span>
-                    {product.sale_price && <span className="line-through text-slate-400">{formatCurrency(product.price)}</span>}
-                    <span>• Tồn kho: <strong className={product.stock > 0 ? 'text-slate-800' : 'text-rose-600'}>{product.stock}</strong></span>
+                  <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
+                    <span className="font-semibold text-emerald-600 dark:text-emerald-400 text-sm">{formatCurrency(product.sale_price || product.price)}</span>
+                    {product.sale_price && <span className="line-through text-slate-400 dark:text-slate-500">{formatCurrency(product.price)}</span>}
+                    <span>• Tồn kho: <strong className={product.stock > 0 ? 'text-slate-800 dark:text-slate-200' : 'text-rose-600 dark:text-rose-400'}>{product.stock}</strong></span>
                     {product.expiry_date && (
                       <ExpiryBadge expiryDate={product.expiry_date} size="sm" />
                     )}
                   </div>
                   {product.suspension_reason && (
-                    <p className="text-xs text-rose-600 bg-rose-50 p-1.5 rounded-lg border border-rose-100">
+                    <p className="text-xs text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/50 p-1.5 rounded-lg border border-rose-100 dark:border-rose-900">
                       <strong>Lý do khóa:</strong> {product.suspension_reason}
                     </p>
                   )}
@@ -345,7 +345,7 @@ export function SellerProductList({
               {/* Action Buttons */}
               <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
                 {product.listing_status === 'active' && (
-                  <Link href={`/san-pham/${product.slug}`} target="_blank" className="p-2 text-slate-500 hover:text-emerald-600 rounded-lg hover:bg-white" title="Xem trên Web">
+                  <Link href={`/san-pham/${product.slug}`} target="_blank" className="p-2 text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800" title="Xem trên Web">
                     <ExternalLink className="w-4 h-4" />
                   </Link>
                 )}
@@ -353,7 +353,7 @@ export function SellerProductList({
                 {product.listing_status !== 'suspended' && (
                   <>
                     <Link href={`/tai-khoan/san-pham-cua-toi/${product.id}/chinh-sua`}>
-                      <Button variant="outline" size="sm" className="rounded-lg h-9 text-xs">
+                      <Button variant="outline" size="sm" className="rounded-lg h-9 text-xs border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300">
                         <Edit3 className="w-3.5 h-3.5 mr-1" /> Sửa
                       </Button>
                     </Link>
@@ -367,7 +367,7 @@ export function SellerProductList({
                           setSplitProduct(product)
                           setSplitAmount('')
                         }}
-                        className="rounded-lg h-9 text-xs text-indigo-600 border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700"
+                        className="rounded-lg h-9 text-xs text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/50"
                         title="Tách sản phẩm ra làm 2"
                       >
                         <Split className="w-3.5 h-3.5 mr-1" /> Tách
@@ -379,12 +379,12 @@ export function SellerProductList({
                       size="sm"
                       disabled={loadingId === product.id}
                       onClick={() => handleTogglePause(product)}
-                      className="rounded-lg h-9 text-xs gap-1.5 cursor-pointer"
+                      className="rounded-lg h-9 text-xs gap-1.5 cursor-pointer border-slate-200 dark:border-slate-800"
                     >
                       <MorphStatusIcon 
                         status={product.listing_status === 'active' ? 'active' : 'paused'} 
                         size={15} 
-                        className={product.listing_status === 'active' ? "text-amber-600" : "text-emerald-600"}
+                        className={product.listing_status === 'active' ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"}
                       />
                       <span>{product.listing_status === 'active' ? 'Tạm dừng' : 'Mở lại'}</span>
                     </Button>
@@ -396,7 +396,7 @@ export function SellerProductList({
                   size="sm"
                   disabled={loadingId === product.id}
                   onClick={() => handleDelete(product.id, product.name)}
-                  className="rounded-lg h-9 text-rose-600 hover:text-rose-700 hover:bg-rose-50"
+                  className="rounded-lg h-9 text-rose-600 dark:text-rose-400 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/50"
                   title="Xóa sản phẩm"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -407,8 +407,8 @@ export function SellerProductList({
           
           {/* Pagination Controls */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between border-t border-slate-100 bg-white px-4 py-3 sm:px-6 rounded-b-2xl">
-              <p className="text-sm text-slate-700 hidden sm:block">
+            <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-3 sm:px-6 rounded-b-2xl">
+              <p className="text-sm text-slate-700 dark:text-slate-300 hidden sm:block">
                 Hiển thị <span className="font-semibold">{(currentPage - 1) * 10 + 1}</span> - <span className="font-semibold">{Math.min(currentPage * 10, totalCount)}</span> trong tổng <span className="font-semibold">{totalCount}</span>
               </p>
               <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
@@ -417,11 +417,11 @@ export function SellerProductList({
                   size="sm"
                   onClick={() => handlePageChange(currentPage - 1)}
                   disabled={currentPage === 1}
-                  className="rounded-xl"
+                  className="rounded-xl border-slate-200 dark:border-slate-800"
                 >
                   <ChevronLeft className="w-4 h-4 mr-1" /> Trước
                 </Button>
-                <span className="text-sm font-medium text-slate-700 mx-2">
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-300 mx-2">
                   {currentPage} / {totalPages}
                 </span>
                 <Button
@@ -429,7 +429,7 @@ export function SellerProductList({
                   size="sm"
                   onClick={() => handlePageChange(currentPage + 1)}
                   disabled={currentPage === totalPages}
-                  className="rounded-xl"
+                  className="rounded-xl border-slate-200 dark:border-slate-800"
                 >
                   Sau <ChevronRight className="w-4 h-4 ml-1" />
                 </Button>
@@ -441,25 +441,25 @@ export function SellerProductList({
 
       {/* Split Product Dialog */}
       <Dialog open={!!splitProduct} onOpenChange={(open) => !open && setSplitProduct(null)}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px] bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800">
           <DialogHeader>
-            <DialogTitle>Tách sản phẩm</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-slate-900 dark:text-slate-100">Tách sản phẩm</DialogTitle>
+            <DialogDescription className="text-slate-500 dark:text-slate-400">
               Tạo ra một sản phẩm mới giống hệt bản gốc và chia sẻ số lượng tồn kho.
             </DialogDescription>
           </DialogHeader>
           {splitProduct && (
             <form onSubmit={handleSplitSubmit} className="space-y-6 pt-4">
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-sm space-y-2">
-                <div className="font-semibold text-slate-800 line-clamp-1">{splitProduct.name}</div>
-                <div className="flex justify-between text-slate-600">
+              <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-100 dark:border-slate-800 text-sm space-y-2">
+                <div className="font-semibold text-slate-800 dark:text-slate-200 line-clamp-1">{splitProduct.name}</div>
+                <div className="flex justify-between text-slate-600 dark:text-slate-400">
                   <span>Tồn kho hiện tại:</span>
-                  <span className="font-bold text-slate-900">{splitProduct.stock}</span>
+                  <span className="font-bold text-slate-900 dark:text-slate-100">{splitProduct.stock}</span>
                 </div>
               </div>
 
               <div className="space-y-3">
-                <Label htmlFor="split_amount" className="font-medium text-slate-700">
+                <Label htmlFor="split_amount" className="font-medium text-slate-700 dark:text-slate-300">
                   Tồn kho chuyển sang sản phẩm MỚI
                 </Label>
                 <Input
@@ -470,17 +470,17 @@ export function SellerProductList({
                   value={splitAmount}
                   onChange={(e) => setSplitAmount(e.target.value)}
                   placeholder="Nhập số lượng..."
-                  className="rounded-xl"
+                  className="rounded-xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950"
                   required
                 />
                 
                 {splitAmount && !isNaN(parseInt(splitAmount)) && parseInt(splitAmount) > 0 && parseInt(splitAmount) < splitProduct.stock && (
-                  <p className="text-sm text-emerald-600 bg-emerald-50 p-2.5 rounded-lg border border-emerald-100 font-medium">
+                  <p className="text-sm text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 p-2.5 rounded-lg border border-emerald-100 dark:border-emerald-900 font-medium">
                     Sản phẩm GỐC sẽ còn lại: {splitProduct.stock - parseInt(splitAmount)}
                   </p>
                 )}
                 {splitAmount && (isNaN(parseInt(splitAmount)) || parseInt(splitAmount) <= 0 || parseInt(splitAmount) >= splitProduct.stock) && (
-                  <p className="text-sm text-rose-600 bg-rose-50 p-2.5 rounded-lg border border-rose-100 font-medium">
+                  <p className="text-sm text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/50 p-2.5 rounded-lg border border-rose-100 dark:border-rose-900 font-medium">
                     Số lượng tách không hợp lệ. Phải từ 1 đến {splitProduct.stock - 1}.
                   </p>
                 )}
@@ -492,7 +492,7 @@ export function SellerProductList({
                   variant="outline" 
                   onClick={() => setSplitProduct(null)}
                   disabled={isSplitting}
-                  className="rounded-xl"
+                  className="rounded-xl border-slate-200 dark:border-slate-800"
                 >
                   Hủy
                 </Button>

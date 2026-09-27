@@ -44,18 +44,18 @@ interface OrderListProps {
 }
 
 const ORDER_STATUS_MAP: Record<string, { label: string; color: string }> = {
-  pending: { label: 'Chờ xác nhận', color: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
-  confirmed: { label: 'Đã xác nhận', color: 'bg-emerald-100 text-emerald-800 border-emerald-200' },
-  shipping: { label: 'Đang giao', color: 'bg-purple-100 text-purple-800 border-purple-200' },
-  completed: { label: 'Hoàn thành', color: 'bg-green-100 text-green-800 border-green-200' },
-  cancelled: { label: 'Đã hủy', color: 'bg-red-100 text-red-800 border-red-200' },
-  refunded: { label: 'Hoàn tiền', color: 'bg-gray-100 text-gray-800 border-gray-200' },
+  pending: { label: 'Chờ xác nhận', color: 'bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800' },
+  confirmed: { label: 'Đã xác nhận', color: 'bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800' },
+  shipping: { label: 'Đang giao', color: 'bg-purple-50 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800' },
+  completed: { label: 'Hoàn thành', color: 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800' },
+  cancelled: { label: 'Đã hủy', color: 'bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800' },
+  refunded: { label: 'Hoàn tiền', color: 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700' },
 }
 
 const PAYMENT_STATUS_MAP: Record<string, { label: string; color: string }> = {
-  unpaid: { label: 'Chưa thanh toán', color: 'text-yellow-600' },
-  paid: { label: 'Đã thanh toán', color: 'text-green-600' },
-  refunded: { label: 'Đã hoàn tiền', color: 'text-gray-600' },
+  unpaid: { label: 'Chưa thanh toán', color: 'text-amber-600 dark:text-amber-400' },
+  paid: { label: 'Đã thanh toán', color: 'text-emerald-600 dark:text-emerald-400' },
+  refunded: { label: 'Đã hoàn tiền', color: 'text-slate-500 dark:text-slate-400' },
 }
 
 export function OrderList({ initialData, total }: OrderListProps) {
@@ -102,8 +102,9 @@ export function OrderList({ initialData, total }: OrderListProps) {
             name="q" 
             placeholder="Tìm mã, sđt, người nhận..." 
             defaultValue={searchParams.get('search') || ''}
+            className="rounded-xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900"
           />
-          <Button type="submit" variant="secondary">
+          <Button type="submit" variant="secondary" className="rounded-xl cursor-pointer">
             <Search className="h-4 w-4" />
           </Button>
         </form>
@@ -117,10 +118,10 @@ export function OrderList({ initialData, total }: OrderListProps) {
             router.push(`?${params.toString()}`)
           }}
         >
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-[180px] rounded-xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
             <SelectValue placeholder="Tất cả trạng thái" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="rounded-xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
             <SelectItem value="all">Tất cả trạng thái</SelectItem>
             <SelectItem value="pending">Chờ xác nhận</SelectItem>
             <SelectItem value="confirmed">Đã xác nhận</SelectItem>
@@ -131,44 +132,44 @@ export function OrderList({ initialData, total }: OrderListProps) {
         </Select>
       </div>
 
-      <div className="border rounded-md bg-white">
+      <div className="border border-slate-200/80 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-900 overflow-hidden shadow-2xs">
         <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead>Mã ĐH</TableHead>
-              <TableHead>Ngày đặt</TableHead>
-              <TableHead>Khách hàng</TableHead>
-              <TableHead>Tổng tiền</TableHead>
-              <TableHead>Thanh toán</TableHead>
-              <TableHead>Trạng thái</TableHead>
-              <TableHead className="text-right">Thao tác</TableHead>
+            <TableRow className="bg-slate-50/70 dark:bg-slate-950/50 border-b border-slate-100 dark:border-slate-800">
+              <TableHead className="font-bold">Mã ĐH</TableHead>
+              <TableHead className="font-bold">Ngày đặt</TableHead>
+              <TableHead className="font-bold">Khách hàng</TableHead>
+              <TableHead className="font-bold">Tổng tiền</TableHead>
+              <TableHead className="font-bold">Thanh toán</TableHead>
+              <TableHead className="font-bold">Trạng thái</TableHead>
+              <TableHead className="text-right font-bold">Thao tác</TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody>
+          <TableBody className="divide-y divide-slate-100 dark:divide-slate-800">
             {initialData.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center h-32 text-slate-500">
+                <TableCell colSpan={7} className="text-center h-32 text-slate-400 dark:text-slate-500 text-xs">
                   Không tìm thấy đơn hàng nào
                 </TableCell>
               </TableRow>
             ) : (
               initialData.map((order) => (
-                <TableRow key={order.id}>
-                  <TableCell className="font-medium">{order.order_code}</TableCell>
-                  <TableCell>
+                <TableRow key={order.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
+                  <TableCell className="font-bold font-mono text-slate-900 dark:text-slate-100">{order.order_code}</TableCell>
+                  <TableCell className="text-xs text-slate-500 dark:text-slate-400">
                     {format(new Date(order.created_at), 'dd/MM/yyyy HH:mm', { locale: vi })}
                   </TableCell>
                   <TableCell>
                     <div>
-                      <p className="font-medium text-sm">{order.receiver_name}</p>
-                      <p className="text-xs text-slate-500">{order.receiver_phone}</p>
+                      <p className="font-bold text-slate-800 dark:text-slate-200 text-xs">{order.receiver_name}</p>
+                      <p className="text-[11px] text-slate-400">{order.receiver_phone}</p>
                     </div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="font-bold font-mono text-emerald-600 dark:text-emerald-400">
                     {formatCurrency(order.final_amount)}
                   </TableCell>
                   <TableCell>
-                    <span className={`text-sm font-medium ${PAYMENT_STATUS_MAP[order.payment_status]?.color}`}>
+                    <span className={`text-xs font-semibold ${PAYMENT_STATUS_MAP[order.payment_status]?.color}`}>
                       {PAYMENT_STATUS_MAP[order.payment_status]?.label}
                     </span>
                   </TableCell>
@@ -177,7 +178,7 @@ export function OrderList({ initialData, total }: OrderListProps) {
                       {ORDER_STATUS_MAP[order.status]?.label}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-right space-x-2">
+                  <TableCell className="text-right space-x-1.5">
                     <Button 
                       variant="outline" 
                       size="icon"
@@ -185,35 +186,36 @@ export function OrderList({ initialData, total }: OrderListProps) {
                         setSelectedOrder(order)
                         setIsDetailOpen(true)
                       }}
+                      className="border-slate-200 dark:border-slate-800"
                     >
-                      <Eye className="h-4 w-4" />
+                      <Eye className="h-4 w-4 text-slate-500 dark:text-slate-400" />
                     </Button>
 
                     <DropdownMenu>
                       <DropdownMenuTrigger 
-                        className="inline-flex items-center justify-center rounded-md border border-slate-200 bg-white h-9 w-9 text-slate-500 hover:bg-slate-100 hover:text-slate-900 disabled:opacity-50"
+                        className="inline-flex items-center justify-center rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 h-9 w-9 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50 cursor-pointer"
                         disabled={loading === order.id}
                       >
                         <MoreHorizontal className="h-4 w-4" />
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
+                      <DropdownMenuContent align="end" className="rounded-xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
                         <DropdownMenuGroup>
                           <DropdownMenuLabel>Đổi trạng thái</DropdownMenuLabel>
                         </DropdownMenuGroup>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => handleStatusChange(order.id, 'confirmed')} disabled={order.status === 'confirmed' || order.status === 'completed' || order.status === 'cancelled'}>
+                        <DropdownMenuItem onClick={() => handleStatusChange(order.id, 'confirmed')} disabled={order.status === 'confirmed' || order.status === 'completed' || order.status === 'cancelled'} className="cursor-pointer">
                           Xác nhận
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleStatusChange(order.id, 'shipping')} disabled={order.status === 'shipping' || order.status === 'completed' || order.status === 'cancelled'}>
+                        <DropdownMenuItem onClick={() => handleStatusChange(order.id, 'shipping')} disabled={order.status === 'shipping' || order.status === 'completed' || order.status === 'cancelled'} className="cursor-pointer">
                           Giao hàng
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleStatusChange(order.id, 'completed')} disabled={order.status === 'completed' || order.status === 'cancelled'}>
+                        <DropdownMenuItem onClick={() => handleStatusChange(order.id, 'completed')} disabled={order.status === 'completed' || order.status === 'cancelled'} className="cursor-pointer">
                           Hoàn thành
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem 
                           onClick={() => handleStatusChange(order.id, 'cancelled')} 
-                          className="text-red-600"
+                          className="text-red-600 cursor-pointer"
                           disabled={order.status === 'completed' || order.status === 'cancelled'}
                         >
                           Hủy đơn

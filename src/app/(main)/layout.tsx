@@ -1,4 +1,5 @@
 import { Navbar } from '@/components/layout/Navbar'
+import { Footer } from '@/components/layout/Footer'
 import { PageTransition } from '@/components/ui/PageTransition'
 
 export default function MainLayout({
@@ -14,6 +15,8 @@ export default function MainLayout({
           {children}
         </PageTransition>
       </main>
+      <Footer />
     </div>
   )
 }
+

@@ -86,17 +86,17 @@ export function AdminDashboardCharts({ revenueData = [], statusData = { complete
   return (
     <div className="grid gap-5 lg:grid-cols-12">
       {/* Revenue Area Chart: 8 cols */}
-      <Card className="lg:col-span-8 rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden flex flex-col justify-between">
-        <CardHeader className="p-5 pb-2 flex flex-row items-center justify-between border-b border-slate-50">
+      <Card className="lg:col-span-8 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs overflow-hidden flex flex-col justify-between">
+        <CardHeader className="p-5 pb-2 flex flex-row items-center justify-between border-b border-slate-100 dark:border-slate-800">
           <div>
-            <CardTitle className="text-sm font-bold text-slate-800 flex items-center gap-2">
-              <Activity className="w-4 h-4 text-emerald-600" /> Xu hướng doanh thu
+            <CardTitle className="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+              <Activity className="w-4 h-4 text-emerald-600 dark:text-emerald-400" /> Xu hướng doanh thu
             </CardTitle>
-            <p className="text-xs text-slate-400 mt-0.5">Biểu đồ doanh thu thực nhận 7 ngày gần nhất</p>
+            <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Biểu đồ doanh thu thực nhận 7 ngày gần nhất</p>
           </div>
           <div className="text-right">
-            <span className="text-[11px] text-slate-400 uppercase font-medium tracking-wider">Tổng 7 ngày</span>
-            <p className="text-base font-black text-slate-900 font-mono">
+            <span className="text-[11px] text-slate-400 dark:text-slate-500 uppercase font-medium tracking-wider">Tổng 7 ngày</span>
+            <p className="text-base font-black text-slate-900 dark:text-slate-100 font-mono">
               {formatCurrency(totalPeriodRevenue)}
             </p>
           </div>
@@ -111,7 +111,7 @@ export function AdminDashboardCharts({ revenueData = [], statusData = { complete
                     <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" className="text-slate-100 dark:text-slate-800" />
                 <XAxis 
                   dataKey="display" 
                   axisLine={false} 
@@ -142,12 +142,12 @@ export function AdminDashboardCharts({ revenueData = [], statusData = { complete
       </Card>
 
       {/* Order Status Pie Chart: 4 cols */}
-      <Card className="lg:col-span-4 rounded-2xl border border-slate-100 bg-white shadow-sm flex flex-col justify-between">
-        <CardHeader className="p-5 pb-2 border-b border-slate-50">
-          <CardTitle className="text-sm font-bold text-slate-800 flex items-center gap-2">
-            <PieIcon className="w-4 h-4 text-blue-600" /> Tỉ lệ đơn hàng
+      <Card className="lg:col-span-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs flex flex-col justify-between">
+        <CardHeader className="p-5 pb-2 border-b border-slate-100 dark:border-slate-800">
+          <CardTitle className="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+            <PieIcon className="w-4 h-4 text-blue-600 dark:text-blue-400" /> Tỉ lệ đơn hàng
           </CardTitle>
-          <p className="text-xs text-slate-400 mt-0.5">Phân bổ trạng thái xử lý đơn hàng</p>
+          <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Phân bổ trạng thái xử lý đơn hàng</p>
         </CardHeader>
         <CardContent className="p-5 flex-1 flex flex-col justify-between">
           <div className="h-[160px] w-full relative">
@@ -174,25 +174,25 @@ export function AdminDashboardCharts({ revenueData = [], statusData = { complete
             </ResponsiveContainer>
             {/* Centered count */}
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-              <span className="text-xl font-black text-slate-900 font-mono">{totalOrders}</span>
-              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Tổng đơn</span>
+              <span className="text-xl font-black text-slate-900 dark:text-slate-100 font-mono">{totalOrders}</span>
+              <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">Tổng đơn</span>
             </div>
           </div>
           
           {/* Legend Items */}
-          <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-50">
+          <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
             {pieData.map((entry) => {
               const pct = entry.isFallback ? '0%' : `${((entry.value / Math.max(totalOrders, 1)) * 100).toFixed(0)}%`
               return (
-                <div key={entry.name} className="flex items-center justify-between p-2 rounded-xl bg-slate-50/70">
+                <div key={entry.name} className="flex items-center justify-between p-2 rounded-xl bg-slate-50/70 dark:bg-slate-950/50">
                   <div className="flex items-center gap-1.5 min-w-0">
                     <span 
                       className="w-2 h-2 rounded-full shrink-0" 
                       style={{ backgroundColor: STATUS_COLORS[entry.name] || '#94A3B8' }}
                     />
-                    <span className="text-[11px] font-medium text-slate-600 truncate">{entry.name}</span>
+                    <span className="text-[11px] font-medium text-slate-600 dark:text-slate-400 truncate">{entry.name}</span>
                   </div>
-                  <span className="text-[11px] font-bold text-slate-800 font-mono shrink-0 ml-1">
+                  <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200 font-mono shrink-0 ml-1">
                     {entry.isFallback ? 0 : entry.value} ({pct})
                   </span>
                 </div>
