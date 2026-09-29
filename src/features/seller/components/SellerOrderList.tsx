@@ -86,7 +86,7 @@ export function SellerOrderList({ orders, totalCount, currentPage, currentStatus
       </div>
 
       {/* Tabs */}
-      <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs flex flex-wrap gap-2">
+      <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs flex overflow-x-auto no-scrollbar gap-2 -mx-1 px-1">
         {[
           { id: 'all', label: 'Tất cả' },
           { id: 'pending', label: 'Chờ xác nhận' },
@@ -97,7 +97,7 @@ export function SellerOrderList({ orders, totalCount, currentPage, currentStatus
           <button
             key={tab.id}
             onClick={() => handleStatusFilter(tab.id)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+            className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer select-none ${
               currentStatus === tab.id
                 ? 'bg-emerald-600 text-white shadow-sm'
                 : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'

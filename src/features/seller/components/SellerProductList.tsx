@@ -238,7 +238,7 @@ export function SellerProductList({
           <Button type="submit" variant="secondary" className="rounded-xl">Tìm kiếm</Button>
         </form>
 
-        <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+        <div className="flex overflow-x-auto no-scrollbar gap-2 pt-2 border-t border-slate-100 dark:border-slate-800 -mx-1 px-1">
           {[
             { id: 'all', label: 'Tất cả' },
             { id: 'active', label: 'Đang bán' },
@@ -249,7 +249,7 @@ export function SellerProductList({
             <button
               key={tab.id}
               onClick={() => handleStatusFilter(tab.id)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+              className={`shrink-0 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer select-none ${
                 currentStatus === tab.id
                   ? 'bg-emerald-600 text-white shadow-sm'
                   : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
@@ -274,7 +274,7 @@ export function SellerProductList({
           </Link>
         </div>
       ) : (
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs overflow-hidden divide-y divide-slate-100 dark:divide-slate-800">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs divide-y divide-slate-100 dark:divide-slate-800">
           {/* Batch Actions Bar */}
           <div className="flex items-center justify-between px-4 py-3 bg-slate-50/70 dark:bg-slate-950/50 border-b border-slate-100 dark:border-slate-800">
             <div className="flex items-center gap-2.5">
@@ -306,14 +306,14 @@ export function SellerProductList({
           </div>
 
           {products.map((product) => (
-            <div key={product.id} className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
-              <div className="flex items-center gap-3.5 min-w-0 flex-1">
+            <div key={product.id} className="p-3.5 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
+              <div className="flex items-start sm:items-center gap-3 min-w-0 flex-1 w-full">
                 <Checkbox
                   checked={selectedIds.includes(product.id)}
                   onCheckedChange={() => handleToggleSelect(product.id)}
-                  className="shrink-0"
+                  className="mt-1 sm:mt-0 shrink-0"
                 />
-                <div className="w-16 h-16 rounded-xl bg-slate-100 dark:bg-slate-800 overflow-hidden relative shrink-0 border border-slate-200/80 dark:border-slate-700">
+                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl bg-slate-100 dark:bg-slate-800 overflow-hidden relative shrink-0 border border-slate-200/80 dark:border-slate-700">
                   <SmartImage
                     src={product.image_url}
                     alt={product.name}
@@ -322,20 +322,22 @@ export function SellerProductList({
                   />
                 </div>
                 <div className="min-w-0 flex-1 space-y-1">
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-bold text-slate-900 dark:text-slate-100 truncate text-sm">{product.name}</h3>
+                  <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                    <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm leading-snug break-words">
+                      {product.name}
+                    </h3>
                     {getStatusBadge(product.listing_status, product.suspension_reason, product.stock)}
                   </div>
-                  <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
-                    <span className="font-semibold text-emerald-600 dark:text-emerald-400 text-sm">{formatCurrency(product.sale_price || product.price)}</span>
-                    {product.sale_price && <span className="line-through text-slate-400 dark:text-slate-500">{formatCurrency(product.price)}</span>}
-                    <span>• Tồn kho: <strong className={product.stock > 0 ? 'text-slate-800 dark:text-slate-200' : 'text-rose-600 dark:text-rose-400'}>{product.stock}</strong></span>
+                  <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
+                    <span className="font-bold text-emerald-600 dark:text-emerald-400 text-sm">{formatCurrency(product.sale_price || product.price)}</span>
+                    {product.sale_price && <span className="line-through text-slate-400 dark:text-slate-500 text-[11px]">{formatCurrency(product.price)}</span>}
+                    <span>• Tồn: <strong className={product.stock > 0 ? 'text-slate-800 dark:text-slate-200' : 'text-rose-600 dark:text-rose-400'}>{product.stock}</strong></span>
                     {product.expiry_date && (
                       <ExpiryBadge expiryDate={product.expiry_date} size="sm" />
                     )}
                   </div>
                   {product.suspension_reason && (
-                    <p className="text-xs text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/50 p-1.5 rounded-lg border border-rose-100 dark:border-rose-900">
+                    <p className="text-xs text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/50 p-1.5 rounded-lg border border-rose-100 dark:border-rose-900 mt-1">
                       <strong>Lý do khóa:</strong> {product.suspension_reason}
                     </p>
                   )}
@@ -343,9 +345,9 @@ export function SellerProductList({
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+              <div className="flex flex-wrap items-center justify-end gap-1.5 shrink-0 w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100 dark:border-slate-800/80">
                 {product.listing_status === 'active' && (
-                  <Link href={`/san-pham/${product.slug}`} target="_blank" className="p-2 text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800" title="Xem trên Web">
+                  <Link href={`/san-pham/${product.slug}`} target="_blank" className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800" title="Xem trên Web">
                     <ExternalLink className="w-4 h-4" />
                   </Link>
                 )}
@@ -353,7 +355,7 @@ export function SellerProductList({
                 {product.listing_status !== 'suspended' && (
                   <>
                     <Link href={`/tai-khoan/san-pham-cua-toi/${product.id}/chinh-sua`}>
-                      <Button variant="outline" size="sm" className="rounded-lg h-9 text-xs border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300">
+                      <Button variant="outline" size="sm" className="rounded-lg h-8 px-2.5 text-xs border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300">
                         <Edit3 className="w-3.5 h-3.5 mr-1" /> Sửa
                       </Button>
                     </Link>
@@ -367,7 +369,7 @@ export function SellerProductList({
                           setSplitProduct(product)
                           setSplitAmount('')
                         }}
-                        className="rounded-lg h-9 text-xs text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/50"
+                        className="rounded-lg h-8 px-2.5 text-xs text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/50"
                         title="Tách sản phẩm ra làm 2"
                       >
                         <Split className="w-3.5 h-3.5 mr-1" /> Tách
@@ -379,11 +381,11 @@ export function SellerProductList({
                       size="sm"
                       disabled={loadingId === product.id}
                       onClick={() => handleTogglePause(product)}
-                      className="rounded-lg h-9 text-xs gap-1.5 cursor-pointer border-slate-200 dark:border-slate-800"
+                      className="rounded-lg h-8 px-2.5 text-xs gap-1 cursor-pointer border-slate-200 dark:border-slate-800"
                     >
                       <MorphStatusIcon 
                         status={product.listing_status === 'active' ? 'active' : 'paused'} 
-                        size={15} 
+                        size={14} 
                         className={product.listing_status === 'active' ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"}
                       />
                       <span>{product.listing_status === 'active' ? 'Tạm dừng' : 'Mở lại'}</span>
@@ -396,7 +398,7 @@ export function SellerProductList({
                   size="sm"
                   disabled={loadingId === product.id}
                   onClick={() => handleDelete(product.id, product.name)}
-                  className="rounded-lg h-9 text-rose-600 dark:text-rose-400 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/50"
+                  className="rounded-lg h-8 w-8 p-0 text-rose-600 dark:text-rose-400 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/50"
                   title="Xóa sản phẩm"
                 >
                   <Trash2 className="w-4 h-4" />
