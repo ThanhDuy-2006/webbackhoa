@@ -4,6 +4,9 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: ['192.168.1.12'],
   compress: true,
   experimental: {
+    serverActions: {
+      bodySizeLimit: '10mb',
+    },
     staleTimes: {
       dynamic: 30,
       static: 180,

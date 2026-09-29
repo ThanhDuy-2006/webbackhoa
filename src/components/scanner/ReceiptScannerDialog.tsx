@@ -26,8 +26,50 @@ export function ReceiptScannerDialog({ open, onOpenChange, onImportItems }: Rece
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const cameraInputRef = useRef<HTMLInputElement | null>(null)
 
+  // Compress & resize image to prevent gigantic base64 payloads on mobile cameras
+  const compressImageForOcr = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        const img = new Image()
+        img.onload = () => {
+          const maxDimension = 1600
+          let { width, height } = img
+
+          if (width > maxDimension || height > maxDimension) {
+            if (width > height) {
+              height = Math.round((height * maxDimension) / width)
+              width = maxDimension
+            } else {
+              width = Math.round((width * maxDimension) / height)
+              height = maxDimension
+            }
+          }
+
+          const canvas = document.createElement('canvas')
+          canvas.width = width
+          canvas.height = height
+          const ctx = canvas.getContext('2d')
+          if (!ctx) {
+            resolve(event.target?.result as string)
+            return
+          }
+
+          ctx.drawImage(img, 0, 0, width, height)
+          // Convert to JPEG with 0.85 quality for optimal OCR clarity and small payload size
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85)
+          resolve(compressedDataUrl)
+        }
+        img.onerror = () => resolve(event.target?.result as string)
+        img.src = event.target?.result as string
+      }
+      reader.onerror = (err) => reject(err)
+      reader.readAsDataURL(file)
+    })
+  }
+
   // Handle file selection (upload or camera)
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
 
@@ -36,16 +78,19 @@ export function ReceiptScannerDialog({ open, onOpenChange, onImportItems }: Rece
       return
     }
 
-    const reader = new FileReader()
-    reader.onload = (event) => {
-      const base64 = event.target?.result as string
-      setSelectedImage(base64)
+    try {
+      const compressedBase64 = await compressImageForOcr(file)
+      setSelectedImage(compressedBase64)
       setScannedResult(null)
       setErrorMessage(null)
       // Auto-trigger scanning
-      handleScanImage(base64)
+      handleScanImage(compressedBase64)
+    } catch (err) {
+      toast.error('Không thể đọc file hình ảnh.')
+    } finally {
+      // Reset input value so same file can be re-selected if needed
+      e.target.value = ''
     }
-    reader.readAsDataURL(file)
   }
 
   // Trigger Gemini AI scanning
@@ -67,13 +112,15 @@ export function ReceiptScannerDialog({ open, onOpenChange, onImportItems }: Rece
         setSelectedImage(null)
         setScannedResult(null)
       } else {
-        setErrorMessage(res.error || 'Không nhận diện được sản phẩm nào.')
-        toast.error(res.error || 'Không nhận diện được sản phẩm.')
+        const errStr = res.error || 'Không nhận diện được sản phẩm nào trong ảnh.'
+        setErrorMessage(errStr)
+        toast.error(errStr)
       }
     } catch (err: unknown) {
       const error = err as Error
-      setErrorMessage(error.message || 'Lỗi khi quét hóa đơn')
-      toast.error('Lỗi khi quét hóa đơn')
+      const errStr = error.message || 'Lỗi kết nối khi quét hóa đơn. Vui lòng thử lại.'
+      setErrorMessage(errStr)
+      toast.error(errStr)
     } finally {
       setIsScanning(false)
     }
