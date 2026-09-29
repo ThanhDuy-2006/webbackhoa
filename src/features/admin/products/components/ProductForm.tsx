@@ -403,7 +403,12 @@ export function ProductForm({ initialData, categories }: Props) {
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="stock">Tồn kho chung (Nếu không dùng phân loại) <span className="text-red-500">*</span></Label>
-                <Input id="stock" type="number" {...register('stock', { setValueAs: v => v === '' ? undefined : Number(v) })} />
+                <Input 
+                  id="stock" 
+                  type="number" 
+                  {...register('stock', { setValueAs: v => v === '' ? undefined : Number(v) })} 
+                  onFocus={(e) => e.target.select()}
+                />
                 {errors.stock && <span className="text-sm text-red-500">{errors.stock.message}</span>}
               </div>
             </CardContent>

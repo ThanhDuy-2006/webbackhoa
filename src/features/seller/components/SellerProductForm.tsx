@@ -506,6 +506,7 @@ export function SellerProductForm({ categories, initialData }: SellerProductForm
                 id="stock"
                 type="number"
                 {...register('stock', { setValueAs: v => v === '' ? undefined : Number(v) })}
+                onFocus={(e) => e.target.select()}
                 placeholder="10"
                 className="rounded-xl"
               />

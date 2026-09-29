@@ -761,23 +761,24 @@ export function ProductImportClient({ categories, initialScan = false }: Props) 
                         <div className="flex flex-col gap-1.5">
                           <Input
                             type="text"
+                            inputMode="numeric"
                             value={prod.price ? prod.price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") : ''}
+                            onFocus={(e) => e.target.select()}
                             onChange={(e) => {
-                              const rawValue = e.target.value.replace(/\./g, '')
-                              if (/^\d*$/.test(rawValue)) {
-                                handleUpdateRow(prod.tempId, 'price', rawValue ? Number(rawValue) : 0)
-                              }
+                              const rawValue = e.target.value.replace(/\D/g, '').replace(/^0+(?=\d)/, '')
+                              handleUpdateRow(prod.tempId, 'price', rawValue ? Number(rawValue) : 0)
                             }}
+                            placeholder="0"
                             className="h-8 text-xs font-mono"
                           />
                           <div className="flex bg-slate-100 p-0.5 rounded text-[10px]">
                             <button 
-                              type="button"
+                              type="button" 
                               onClick={() => handleUpdateRow(prod.tempId, 'price_mode', 'unit')}
                               className={`flex-1 rounded-sm py-0.5 ${(prod.price_mode || 'unit') === 'unit' ? 'bg-white shadow-sm font-semibold text-emerald-700' : 'text-slate-500 hover:bg-slate-200'}`}
                             >Gốc</button>
                             <button 
-                              type="button"
+                              type="button" 
                               onClick={() => handleUpdateRow(prod.tempId, 'price_mode', 'total')}
                               className={`flex-1 rounded-sm py-0.5 ${(prod.price_mode || 'unit') === 'total' ? 'bg-white shadow-sm font-semibold text-emerald-700' : 'text-slate-500 hover:bg-slate-200'}`}
                             >Chia</button>
@@ -789,12 +790,12 @@ export function ProductImportClient({ categories, initialScan = false }: Props) 
                       <TableCell>
                         <Input
                           type="text"
+                          inputMode="numeric"
                           value={prod.sale_price ? prod.sale_price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") : ''}
+                          onFocus={(e) => e.target.select()}
                           onChange={(e) => {
-                            const rawValue = e.target.value.replace(/\./g, '')
-                            if (/^\d*$/.test(rawValue)) {
-                              handleUpdateRow(prod.tempId, 'sale_price', rawValue ? Number(rawValue) : null)
-                            }
+                            const rawValue = e.target.value.replace(/\D/g, '').replace(/^0+(?=\d)/, '')
+                            handleUpdateRow(prod.tempId, 'sale_price', rawValue ? Number(rawValue) : null)
                           }}
                           placeholder="Không KM"
                           className="h-8 text-xs font-mono"
@@ -804,10 +805,21 @@ export function ProductImportClient({ categories, initialScan = false }: Props) 
                       {/* Stock */}
                       <TableCell>
                         <Input
-                          type="number"
-                          value={prod.stock || 0}
-                          onChange={(e) => handleUpdateRow(prod.tempId, 'stock', Number(e.target.value))}
-                          className="h-8 text-xs font-mono"
+                          type="text"
+                          inputMode="numeric"
+                          value={prod.stock === 0 ? '' : (prod.stock ?? '')}
+                          placeholder="0"
+                          onFocus={(e) => e.target.select()}
+                          onChange={(e) => {
+                            const raw = e.target.value.replace(/\D/g, '').replace(/^0+(?=\d)/, '')
+                            handleUpdateRow(prod.tempId, 'stock', raw ? parseInt(raw, 10) : 0)
+                          }}
+                          onBlur={(e) => {
+                            if (!e.target.value || parseInt(e.target.value, 10) <= 0) {
+                              handleUpdateRow(prod.tempId, 'stock', 1)
+                            }
+                          }}
+                          className="h-8 text-xs font-mono text-center font-semibold text-slate-800"
                         />
                       </TableCell>
 
