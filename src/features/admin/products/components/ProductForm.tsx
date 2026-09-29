@@ -448,13 +448,14 @@ export function ProductForm({ initialData, categories }: Props) {
                             render={({ field: { onChange, onBlur, value, ref } }) => (
                               <Input
                                 type="text"
+                                inputMode="numeric"
                                 value={value ? value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") : ''}
+                                onFocus={(e) => e.target.select()}
                                 onChange={(e) => {
-                                  const rawValue = e.target.value.replace(/\./g, '')
-                                  if (/^\d*$/.test(rawValue)) {
-                                    onChange(rawValue ? Number(rawValue) : null)
-                                  }
+                                  const rawValue = e.target.value.replace(/\D/g, '').replace(/^0+(?=\d)/, '')
+                                  onChange(rawValue ? Number(rawValue) : null)
                                 }}
+                                placeholder="0"
                                 onBlur={onBlur}
                                 ref={ref}
                               />
@@ -463,7 +464,11 @@ export function ProductForm({ initialData, categories }: Props) {
                         </div>
                         <div className="grid gap-2">
                           <Label>Tồn kho</Label>
-                          <Input type="number" {...register(`variants.${index}.stock` as const)} />
+                          <Input 
+                            type="number" 
+                            {...register(`variants.${index}.stock` as const, { setValueAs: v => v === '' ? 0 : Number(v) })} 
+                            onFocus={(e) => e.target.select()}
+                          />
                         </div>
                       </div>
                       <Button type="button" variant="ghost" size="icon" onClick={() => removeVariant(index)} className="text-red-500 mt-6">

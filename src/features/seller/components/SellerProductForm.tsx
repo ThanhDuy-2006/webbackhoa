@@ -758,14 +758,14 @@ export function SellerProductForm({ categories, initialData }: SellerProductForm
                       render={({ field: { onChange, onBlur, value, ref } }) => (
                         <Input
                           type="text"
+                          inputMode="numeric"
                           placeholder="Giá riêng"
                           className="rounded-lg text-xs bg-white"
                           value={value ? value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") : ''}
+                          onFocus={(e) => e.target.select()}
                           onChange={(e) => {
-                            const rawValue = e.target.value.replace(/\./g, '')
-                            if (/^\d*$/.test(rawValue)) {
-                              onChange(rawValue ? Number(rawValue) : null)
-                            }
+                            const rawValue = e.target.value.replace(/\D/g, '').replace(/^0+(?=\d)/, '')
+                            onChange(rawValue ? Number(rawValue) : null)
                           }}
                           onBlur={onBlur}
                           ref={ref}
@@ -777,6 +777,7 @@ export function SellerProductForm({ categories, initialData }: SellerProductForm
                     <Input
                       type="number"
                       {...register(`variants.${index}.stock`, { setValueAs: v => v === '' ? 0 : Number(v) })}
+                      onFocus={(e) => e.target.select()}
                       placeholder="Tồn kho"
                       className="rounded-lg text-xs bg-white"
                     />

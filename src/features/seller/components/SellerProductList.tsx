@@ -464,11 +464,14 @@ export function SellerProductList({
                 </Label>
                 <Input
                   id="split_amount"
-                  type="number"
-                  min="1"
-                  max={splitProduct.stock - 1}
+                  type="text"
+                  inputMode="numeric"
                   value={splitAmount}
-                  onChange={(e) => setSplitAmount(e.target.value)}
+                  onFocus={(e) => e.target.select()}
+                  onChange={(e) => {
+                    const raw = e.target.value.replace(/\D/g, '').replace(/^0+(?=\d)/, '')
+                    setSplitAmount(raw)
+                  }}
                   placeholder="Nhập số lượng..."
                   className="rounded-xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950"
                   required

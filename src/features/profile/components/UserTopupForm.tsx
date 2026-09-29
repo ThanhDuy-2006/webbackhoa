@@ -98,13 +98,16 @@ export function UserTopupForm({ userId }: { userId: string }) {
             <Input 
               id="amount"
               type="text"
+              inputMode="numeric"
               value={amount ? amount.toLocaleString('vi-VN') : ''}
+              onFocus={(e) => e.target.select()}
               onChange={(e) => {
-                const val = e.target.value.replace(/\D/g, '')
-                setAmount(Number(val))
+                const val = e.target.value.replace(/\D/g, '').replace(/^0+(?=\d)/, '')
+                setAmount(val ? Number(val) : 0)
               }}
+              placeholder="100.000"
               required
-              className="bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800"
+              className="bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 font-mono font-bold"
             />
           </div>
           

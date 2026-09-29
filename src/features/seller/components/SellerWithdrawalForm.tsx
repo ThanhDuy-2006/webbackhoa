@@ -93,10 +93,15 @@ export function SellerWithdrawalForm({ availableBalance, withdrawals }: SellerWi
             <Label htmlFor="amount" className="font-semibold text-slate-700 dark:text-slate-300">Số tiền muốn rút (VNĐ) *</Label>
             <Input
               id="amount"
-              type="number"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder="VD: 500000"
+              type="text"
+              inputMode="numeric"
+              value={amount ? Number(amount).toLocaleString('vi-VN') : ''}
+              onFocus={(e) => e.target.select()}
+              onChange={(e) => {
+                const raw = e.target.value.replace(/\D/g, '').replace(/^0+(?=\d)/, '')
+                setAmount(raw)
+              }}
+              placeholder="VD: 500.000"
               className="rounded-xl font-mono text-base border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950"
             />
           </div>

@@ -673,29 +673,21 @@ export function RevenueShareClient({ products, categories, variants, users }: Pr
                           <div className="flex items-center gap-1 bg-slate-50 border px-2 py-1 rounded-lg">
                             <span className="text-[9px] text-slate-400">Đơn giá:</span>
                             <input 
-                              type="number"
-                              value={p.amount}
-                              onChange={(e) => handleUpdateProductField(p.id, 'amount', Number(e.target.value))}
+                              type="text" inputMode="numeric" value={p.amount ? p.amount.toString() : ''} onFocus={(e) => e.target.select()} onChange={(e) => { const raw = e.target.value.replace(/\D/g, '').replace(/^0+(?=\d)/, ''); handleUpdateProductField(p.id, 'amount', raw ? Number(raw) : 0); }}
                               className="w-16 text-center font-bold text-slate-800 bg-transparent outline-none"
                             />
                           </div>
                           <div className="flex items-center gap-1 bg-slate-50 border px-2 py-1 rounded-lg">
                             <span className="text-[9px] text-slate-400">SL:</span>
                             <input 
-                              type="number"
-                              min="1"
-                              value={p.quantity}
-                              onChange={(e) => handleUpdateProductField(p.id, 'quantity', Math.max(1, Number(e.target.value)))}
+                              type="text" inputMode="numeric" value={p.quantity ? p.quantity.toString() : ''} onFocus={(e) => e.target.select()} onChange={(e) => { const raw = e.target.value.replace(/\D/g, '').replace(/^0+(?=\d)/, ''); handleUpdateProductField(p.id, 'quantity', raw ? Math.max(1, Number(raw)) : 1); }}
                               className="w-8 text-center font-bold text-slate-800 bg-transparent outline-none"
                             />
                           </div>
                           <div className="flex items-center gap-1 bg-slate-50 border px-2 py-1 rounded-lg">
                             <span className="text-[9px] text-slate-400">Trừ:</span>
                             <input 
-                              type="number"
-                              min="0"
-                              value={p.discount}
-                              onChange={(e) => handleUpdateProductField(p.id, 'discount', Number(e.target.value))}
+                              type="text" inputMode="numeric" value={p.discount ? p.discount.toString() : ''} onFocus={(e) => e.target.select()} onChange={(e) => { const raw = e.target.value.replace(/\D/g, '').replace(/^0+(?=\d)/, ''); handleUpdateProductField(p.id, 'discount', raw ? Number(raw) : 0); }}
                               className="w-12 text-center font-bold text-slate-800 bg-transparent outline-none"
                             />
                           </div>
@@ -774,11 +766,7 @@ export function RevenueShareClient({ products, categories, variants, users }: Pr
                             {sharingMethod === 'percentage' && (
                               <div className="flex items-center gap-1 bg-white border px-2 py-1 rounded-lg">
                                 <input 
-                                  type="number" 
-                                  min="1"
-                                  max="100"
-                                  value={r.percentage || ''}
-                                  onChange={(e) => handleUpdateRecipientValue(r.user_id, 'percentage', Number(e.target.value))}
+                                  type="text" inputMode="numeric" value={r.percentage ? r.percentage.toString() : ''} onFocus={(e) => e.target.select()} onChange={(e) => { const raw = e.target.value.replace(/\D/g, '').replace(/^0+(?=\d)/, ''); handleUpdateRecipientValue(r.user_id, 'percentage', raw ? Math.min(100, Number(raw)) : 0); }}
                                   className="w-10 text-center font-bold text-slate-800 outline-none"
                                 />
                                 <span className="text-[10px] text-slate-400">%</span>
@@ -788,11 +776,7 @@ export function RevenueShareClient({ products, categories, variants, users }: Pr
                             {sharingMethod === 'fixed' && (
                               <div className="flex items-center gap-1 bg-white border px-2 py-1 rounded-lg">
                                 <input 
-                                  type="number" 
-                                  min="1000"
-                                  step="1000"
-                                  value={r.fixed_amount || ''}
-                                  onChange={(e) => handleUpdateRecipientValue(r.user_id, 'fixed_amount', Number(e.target.value))}
+                                  type="text" inputMode="numeric" value={r.fixed_amount ? r.fixed_amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.') : ''} onFocus={(e) => e.target.select()} onChange={(e) => { const raw = e.target.value.replace(/\D/g, '').replace(/^0+(?=\d)/, ''); handleUpdateRecipientValue(r.user_id, 'fixed_amount', raw ? Number(raw) : 0); }}
                                   className="w-16 text-center font-bold text-slate-800 outline-none"
                                 />
                                 <span className="text-[10px] text-slate-400">đ</span>

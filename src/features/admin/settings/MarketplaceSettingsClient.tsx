@@ -73,7 +73,11 @@ export function MarketplaceSettingsClient({ initialFeeBps }: MarketplaceSettings
                 min="0"
                 max="100"
                 value={feePercent}
-                onChange={(e) => setFeePercent(e.target.value)}
+                onFocus={(e) => e.target.select()}
+                onChange={(e) => {
+                  const raw = e.target.value.replace(/^0+(?=\d)/, '')
+                  setFeePercent(raw)
+                }}
                 placeholder="0"
                 className="pr-10 rounded-xl font-mono text-base font-bold"
               />

@@ -525,16 +525,19 @@ export function ProductList({ initialProducts, totalCount, currentPage, searchTe
                       {shareMethod === 'percentage' && (
                         <div className="flex items-center gap-2 w-32">
                           <Input 
-                            type="number" 
-                            min={0} max={100}
-                            value={recipient.percentage || ''} 
+                            type="text"
+                            inputMode="numeric"
+                            value={recipient.percentage ? String(recipient.percentage) : ''} 
+                            onFocus={(e) => e.target.select()}
                             onChange={(e) => {
+                              const raw = e.target.value.replace(/\D/g, '').replace(/^0+(?=\d)/, '')
+                              const val = raw ? Math.min(100, parseInt(raw, 10)) : 0
                               const newRecipients = [...shareRecipients]
-                              newRecipients[idx].percentage = Number(e.target.value)
+                              newRecipients[idx].percentage = val
                               setShareRecipients(newRecipients)
                             }}
                             className="h-9 rounded-lg"
-                            placeholder="%"
+                            placeholder="0"
                           />
                           <span className="text-sm text-slate-500">%</span>
                         </div>
@@ -543,16 +546,19 @@ export function ProductList({ initialProducts, totalCount, currentPage, searchTe
                       {shareMethod === 'fixed' && (
                         <div className="flex items-center gap-2 w-40">
                           <Input 
-                            type="number" 
-                            min={0}
-                            value={recipient.fixed_amount || ''} 
+                            type="text"
+                            inputMode="numeric"
+                            value={recipient.fixed_amount ? String(recipient.fixed_amount).replace(/\B(?=(\d{3})+(?!\d))/g, ".") : ''} 
+                            onFocus={(e) => e.target.select()}
                             onChange={(e) => {
+                              const raw = e.target.value.replace(/\D/g, '').replace(/^0+(?=\d)/, '')
+                              const val = raw ? parseInt(raw, 10) : 0
                               const newRecipients = [...shareRecipients]
-                              newRecipients[idx].fixed_amount = Number(e.target.value)
+                              newRecipients[idx].fixed_amount = val
                               setShareRecipients(newRecipients)
                             }}
                             className="h-9 rounded-lg"
-                            placeholder="VNĐ"
+                            placeholder="0"
                           />
                         </div>
                       )}
