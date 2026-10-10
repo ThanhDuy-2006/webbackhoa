@@ -16,7 +16,8 @@ import {
   Trophy, 
   Store, 
   Camera, 
-  Landmark 
+  Landmark,
+  Sparkles 
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -155,6 +156,16 @@ export function NavbarClient({ user, profile }: NavbarClientProps) {
                 Bảng xếp hạng
               </Link>
               <Link 
+                href="/don-nha" 
+                className={cn(
+                  "transition-colors hover:text-emerald-600 dark:hover:text-emerald-400 flex items-center gap-1.5",
+                  pathname.startsWith('/don-nha') ? "text-emerald-600 dark:text-emerald-400" : ""
+                )}
+              >
+                <Sparkles className="w-4 h-4 text-teal-500" /> 
+                Dọn nhà
+              </Link>
+              <Link 
                 href={user ? "/tai-khoan/san-pham-cua-toi/import?scan=true" : "/login"} 
                 className="flex items-center gap-1.5 px-3 py-1 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900/40 text-amber-700 dark:text-amber-400 rounded-full border border-amber-200/80 dark:border-amber-800/80 text-xs font-semibold transition-all"
               >
@@ -243,6 +254,13 @@ export function NavbarClient({ user, profile }: NavbarClientProps) {
                     <Link href="/tai-khoan" className="flex w-full items-center text-xs">
                       <UserIcon className="mr-2 h-4 w-4 text-slate-500" />
                       <span>Thông tin tài khoản</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  
+                  <DropdownMenuItem className="rounded-xl cursor-pointer">
+                    <Link href="/don-nha" className="flex w-full items-center text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                      <Sparkles className="mr-2 h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                      <span>Phân công dọn nhà</span>
                     </Link>
                   </DropdownMenuItem>
                   

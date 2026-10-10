@@ -8,7 +8,8 @@ import {
   Landmark, 
   Percent, 
   Database, 
-  Settings 
+  Settings,
+  Sparkles 
 } from 'lucide-react'
 
 export interface AdminNavItem {
@@ -27,6 +28,7 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
     title: 'TỔNG QUAN',
     items: [
       { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
+      { name: 'Phân công dọn nhà', href: '/admin/housework', icon: Sparkles },
     ]
   },
   {

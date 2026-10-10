@@ -14,7 +14,8 @@ import {
   DollarSign, 
   ChevronRight, 
   Landmark,
-  Percent
+  Percent,
+  Sparkles
 } from 'lucide-react'
 import { logout } from '@/app/login/actions'
 import { Button } from '@/components/ui/button'
@@ -62,6 +63,7 @@ const accountNavGroups: AccountNavSection[] = [
   {
     title: 'HOẠT ĐỘNG',
     items: [
+      { name: 'Phân công dọn nhà', href: '/don-nha', icon: Sparkles },
       { name: 'Lịch sử hoạt động', href: '/tai-khoan/lich-su-chung', icon: Activity },
     ]
   }
