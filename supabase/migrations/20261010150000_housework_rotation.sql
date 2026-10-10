@@ -37,7 +37,12 @@ CREATE TABLE IF NOT EXISTS public.housework_popup_acknowledgments (
 
 CREATE INDEX IF NOT EXISTS idx_popup_ack_lookup ON public.housework_popup_acknowledgments(user_id, week_start);
 
--- 4. BẢO MẬT ROW LEVEL SECURITY (RLS)
+-- 4. CẤP QUYỀN TRUY CẬP BẢNG CHO ROLE AUTHENTICATED VÀ SERVICE_ROLE (BẮT BUỘC TRÊN SUPABASE)
+GRANT ALL ON TABLE public.housework_rotation_config TO authenticated, service_role;
+GRANT ALL ON TABLE public.housework_rotation_members TO authenticated, service_role;
+GRANT ALL ON TABLE public.housework_popup_acknowledgments TO authenticated, service_role;
+
+-- 5. BẢO MẬT ROW LEVEL SECURITY (RLS)
 ALTER TABLE public.housework_rotation_config ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.housework_rotation_members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.housework_popup_acknowledgments ENABLE ROW LEVEL SECURITY;
@@ -56,7 +61,8 @@ CREATE POLICY "Admins manage rotation config"
   ON public.housework_rotation_config
   FOR ALL
   TO authenticated
-  USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+  USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'))
+  WITH CHECK (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
 
 -- Members RLS
 DROP POLICY IF EXISTS "Authenticated users view rotation members" ON public.housework_rotation_members;
@@ -72,7 +78,8 @@ CREATE POLICY "Admins manage rotation members"
   ON public.housework_rotation_members
   FOR ALL
   TO authenticated
-  USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+  USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'))
+  WITH CHECK (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
 
 -- Popup Acknowledgments RLS
 DROP POLICY IF EXISTS "Users can view own popup acknowledgments" ON public.housework_popup_acknowledgments;
@@ -97,6 +104,6 @@ CREATE POLICY "Admins can view all popup acknowledgments"
   TO authenticated
   USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
 
--- 5. LÀM MỚI SCHEMA CACHE CỦA POSTGREST / SUPABASE
+-- 6. LÀM MỚI SCHEMA CACHE CỦA POSTGREST / SUPABASE
 NOTIFY pgrst, 'reload schema';
 
