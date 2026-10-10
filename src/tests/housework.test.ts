@@ -101,4 +101,40 @@ describe('Housework Assignment Rotation Logic', () => {
     expect(rotated[2].assignee).toBe('user_B')
     expect(rotated[3].assignee).toBe('user_A')
   })
+
+  it('calculates automated weekly rotation accurately according to prompt specification', async () => {
+    const { getSaturdayOfWeek, formatDayMonthYear, getRotationAssigneeForWeek } = await import('@/lib/housework-date')
+
+    const members = [
+      { name: 'Duy', id: '1' },
+      { name: 'Huy', id: '2' },
+      { name: 'Nam', id: '3' }
+    ]
+
+    const startDate = '2026-10-12' // Monday
+
+    // Week 1: 12/10 – 18/10/2026 -> Duy (17/10 và 18/10)
+    const week1 = getRotationAssigneeForWeek('2026-10-12', startDate, members)
+    expect(week1.assignee?.name).toBe('Duy')
+    expect(formatDayMonthYear(getSaturdayOfWeek('2026-10-12'))).toBe('17/10/2026')
+    expect(formatDayMonthYear(getSundayOfWeek('2026-10-12'))).toBe('18/10/2026')
+
+    // Week 2: 19/10 – 25/10/2026 -> Huy (24/10 và 25/10)
+    const week2 = getRotationAssigneeForWeek('2026-10-19', startDate, members)
+    expect(week2.assignee?.name).toBe('Huy')
+    expect(formatDayMonthYear(getSaturdayOfWeek('2026-10-19'))).toBe('24/10/2026')
+    expect(formatDayMonthYear(getSundayOfWeek('2026-10-19'))).toBe('25/10/2026')
+
+    // Week 3: 26/10 – 01/11/2026 -> Nam (31/10 và 01/11)
+    const week3 = getRotationAssigneeForWeek('2026-10-26', startDate, members)
+    expect(week3.assignee?.name).toBe('Nam')
+    expect(formatDayMonthYear(getSaturdayOfWeek('2026-10-26'))).toBe('31/10/2026')
+    expect(formatDayMonthYear(getSundayOfWeek('2026-10-26'))).toBe('01/11/2026')
+
+    // Week 4: 02/11 – 08/11/2026 -> Duy (07/11 và 08/11) - vòng lặp quay lại Duy
+    const week4 = getRotationAssigneeForWeek('2026-11-02', startDate, members)
+    expect(week4.assignee?.name).toBe('Duy')
+    expect(formatDayMonthYear(getSaturdayOfWeek('2026-11-02'))).toBe('07/11/2026')
+    expect(formatDayMonthYear(getSundayOfWeek('2026-11-02'))).toBe('08/11/2026')
+  })
 })

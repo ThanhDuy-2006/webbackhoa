@@ -5,14 +5,21 @@ import {
   HouseworkWeekSummary, 
   MemberHouseworkStat,
   CreateHouseworkTaskInput, 
-  UpdateHouseworkTaskInput 
+  UpdateHouseworkTaskInput,
+  HouseworkRotationConfig,
+  HouseworkRotationMember,
+  WeekDutySchedule,
+  PopupCheckResult
 } from '@/types/housework.type'
 import { 
   getMondayOfWeek, 
   getSundayOfWeek, 
   parseDateSafe, 
   formatDateSafe, 
-  shiftWeekMonday 
+  shiftWeekMonday,
+  getSaturdayOfWeek,
+  formatDayMonthYear,
+  getRotationAssigneeForWeek
 } from '@/lib/housework-date'
 import { addDays, differenceInCalendarDays } from 'date-fns'
 
@@ -466,5 +473,233 @@ export const HouseworkRepository = {
     }
 
     return { success: true, data }
+  },
+
+  /**
+   * Fetches rotation configuration and ordered members
+   */
+  async getRotationConfigAndMembers(): Promise<{ config: HouseworkRotationConfig; members: HouseworkRotationMember[] }> {
+    const supabase = await createClient()
+
+    try {
+      // 1. Fetch config
+      const { data: configData } = await supabase
+        .from('housework_rotation_config')
+        .select('*')
+        .eq('id', 'default')
+        .maybeSingle()
+
+      const config: HouseworkRotationConfig = configData || {
+        id: 'default',
+        start_date: '2026-10-12',
+        updated_at: new Date().toISOString()
+      }
+
+      // 2. Fetch members ordered by order_index
+      const { data: membersData, error: membersError } = await supabase
+        .from('housework_rotation_members')
+        .select(`
+          id,
+          user_id,
+          order_index,
+          created_at,
+          profile:profiles(id, full_name, avatar_url, email)
+        `)
+        .order('order_index', { ascending: true })
+
+      if (membersError) {
+        console.error('Lỗi lấy danh sách thành viên luân phiên:', membersError)
+        return { config, members: [] }
+      }
+
+      return {
+        config,
+        members: (membersData as any) || []
+      }
+    } catch (err) {
+      console.error('Lỗi truy vấn bảng luân phiên dọn nhà:', err)
+      return {
+        config: { id: 'default', start_date: '2026-10-12', updated_at: new Date().toISOString() },
+        members: []
+      }
+    }
+  },
+
+  /**
+   * Saves rotation configuration and members list in order (Admin only)
+   */
+  async saveRotationConfig(startDate: string, memberUserIds: string[]): Promise<{ success: boolean; error?: string }> {
+    const supabase = await createClient()
+
+    try {
+      // 1. Upsert config
+      const { error: configError } = await supabase
+        .from('housework_rotation_config')
+        .upsert({
+          id: 'default',
+          start_date: startDate,
+          updated_at: new Date().toISOString()
+        })
+
+      if (configError) {
+        console.error('Lỗi lưu cấu hình luân phiên:', configError)
+        return { success: false, error: configError.message }
+      }
+
+      // 2. Clear old members
+      const { error: deleteError } = await supabase
+        .from('housework_rotation_members')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000')
+
+      if (deleteError) {
+        console.error('Lỗi xóa danh sách thành viên luân phiên cũ:', deleteError)
+        return { success: false, error: deleteError.message }
+      }
+
+      // 3. Insert new ordered members
+      if (memberUserIds.length > 0) {
+        const records = memberUserIds.map((userId, index) => ({
+          user_id: userId,
+          order_index: index + 1
+        }))
+
+        const { error: insertError } = await supabase
+          .from('housework_rotation_members')
+          .insert(records)
+
+        if (insertError) {
+          console.error('Lỗi thêm danh sách thành viên luân phiên mới:', insertError)
+          return { success: false, error: insertError.message }
+        }
+      }
+
+      return { success: true }
+    } catch (err: any) {
+      console.error('Lỗi ngoại lệ khi lưu cấu hình luân phiên:', err)
+      return { success: false, error: err.message || 'Lỗi lưu cấu hình' }
+    }
+  },
+
+  /**
+   * Computes the duty schedule for current and upcoming weeks
+   */
+  async getRotationSchedule(numberOfWeeks: number = 8, currentUserId?: string): Promise<WeekDutySchedule[]> {
+    const { config, members } = await this.getRotationConfigAndMembers()
+    const currentWeekMonday = getMondayOfWeek()
+
+    const schedules: WeekDutySchedule[] = []
+
+    for (let i = 0; i < numberOfWeeks; i++) {
+      const targetMonday = shiftWeekMonday(currentWeekMonday, i)
+      const targetSunday = getSundayOfWeek(targetMonday)
+      const saturday = getSaturdayOfWeek(targetMonday)
+      
+      const { assignee } = getRotationAssigneeForWeek(
+        targetMonday,
+        config.start_date,
+        members
+      )
+
+      const assigneeProfile = assignee?.profile || null
+      const isCurrent = i === 0
+      const isNext = i === 1
+      const isUserDuty = Boolean(currentUserId && assigneeProfile && assigneeProfile.id === currentUserId)
+
+      schedules.push({
+        week_start: targetMonday,
+        week_end: targetSunday,
+        week_range: `${formatDayMonthYear(targetMonday)} – ${formatDayMonthYear(targetSunday)}`,
+        saturday_date: saturday,
+        saturday_display: formatDayMonthYear(saturday),
+        sunday_date: targetSunday,
+        sunday_display: formatDayMonthYear(targetSunday),
+        assignee: assigneeProfile,
+        is_current_week: isCurrent,
+        is_next_week: isNext,
+        is_user_duty: isUserDuty
+      })
+    }
+
+    return schedules
+  },
+
+  /**
+   * Checks if the current logged-in user is on duty this week and hasn't acknowledged the popup
+   */
+  async checkUserPopupDuty(userId: string): Promise<PopupCheckResult> {
+    try {
+      const supabase = await createClient()
+      const currentWeekMonday = getMondayOfWeek()
+      const { config, members } = await this.getRotationConfigAndMembers()
+
+      if (!members || members.length === 0) {
+        return { should_show: false }
+      }
+
+      const { assignee } = getRotationAssigneeForWeek(
+        currentWeekMonday,
+        config.start_date,
+        members
+      )
+
+      if (!assignee || assignee.user_id !== userId) {
+        return { should_show: false }
+      }
+
+      // Check if user has already acknowledged for this week in database
+      const { data: ack } = await supabase
+        .from('housework_popup_acknowledgments')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('week_start', currentWeekMonday)
+        .maybeSingle()
+
+      if (ack) {
+        return { should_show: false }
+      }
+
+      const saturday = getSaturdayOfWeek(currentWeekMonday)
+      const sunday = getSundayOfWeek(currentWeekMonday)
+      const memberName = assignee.profile?.full_name || assignee.profile?.email?.split('@')[0] || 'Bạn'
+
+      return {
+        should_show: true,
+        week_start: currentWeekMonday,
+        member_name: memberName,
+        saturday_display: formatDayMonthYear(saturday),
+        sunday_display: formatDayMonthYear(sunday)
+      }
+    } catch (err) {
+      console.error('Lỗi kiểm tra popup dọn nhà:', err)
+      return { should_show: false }
+    }
+  },
+
+  /**
+   * Acknowledges the duty popup for the user in the current week
+   */
+  async acknowledgePopupDuty(userId: string, weekStart: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const supabase = await createClient()
+
+      const { error } = await supabase
+        .from('housework_popup_acknowledgments')
+        .insert({
+          user_id: userId,
+          week_start: weekStart
+        })
+
+      if (error && error.code !== '23505') {
+        console.error('Lỗi lưu trạng thái đã xem popup dọn nhà:', error)
+        return { success: false, error: error.message }
+      }
+
+      return { success: true }
+    } catch (err: any) {
+      console.error('Lỗi ngoại lệ khi lưu trạng thái popup:', err)
+      return { success: true }
+    }
   }
 }
+

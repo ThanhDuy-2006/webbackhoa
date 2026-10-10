@@ -220,3 +220,81 @@ export async function getHouseworkHistoryAction() {
     return { success: false, error: error.message || 'Lỗi khi tải lịch sử' }
   }
 }
+
+/**
+ * Gets duty rotation schedule for current and upcoming weeks
+ */
+export async function getHouseworkRotationScheduleAction(numberOfWeeks: number = 8) {
+  try {
+    const { user } = await assertAuthenticatedUser()
+
+    const [schedule, { config, members }] = await Promise.all([
+      HouseworkRepository.getRotationSchedule(numberOfWeeks, user.id),
+      HouseworkRepository.getRotationConfigAndMembers()
+    ])
+
+    return {
+      success: true,
+      data: {
+        schedule,
+        config,
+        members
+      }
+    }
+  } catch (error: any) {
+    console.error('Lỗi lấy lịch phân công luân phiên:', error)
+    return { success: false, error: error.message || 'Lỗi khi tải lịch luân phiên' }
+  }
+}
+
+/**
+ * Saves rotation configuration and ordered members (Admin only)
+ */
+export async function saveHouseworkRotationConfigAction(startDate: string, memberUserIds: string[]) {
+  try {
+    await assertAdmin()
+
+    if (!startDate) {
+      return { success: false, error: 'Vui lòng chọn ngày bắt đầu áp dụng lịch' }
+    }
+
+    const result = await HouseworkRepository.saveRotationConfig(startDate, memberUserIds)
+
+    if (result.success) {
+      revalidatePath('/don-nha')
+      revalidatePath('/admin/housework')
+    }
+
+    return result
+  } catch (error: any) {
+    console.error('Lỗi lưu cấu hình luân phiên dọn nhà:', error)
+    return { success: false, error: error.message || 'Lỗi khi lưu cấu hình' }
+  }
+}
+
+/**
+ * Checks if the current logged-in user has duty this week and hasn't acknowledged the popup
+ */
+export async function checkHouseworkDutyPopupAction() {
+  try {
+    const { user } = await assertAuthenticatedUser()
+    const result = await HouseworkRepository.checkUserPopupDuty(user.id)
+    return { success: true, data: result }
+  } catch (error: any) {
+    return { success: false, data: { should_show: false } }
+  }
+}
+
+/**
+ * User acknowledges duty popup for the week
+ */
+export async function acknowledgeHouseworkDutyAction(weekStart: string) {
+  try {
+    const { user } = await assertAuthenticatedUser()
+    const result = await HouseworkRepository.acknowledgePopupDuty(user.id, weekStart)
+    return result
+  } catch (error: any) {
+    console.error('Lỗi ghi nhận popup dọn nhà:', error)
+    return { success: false, error: error.message || 'Lỗi ghi nhận' }
+  }
+}

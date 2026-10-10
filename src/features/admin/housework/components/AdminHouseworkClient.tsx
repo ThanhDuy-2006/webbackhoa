@@ -6,7 +6,9 @@ import Link from 'next/link'
 import { 
   HouseworkTask, 
   HouseworkWeekSummary, 
-  HouseworkSettings 
+  HouseworkSettings,
+  HouseworkRotationConfig,
+  HouseworkRotationMember
 } from '@/types/housework.type'
 import { 
   formatWeekRange, 
@@ -18,6 +20,7 @@ import {
 } from '@/lib/housework-date'
 import { HouseworkTaskDialog } from './HouseworkTaskDialog'
 import { DeleteTaskDialog } from './DeleteTaskDialog'
+import { AdminRotationManager } from './AdminRotationManager'
 import { 
   deleteHouseworkTaskAction, 
   copyTasksFromPreviousWeekAction, 
@@ -49,6 +52,8 @@ interface AdminHouseworkClientProps {
   initialTasks: HouseworkTask[]
   initialSummary: HouseworkWeekSummary
   initialSettings: HouseworkSettings
+  initialRotationConfig?: HouseworkRotationConfig
+  initialRotationMembers?: HouseworkRotationMember[]
   weekStart: string
   users: Array<{
     id: string
@@ -62,10 +67,13 @@ export function AdminHouseworkClient({
   initialTasks,
   initialSummary,
   initialSettings,
+  initialRotationConfig,
+  initialRotationMembers,
   weekStart,
   users
 }: AdminHouseworkClientProps) {
   const router = useRouter()
+  const [activeTab, setActiveTab] = useState<'rotation' | 'tasks'>('rotation')
   const [tasks, setTasks] = useState<HouseworkTask[]>(initialTasks)
   const [summary, setSummary] = useState<HouseworkWeekSummary>(initialSummary)
   const [autoRotate, setAutoRotate] = useState<boolean>(initialSettings.auto_rotate)
@@ -210,26 +218,67 @@ export function AdminHouseworkClient({
             </Button>
           </Link>
 
-          <Button
-            size="sm"
-            onClick={() => {
-              setEditingTask(null)
-              setIsTaskDialogOpen(true)
-            }}
-            className="rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs cursor-pointer"
-          >
-            <Plus className="w-4 h-4 mr-1" /> Thêm công việc
-          </Button>
+          {activeTab === 'tasks' && (
+            <Button
+              size="sm"
+              onClick={() => {
+                setEditingTask(null)
+                setIsTaskDialogOpen(true)
+              }}
+              className="rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs cursor-pointer"
+            >
+              <Plus className="w-4 h-4 mr-1" /> Thêm công việc
+            </Button>
+          )}
         </div>
       </div>
 
-      {/* Week Selector & Action Toolbar */}
-      <div className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs space-y-4">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          {/* Week navigation */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <Button
-              variant="outline"
+      {/* Tab Switcher */}
+      <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800/80 p-1.5 rounded-2xl w-fit">
+        <button
+          type="button"
+          onClick={() => setActiveTab('rotation')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            activeTab === 'rotation'
+              ? 'bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-xs'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+          }`}
+        >
+          <Sparkles className="w-4 h-4" />
+          <span>Lịch luân phiên theo tuần (Tự động)</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('tasks')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            activeTab === 'tasks'
+              ? 'bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-xs'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+          }`}
+        >
+          <Calendar className="w-4 h-4" />
+          <span>Danh sách công việc chi tiết</span>
+        </button>
+      </div>
+
+      {activeTab === 'rotation' && (
+        <AdminRotationManager
+          users={users}
+          initialConfig={initialRotationConfig || { id: 'default', start_date: '2026-10-12', updated_at: '' }}
+          initialMembers={initialRotationMembers || []}
+        />
+      )}
+
+      {activeTab === 'tasks' && (
+        <>
+          {/* Week Selector & Action Toolbar */}
+          <div className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs space-y-4">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              {/* Week navigation */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <Button
+                  variant="outline"
               size="sm"
               onClick={() => handleNavigateWeek(shiftWeekMonday(weekStart, -1))}
               className="rounded-xl border-slate-200 dark:border-slate-800 h-9 px-3"
@@ -542,6 +591,8 @@ export function AdminHouseworkClient({
         onConfirm={handleDeleteConfirm}
         loading={deleteLoading}
       />
-    </div>
+    </>
+  )}
+</div>
   )
 }

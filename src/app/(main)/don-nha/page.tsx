@@ -5,8 +5,8 @@ import { getMondayOfWeek } from '@/lib/housework-date'
 import { HouseworkClient } from '@/features/housework/components/HouseworkClient'
 
 export const metadata = {
-  title: 'Phân công dọn nhà | Bách Hóa',
-  description: 'Bảng phân công trách nhiệm dọn dẹp không gian chung gia đình theo tuần'
+  title: 'Lịch dọn nhà | Bách Hóa',
+  description: 'Lịch phân công luân phiên dọn dẹp không gian chung gia đình theo tuần'
 }
 
 interface PageProps {
@@ -34,9 +34,10 @@ export default async function HouseworkPage({ searchParams }: PageProps) {
   const resolvedParams = await searchParams
   const weekStart = resolvedParams?.week ? getMondayOfWeek(resolvedParams.week) : getMondayOfWeek()
 
-  const [tasks, summary] = await Promise.all([
+  const [tasks, summary, rotationSchedules] = await Promise.all([
     HouseworkRepository.getTasksByWeek(weekStart),
     HouseworkRepository.getWeekSummary(weekStart),
+    HouseworkRepository.getRotationSchedule(8, user.id)
   ])
 
   return (
@@ -44,6 +45,7 @@ export default async function HouseworkPage({ searchParams }: PageProps) {
       <HouseworkClient
         initialTasks={tasks}
         initialSummary={summary}
+        rotationSchedules={rotationSchedules}
         weekStart={weekStart}
         currentUserId={user.id}
         isAdmin={isAdmin}

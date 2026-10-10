@@ -163,7 +163,7 @@ export function NavbarClient({ user, profile }: NavbarClientProps) {
                 )}
               >
                 <Sparkles className="w-4 h-4 text-teal-500" /> 
-                Dọn nhà
+                Lịch dọn nhà
               </Link>
               <Link 
                 href={user ? "/tai-khoan/san-pham-cua-toi/import?scan=true" : "/login"} 
@@ -260,7 +260,7 @@ export function NavbarClient({ user, profile }: NavbarClientProps) {
                   <DropdownMenuItem className="rounded-xl cursor-pointer">
                     <Link href="/don-nha" className="flex w-full items-center text-xs font-medium text-emerald-600 dark:text-emerald-400">
                       <Sparkles className="mr-2 h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                      <span>Phân công dọn nhà</span>
+                      <span>Lịch dọn nhà</span>
                     </Link>
                   </DropdownMenuItem>
                   

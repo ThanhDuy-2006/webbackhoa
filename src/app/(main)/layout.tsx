@@ -1,6 +1,7 @@
 import { Navbar } from '@/components/layout/Navbar'
 import { Footer } from '@/components/layout/Footer'
 import { PageTransition } from '@/components/ui/PageTransition'
+import { HouseworkDutyPopup } from '@/components/housework/HouseworkDutyPopup'
 
 export default function MainLayout({
   children,
@@ -16,6 +17,7 @@ export default function MainLayout({
         </PageTransition>
       </main>
       <Footer />
+      <HouseworkDutyPopup />
     </div>
   )
 }

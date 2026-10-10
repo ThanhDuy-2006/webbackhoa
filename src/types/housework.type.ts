@@ -68,3 +68,40 @@ export interface UpdateHouseworkTaskInput {
   task_date?: string
   note?: string | null
 }
+
+export interface HouseworkRotationConfig {
+  id: string
+  start_date: string // YYYY-MM-DD
+  updated_at: string
+}
+
+export interface HouseworkRotationMember {
+  id: string
+  user_id: string
+  order_index: number
+  created_at: string
+  profile?: HouseworkAssignee | null
+}
+
+export interface WeekDutySchedule {
+  week_start: string // YYYY-MM-DD (Monday)
+  week_end: string // YYYY-MM-DD (Sunday)
+  week_range: string // e.g. "12/10 – 18/10/2026"
+  saturday_date: string // YYYY-MM-DD
+  saturday_display: string // "17/10/2026"
+  sunday_date: string // YYYY-MM-DD
+  sunday_display: string // "18/10/2026"
+  assignee: HouseworkAssignee | null
+  is_current_week: boolean
+  is_next_week: boolean
+  is_user_duty: boolean
+}
+
+export interface PopupCheckResult {
+  should_show: boolean
+  week_start?: string
+  member_name?: string
+  saturday_display?: string
+  sunday_display?: string
+}
+

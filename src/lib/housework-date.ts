@@ -1,4 +1,4 @@
-import { startOfWeek, addDays, subWeeks, addWeeks, format, parseISO } from 'date-fns'
+import { startOfWeek, addDays, subWeeks, addWeeks, format, parseISO, differenceInCalendarWeeks } from 'date-fns'
 import { vi } from 'date-fns/locale'
 
 /**
@@ -133,3 +133,44 @@ export function formatFullDayVietnamese(dateStr: string): string {
 export function isToday(dateStr: string): boolean {
   return dateStr === getVietnamTodayString()
 }
+
+/**
+ * Gets the Saturday of the week (YYYY-MM-DD)
+ */
+export function getSaturdayOfWeek(mondayStr: string): string {
+  const monday = parseDateSafe(mondayStr)
+  return formatDateSafe(addDays(monday, 5))
+}
+
+/**
+ * Formats date into DD/MM/YYYY
+ */
+export function formatDayMonthYear(dateStr: string): string {
+  const date = parseDateSafe(dateStr)
+  return format(date, 'dd/MM/yyyy')
+}
+
+/**
+ * Calculates the assigned member for a specific week based on rotation rules
+ */
+export function getRotationAssigneeForWeek<T>(
+  targetWeekMonday: string,
+  startWeekMonday: string,
+  members: T[]
+): { assignee: T | null; weeksElapsed: number; index: number } {
+  if (!members || members.length === 0) {
+    return { assignee: null, weeksElapsed: 0, index: -1 }
+  }
+
+  const targetMon = parseDateSafe(targetWeekMonday)
+  const startMon = parseDateSafe(startWeekMonday)
+  const weeksElapsed = differenceInCalendarWeeks(targetMon, startMon, { weekStartsOn: 1 })
+  const index = ((weeksElapsed % members.length) + members.length) % members.length
+
+  return {
+    assignee: members[index],
+    weeksElapsed,
+    index
+  }
+}
+

@@ -3,20 +3,22 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { HouseworkTask, HouseworkWeekSummary } from '@/types/housework.type'
+import { HouseworkTask, HouseworkWeekSummary, WeekDutySchedule } from '@/types/housework.type'
 import { formatWeekRange, shiftWeekMonday, getMondayOfWeek, getVietnamTodayString } from '@/lib/housework-date'
 import { HouseworkStatsCard } from './HouseworkStatsCard'
 import { MyTasksSection } from './MyTasksSection'
 import { FamilyTasksTable } from './FamilyTasksTable'
 import { HouseworkHistoryDialog } from './HouseworkHistoryDialog'
+import { HouseworkScheduleView } from './HouseworkScheduleView'
 import { toggleTaskStatusAction } from '@/actions/housework.actions'
-import { ChevronLeft, ChevronRight, Calendar, History, Settings, Sparkles } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Calendar, History, Settings, Sparkles, CheckSquare } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 
 interface HouseworkClientProps {
   initialTasks: HouseworkTask[]
   initialSummary: HouseworkWeekSummary
+  rotationSchedules?: WeekDutySchedule[]
   weekStart: string
   currentUserId: string
   isAdmin: boolean
@@ -25,11 +27,13 @@ interface HouseworkClientProps {
 export function HouseworkClient({
   initialTasks,
   initialSummary,
+  rotationSchedules = [],
   weekStart,
   currentUserId,
   isAdmin
 }: HouseworkClientProps) {
   const router = useRouter()
+  const [activeTab, setActiveTab] = useState<'schedule' | 'tasks'>('schedule')
   const [tasks, setTasks] = useState<HouseworkTask[]>(initialTasks)
   const [summary, setSummary] = useState<HouseworkWeekSummary>(initialSummary)
   const [togglingId, setTogglingId] = useState<string | null>(null)
@@ -108,11 +112,11 @@ export function HouseworkClient({
               <Sparkles className="w-5 h-5" />
             </span>
             <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
-              Phân công dọn nhà
+              Lịch dọn nhà
             </h1>
           </div>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Theo dõi trách nhiệm dọn dẹp và giữ gìn không gian chung của các thành viên trong gia đình
+            Lịch phân công luân phiên dọn dẹp không gian chung gia đình vào Thứ Bảy & Chủ nhật hàng tuần
           </p>
         </div>
 
@@ -140,68 +144,108 @@ export function HouseworkClient({
         </div>
       </div>
 
-      {/* Week Selector Bar */}
-      <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-3">
-        <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-start">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleNavigateWeek(shiftWeekMonday(weekStart, -1))}
-            className="rounded-xl border-slate-200 dark:border-slate-800 h-9 px-3 cursor-pointer"
-            title="Xem tuần trước"
-          >
-            <ChevronLeft className="w-4 h-4 mr-1" /> Tuần trước
-          </Button>
+      {/* Tab Switcher */}
+      <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800/80 p-1.5 rounded-2xl w-fit">
+        <button
+          type="button"
+          onClick={() => setActiveTab('schedule')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            activeTab === 'schedule'
+              ? 'bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-xs'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+          }`}
+        >
+          <Sparkles className="w-4 h-4" />
+          <span>Lịch dọn nhà luân phiên</span>
+        </button>
 
-          <div className="flex items-center gap-2 font-mono font-bold text-xs sm:text-sm text-slate-800 dark:text-slate-200 bg-slate-50 dark:bg-slate-800/60 px-3.5 py-1.5 rounded-xl border border-slate-200/60 dark:border-slate-700">
-            <Calendar className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-            <span>{formatWeekRange(weekStart)}</span>
-          </div>
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleNavigateWeek(shiftWeekMonday(weekStart, 1))}
-            className="rounded-xl border-slate-200 dark:border-slate-800 h-9 px-3 cursor-pointer"
-            title="Xem tuần sau"
-          >
-            Tuần sau <ChevronRight className="w-4 h-4 ml-1" />
-          </Button>
-        </div>
-
-        {/* Current week quick jump button */}
-        {!isCurrentWeek && (
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => handleNavigateWeek(currentRealMonday)}
-            className="rounded-xl text-xs font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/60 cursor-pointer"
-          >
-            Về tuần hiện tại
-          </Button>
-        )}
+        <button
+          type="button"
+          onClick={() => setActiveTab('tasks')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            activeTab === 'tasks'
+              ? 'bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-xs'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+          }`}
+        >
+          <CheckSquare className="w-4 h-4" />
+          <span>Chi tiết công việc tuần</span>
+        </button>
       </div>
 
-      {/* Family Progress Card */}
-      <HouseworkStatsCard summary={summary} />
+      {activeTab === 'schedule' && (
+        <HouseworkScheduleView
+          schedules={rotationSchedules}
+          currentUserId={currentUserId}
+        />
+      )}
 
-      {/* My Tasks Section */}
-      <MyTasksSection
-        tasks={tasks}
-        currentUserId={currentUserId}
-        onToggleStatus={handleToggleStatus}
-        togglingId={togglingId}
-      />
+      {activeTab === 'tasks' && (
+        <>
+          {/* Week Selector Bar */}
+          <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-start">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleNavigateWeek(shiftWeekMonday(weekStart, -1))}
+                className="rounded-xl border-slate-200 dark:border-slate-800 h-9 px-3 cursor-pointer"
+                title="Xem tuần trước"
+              >
+                <ChevronLeft className="w-4 h-4 mr-1" /> Tuần trước
+              </Button>
 
-      {/* Family Tasks Full Table */}
-      <FamilyTasksTable
-        tasks={tasks}
-        weekStart={weekStart}
-        currentUserId={currentUserId}
-        isAdmin={isAdmin}
-        onToggleStatus={handleToggleStatus}
-        togglingId={togglingId}
-      />
+              <div className="flex items-center gap-2 font-mono font-bold text-xs sm:text-sm text-slate-800 dark:text-slate-200 bg-slate-50 dark:bg-slate-800/60 px-3.5 py-1.5 rounded-xl border border-slate-200/60 dark:border-slate-700">
+                <Calendar className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <span>{formatWeekRange(weekStart)}</span>
+              </div>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleNavigateWeek(shiftWeekMonday(weekStart, 1))}
+                className="rounded-xl border-slate-200 dark:border-slate-800 h-9 px-3 cursor-pointer"
+                title="Xem tuần sau"
+              >
+                Tuần sau <ChevronRight className="w-4 h-4 ml-1" />
+              </Button>
+            </div>
+
+            {/* Current week quick jump button */}
+            {!isCurrentWeek && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => handleNavigateWeek(currentRealMonday)}
+                className="rounded-xl text-xs font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/60 cursor-pointer"
+              >
+                Về tuần hiện tại
+              </Button>
+            )}
+          </div>
+
+          {/* Family Progress Card */}
+          <HouseworkStatsCard summary={summary} />
+
+          {/* My Tasks Section */}
+          <MyTasksSection
+            tasks={tasks}
+            currentUserId={currentUserId}
+            onToggleStatus={handleToggleStatus}
+            togglingId={togglingId}
+          />
+
+          {/* Family Tasks Full Table */}
+          <FamilyTasksTable
+            tasks={tasks}
+            weekStart={weekStart}
+            currentUserId={currentUserId}
+            isAdmin={isAdmin}
+            onToggleStatus={handleToggleStatus}
+            togglingId={togglingId}
+          />
+        </>
+      )}
 
       {/* History Dialog */}
       <HouseworkHistoryDialog

@@ -20,15 +20,16 @@ export default async function AdminHouseworkPage({ searchParams }: PageProps) {
   const resolvedParams = await searchParams
   const weekStart = resolvedParams?.week ? getMondayOfWeek(resolvedParams.week) : getMondayOfWeek()
 
-  // Fetch tasks, summary, settings and real user profiles in parallel
-  const [tasks, summary, settings, usersResult] = await Promise.all([
+  // Fetch tasks, summary, settings, rotation config and real user profiles in parallel
+  const [tasks, summary, settings, usersResult, rotationData] = await Promise.all([
     HouseworkRepository.getTasksByWeek(weekStart),
     HouseworkRepository.getWeekSummary(weekStart),
     HouseworkRepository.getSettings(),
     supabase
       .from('profiles')
       .select('id, full_name, email, avatar_url')
-      .order('full_name', { ascending: true })
+      .order('full_name', { ascending: true }),
+    HouseworkRepository.getRotationConfigAndMembers()
   ])
 
   const users = usersResult.data || []
@@ -39,6 +40,8 @@ export default async function AdminHouseworkPage({ searchParams }: PageProps) {
         initialTasks={tasks}
         initialSummary={summary}
         initialSettings={settings}
+        initialRotationConfig={rotationData.config}
+        initialRotationMembers={rotationData.members}
         weekStart={weekStart}
         users={users}
       />
