@@ -543,6 +543,12 @@ export const HouseworkRepository = {
 
       if (configError) {
         console.error('Lỗi lưu cấu hình luân phiên:', configError)
+        if (configError.message?.includes('schema cache') || configError.message?.includes('does not exist')) {
+          return { 
+            success: false, 
+            error: "Bảng dữ liệu 'housework_rotation_config' chưa được tạo trên Supabase. Vui lòng chạy file migration SQL trong Supabase SQL Editor!" 
+          }
+        }
         return { success: false, error: configError.message }
       }
 
@@ -554,6 +560,12 @@ export const HouseworkRepository = {
 
       if (deleteError) {
         console.error('Lỗi xóa danh sách thành viên luân phiên cũ:', deleteError)
+        if (deleteError.message?.includes('schema cache') || deleteError.message?.includes('does not exist')) {
+          return { 
+            success: false, 
+            error: "Bảng dữ liệu 'housework_rotation_members' chưa được tạo trên Supabase. Vui lòng chạy file migration SQL trong Supabase SQL Editor!" 
+          }
+        }
         return { success: false, error: deleteError.message }
       }
 

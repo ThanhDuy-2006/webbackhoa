@@ -24,12 +24,109 @@ import {
   Save, 
   RotateCcw,
   CheckCircle2,
-  Clock
+  Clock,
+  Database,
+  Copy,
+  Check
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog'
 import { toast } from 'sonner'
+
+const SQL_SETUP_CODE = `-- 1. BẢNG CẤU HÌNH LUÂN PHIÊN (housework_rotation_config)
+CREATE TABLE IF NOT EXISTS public.housework_rotation_config (
+  id TEXT PRIMARY KEY DEFAULT 'default' CHECK (id = 'default'),
+  start_date DATE NOT NULL DEFAULT '2026-10-12',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+INSERT INTO public.housework_rotation_config (id, start_date)
+VALUES ('default', '2026-10-12')
+ON CONFLICT (id) DO NOTHING;
+
+-- 2. BẢNG THÀNH VIÊN VÀ THỨ TỰ LUÂN PHIÊN (housework_rotation_members)
+CREATE TABLE IF NOT EXISTS public.housework_rotation_members (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  order_index INT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+  CONSTRAINT uq_rotation_user UNIQUE (user_id),
+  CONSTRAINT uq_rotation_order UNIQUE (order_index)
+);
+
+CREATE INDEX IF NOT EXISTS idx_rotation_members_order ON public.housework_rotation_members(order_index ASC);
+
+-- 3. BẢNG LƯU TRẠNG THÁI ĐÃ XEM POPUP THEO TUẦN (housework_popup_acknowledgments)
+CREATE TABLE IF NOT EXISTS public.housework_popup_acknowledgments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  week_start DATE NOT NULL,
+  acknowledged_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+  CONSTRAINT uq_popup_ack UNIQUE (user_id, week_start)
+);
+
+CREATE INDEX IF NOT EXISTS idx_popup_ack_lookup ON public.housework_popup_acknowledgments(user_id, week_start);
+
+-- 4. BẢO MẬT ROW LEVEL SECURITY (RLS)
+ALTER TABLE public.housework_rotation_config ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.housework_rotation_members ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.housework_popup_acknowledgments ENABLE ROW LEVEL SECURITY;
+
+-- Config RLS
+DROP POLICY IF EXISTS "Authenticated users view rotation config" ON public.housework_rotation_config;
+DROP POLICY IF EXISTS "Admins manage rotation config" ON public.housework_rotation_config;
+
+CREATE POLICY "Authenticated users view rotation config"
+  ON public.housework_rotation_config
+  FOR SELECT TO authenticated USING (true);
+
+CREATE POLICY "Admins manage rotation config"
+  ON public.housework_rotation_config
+  FOR ALL TO authenticated
+  USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+-- Members RLS
+DROP POLICY IF EXISTS "Authenticated users view rotation members" ON public.housework_rotation_members;
+DROP POLICY IF EXISTS "Admins manage rotation members" ON public.housework_rotation_members;
+
+CREATE POLICY "Authenticated users view rotation members"
+  ON public.housework_rotation_members
+  FOR SELECT TO authenticated USING (true);
+
+CREATE POLICY "Admins manage rotation members"
+  ON public.housework_rotation_members
+  FOR ALL TO authenticated
+  USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+-- Popup Acknowledgments RLS
+DROP POLICY IF EXISTS "Users can view own popup acknowledgments" ON public.housework_popup_acknowledgments;
+DROP POLICY IF EXISTS "Users can acknowledge own popup" ON public.housework_popup_acknowledgments;
+DROP POLICY IF EXISTS "Admins can view all popup acknowledgments" ON public.housework_popup_acknowledgments;
+
+CREATE POLICY "Users can view own popup acknowledgments"
+  ON public.housework_popup_acknowledgments
+  FOR SELECT TO authenticated USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can acknowledge own popup"
+  ON public.housework_popup_acknowledgments
+  FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Admins can view all popup acknowledgments"
+  ON public.housework_popup_acknowledgments
+  FOR SELECT TO authenticated
+  USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+-- 5. LÀM MỚI SCHEMA CACHE POSTGREST
+NOTIFY pgrst, 'reload schema';`
 
 interface AdminRotationManagerProps {
   users: Array<{
@@ -56,6 +153,15 @@ export function AdminRotationManager({
   )
   const [newMemberId, setNewMemberId] = useState<string>('')
   const [saving, setSaving] = useState(false)
+  const [isSqlDialogOpen, setIsSqlDialogOpen] = useState(false)
+  const [copiedSql, setCopiedSql] = useState(false)
+
+  const handleCopySql = () => {
+    navigator.clipboard.writeText(SQL_SETUP_CODE)
+    setCopiedSql(true)
+    toast.success('Đã sao chép mã SQL vào clipboard! Hãy dán vào Supabase SQL Editor.')
+    setTimeout(() => setCopiedSql(false), 2500)
+  }
 
   // Quick map of users by id
   const userMap = useMemo(() => {
@@ -189,14 +295,27 @@ export function AdminRotationManager({
             </p>
           </div>
 
-          <Button
-            onClick={handleSave}
-            disabled={saving || selectedUserIds.length === 0}
-            className="rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-10 px-5 shadow-xs cursor-pointer shrink-0"
-          >
-            <Save className="w-4 h-4 mr-1.5" />
-            {saving ? 'Đang lưu...' : 'Lưu cấu hình luân phiên'}
-          </Button>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setIsSqlDialogOpen(true)}
+              className="rounded-2xl border-emerald-200 dark:border-emerald-800/80 text-emerald-700 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/40 text-xs font-semibold h-10 px-3.5 cursor-pointer hover:bg-emerald-100"
+            >
+              <Database className="w-3.5 h-3.5 mr-1 text-emerald-600" />
+              SQL tạo bảng Supabase
+            </Button>
+
+            <Button
+              onClick={handleSave}
+              disabled={saving || selectedUserIds.length === 0}
+              className="rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-10 px-5 shadow-xs cursor-pointer shrink-0"
+            >
+              <Save className="w-4 h-4 mr-1.5" />
+              {saving ? 'Đang lưu...' : 'Lưu cấu hình luân phiên'}
+            </Button>
+          </div>
         </div>
 
         {/* Start Date & Info */}
@@ -446,6 +565,47 @@ export function AdminRotationManager({
           </div>
         )}
       </div>
+
+      {/* SQL Setup Dialog */}
+      <Dialog open={isSqlDialogOpen} onOpenChange={setIsSqlDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto rounded-3xl bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 p-6 space-y-4">
+          <DialogHeader>
+            <div className="flex items-center gap-2 text-emerald-600">
+              <Database className="w-5 h-5" />
+              <DialogTitle className="text-lg font-bold text-slate-900 dark:text-slate-100">
+                Khởi tạo bảng phân công luân phiên trên Supabase
+              </DialogTitle>
+            </div>
+            <DialogDescription className="text-xs text-slate-500 dark:text-slate-400">
+              Nếu gặp thông báo lỗi <code className="text-rose-600 font-mono">Could not find the table ... in the schema cache</code>, vui lòng copy toàn bộ đoạn mã SQL bên dưới và chạy tại mục <strong>SQL Editor</strong> trong trang quản trị Supabase.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="relative">
+            <pre className="bg-slate-950 text-slate-200 p-4 rounded-2xl text-[11px] font-mono overflow-x-auto max-h-96 border border-slate-800 leading-relaxed">
+              <code>{SQL_SETUP_CODE}</code>
+            </pre>
+          </div>
+
+          <div className="flex items-center justify-between pt-2">
+            <span className="text-[11px] text-slate-400">Chỉ cần chạy 1 lần duy nhất</span>
+            <Button
+              onClick={handleCopySql}
+              className="rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
+            >
+              {copiedSql ? (
+                <>
+                  <Check className="w-4 h-4 mr-1.5 text-emerald-200" /> Đã sao chép!
+                </>
+              ) : (
+                <>
+                  <Copy className="w-4 h-4 mr-1.5" /> Sao chép toàn bộ SQL
+                </>
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

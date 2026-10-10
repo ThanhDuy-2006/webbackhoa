@@ -96,3 +96,7 @@ CREATE POLICY "Admins can view all popup acknowledgments"
   FOR SELECT
   TO authenticated
   USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+-- 5. LÀM MỚI SCHEMA CACHE CỦA POSTGREST / SUPABASE
+NOTIFY pgrst, 'reload schema';
+
